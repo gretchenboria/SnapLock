@@ -1,163 +1,254 @@
+# SnapLock
 
-# SnapLock: Synthetic Data & Physics Simulation Platform
+A web-based physics simulation platform for robotics and computer vision applications.
 
-**"Lock physics, snap reality."**
+## Overview
 
-SnapLock is a high-fidelity, web-based rigid body physics engine designed for **Robotics** and **AR/VR** applications. It serves as a rapid prototyping tool for generating synthetic training data, testing computer vision sensor configurations (LIDAR, Depth), and simulating adversarial environmental conditions.
+SnapLock is a real-time rigid body physics engine that generates synthetic training data and tests sensor configurations. The platform simulates physical interactions using Verlet integration and renders results through WebGL.
 
-## Features
+## Core Features
 
-*   **Multimodal Sensor Simulation**: Switch instantly between RGB, Depth Map, LiDAR Point Cloud, and Wireframe visualizations.
-*   **Adversarial Director**: An AI-driven background agent that visually analyzes the scene and injects random disturbances (Gravity Shifts, Sensor Noise, Calibration Drift) to stress-test synthetic data.
-*   **Generative Ground Truth**: Convert wireframe simulations into photorealistic industrial imagery or temporal video sequences using generative models.
-*   **Auto-Spawn Mode**: Automated feature that generates scientifically relevant physics scenarios for continuous data harvesting.
-*   **Live Telemetry**: Real-time graphing of system kinetic energy, particle velocity, and framerate for scientific rigor.
-*   **Configuration Management**: Import and Export complex simulation states via JSON to share scenarios or restore specific test conditions.
-*   **System Diagnostics**: Built-in regression test suite to validate physics engine determinism and service integration.
+- Natural language prompt interface for defining physics scenarios
+- Real-time 3D visualization with configurable viewmodes
+- Verlet integration physics solver with warm-start protocol
+- Multi-primitive geometry support (spheres, cubes, cylinders, capsules, pyramids)
+- Configurable material properties (restitution, friction, mass, drag)
+- Environmental parameters (gravity, wind, spawn topology)
+- Built-in regression test suite
 
-## Tech Stack & Machine Learning Models
+## Technical Architecture
 
-**Frontend Architecture:**
-*   **React 19**: Component-based UI.
-*   **Three.js / React Three Fiber**: WebGL rendering engine.
-*   **InstancedMesh**: Optimized for rendering 1000+ rigid bodies at 60fps.
+### Frontend Stack
+- React 19
+- Three.js with React Three Fiber
+- TypeScript
+- Vite build system
+- Tailwind CSS
 
-**Generative AI & Machine Learning:**
-*   **Physics Reasoning & Logic**: **Gemini 3 Pro** (`gemini-3-pro-preview`) - Reasoning model for converting natural language into rigid body parameters and vector mathematics.
-*   **Adversarial Supervisor**: **Gemini 3 Pro** (`gemini-3-pro-preview`) - Multimodal Vision Language Model (VLM) used for real-time scene analysis and stability detection.
-*   **Photorealistic Rendering**: **Gemini 3 Pro Image** (`gemini-3-pro-image-preview`) - Image generation model used to skin wireframes into photorealistic "Ground Truth" datasets.
-*   **Temporal Synthesis**: **Veo 3.1** (`veo-3.1-generate-preview`) - High-fidelity generative video model for creating temporal synthetic data sequences.
+### Physics Engine
+- Custom Verlet integrator
+- Collision detection and response
+- Warm-start solver stabilization
+- 60Hz simulation loop
+- Support for 1000+ particle instances
 
-## Solver Stabilization & Warm Start
+### Solver Stabilization
 
-SnapLock addresses the **"Contact Manifold Serialization Trap"** common in advanced physics engines (like PhysX/Isaac Sim). When a simulation is paused, saved, or loaded, the internal solver often loses its cached contact history, causing overlapping objects to explosively repel (the "Pop" effect) upon resumption.
+The warm-start protocol prevents the "pop effect" common in physics engines when simulations are paused or loaded. During the 60-step warmup phase:
 
-**SnapLock's Solution:**
-*   **Warm Start Protocol**: Upon any load or reset, the engine enters a 60-step **Warmup Phase**. This counter only increments during active simulation steps, preventing the warmup from expiring while the simulation is paused.
-*   **Velocity Clamping**: During warmup, particle velocities are capped to prevent divergence.
-*   **Overdamped Dynamics**: Drag is increased and restitution (bounce) is zeroed. This allows interpenetrating geometries to "settle" gently into a stable contact manifold before full physics integration resumes.
+- Velocity clamping prevents divergence
+- Increased drag and zero restitution allow interpenetrating geometries to settle
+- Contact manifolds stabilize before full physics integration resumes
 
-## Architecture Overview
+## Installation
 
-SnapLock functions through a continuous loop of Logic > Simulation > Perception > Adaptation.
+### Prerequisites
+- Node.js 20 or higher
+- npm or yarn
 
-1.  **Logic Core**: Takes a Natural Language Prompt (e.g., "Debris in zero-g") and uses `gemini-3-pro-preview` to output a strictly typed JSON Physics Configuration.
-2.  **Simulation Layer**: A custom Verlet Integration engine (running in `SimulationLayer.tsx`) updates particle positions, velocities, and collisions at 60Hz. It avoids heavy physics engines like Cannon/Ammo in favor of high-performance particle math suited for visual synthetic data.
-3.  **Visual Layer**: Renders the state using `THREE.InstancedMesh`. It supports "Sensor Modes" (Depth/LiDAR) by overriding fragment shaders or material colors on the fly.
-4.  **Adversarial Loop**: The "Director" captures a low-res snapshot of the canvas, sends it to the Multimodal VLM, and receives instructions to inject noise (e.g., change wind vector) if the scene is deemed "too stable."
+### Local Development
 
-## Pipeline Tools (Python)
-
-### Adversarial Asset Bootstrapper
-A Python pipeline script (`bootstrap_assets.py`) is included to hydrate the project with high-quality CC0 assets (HDRIs, Textures, Models) for Chaos Engineering tests.
-
-**Usage:**
 ```bash
-# Install dependencies
-pip install requests tqdm
-
-# Run the bootstrapper
-python bootstrap_assets.py
+git clone https://github.com/gretchenboria/SnapLock.git
+cd SnapLock
+npm install
+npm run dev
 ```
-This script downloads assets to the local filesystem. For the web application, a TypeScript inventory (`services/chaosInventory.ts`) handles remote asset loading from CDN.
 
-## Testing & Validation
+Access the application at http://localhost:5173
 
-SnapLock includes a comprehensive **In-Browser Regression Suite**. This allows you to verify core functionality without installing external test runners.
+### Production Build
 
-### How to Run Tests
-1.  Launch the application.
-2.  Append `?test=true` to the URL (e.g., `https://snaplock.netlify.app/?test=true`).
-3.  The **SYSTEM DIAGNOSTICS** panel will appear in the top-right corner.
-4.  Click **RUN REGRESSION SUITE**.
+```bash
+npm run build
+npm run preview
+```
 
-### Included Tests
-*   **Unit: Adversarial Logic**: Verifies that the Supervisor outputs valid vectors within safe constraints.
-*   **Unit: Physics Config**: Validates default parameter integrity.
-*   **Integration: Warm Start Protocol**: Automatically resets the sim, unpauses, and verifies the transition from "WARMUP" to "ACTIVE" states via telemetry hooks.
-*   **Integration: AI Config Injection**: Mocks the Gemini API response and verifies that the physics engine correctly parses and applies the new JSON configuration.
-*   **Regression: Renderer Integrity**: Checks WebGL context health and canvas dimensions.
-
-## Quick Start
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-org/snaplock.git
-    cd snaplock
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-
-3.  **Set up Environment:**
-    Ensure you have a valid API Key for the GenAI SDK.
-    ```bash
-    export API_KEY="your_api_key_here"
-    ```
-
-4.  **Run the Simulation:**
-    ```bash
-    npm start
-    ```
+Output files are generated in the `dist` directory.
 
 ## Docker Deployment
 
-SnapLock can be deployed using Docker for a consistent, production-ready environment.
+### Using Docker Compose
 
-### Using Docker Compose (Recommended)
+```bash
+docker-compose up -d
+```
 
-1.  **Start the application:**
-    ```bash
-    docker-compose up -d
-    ```
-
-2.  **Access the application:**
-    Open your browser and navigate to `http://localhost:8080`
-
-3.  **Stop the application:**
-    ```bash
-    docker-compose down
-    ```
+Access at http://localhost:8080
 
 ### Using Docker CLI
 
-1.  **Build the image:**
-    ```bash
-    docker build -t snaplock:latest .
-    ```
+```bash
+docker build -t snaplock:latest .
+docker run -d -p 8080:80 --name snaplock snaplock:latest
+```
 
-2.  **Run the container:**
-    ```bash
-    docker run -d -p 8080:80 --name snaplock snaplock:latest
-    ```
+Stop and remove:
 
-3.  **Access the application:**
-    Open your browser and navigate to `http://localhost:8080`
+```bash
+docker stop snaplock
+docker rm snaplock
+```
 
-4.  **Stop and remove the container:**
-    ```bash
-    docker stop snaplock
-    docker rm snaplock
-    ```
+### Image Specifications
+- Base: Node.js 20-alpine (build), nginx-alpine (production)
+- Size: ~50MB
+- Health checks: 30-second intervals
+- Includes gzip compression and security headers
 
-### Docker Image Details
+## Netlify Deployment
 
-*   **Multi-stage build**: Optimized image size using Node.js for build and nginx-alpine for serving
-*   **Production-ready**: Includes gzip compression, security headers, and health checks
-*   **Image size**: ~50MB (production image)
-*   **Port**: Exposes port 80 internally (mapped to 8080 by default)
+The repository includes `netlify.toml` configuration for automated deployment:
 
-## Licensing
+- Build command: `npm run build`
+- Publish directory: `dist`
+- SPA routing enabled
+- Node.js 20 build environment
 
-SnapLock is distributed under a **Dual Licensing** model.
+Connect your GitHub repository to Netlify for automatic deployments on push.
 
-### 1. Open Source License (AGPLv3)
-For non-commercial, educational, or open-source projects.
-*   You are free to use, modify, and distribute the code.
-*   **Condition**: If you deploy this application, you must disclose your full source code.
+## Configuration
 
-### 2. Commercial License
-For proprietary use without source disclosure.
-*   Contact the author for licensing details.
+### Physics Parameters
+
+Edit `constants.ts` to modify default physics configuration:
+
+```typescript
+export const DEFAULT_PHYSICS: PhysicsParams = {
+  assetGroups: [...],
+  movementBehavior: MovementBehavior.PHYSICS_VERLET,
+  gravity: { x: 0, y: -9.81, z: 0 },
+  wind: { x: 0, y: 0, z: 0 }
+};
+```
+
+### Environment Variables
+
+API keys can be configured via environment variables. Create a `.env` file:
+
+```
+VITE_GEMINI_API_KEY=your_api_key_here
+```
+
+## Testing
+
+### Manual Testing
+
+Run the development server and use the prompt interface to test different scenarios.
+
+### Regression Suite
+
+Append `?test=true` to the URL to access the system diagnostics panel:
+
+```
+http://localhost:5173/?test=true
+```
+
+Available tests:
+- Unit: Adversarial logic validation
+- Unit: Physics config integrity
+- Integration: Warm start protocol
+- Integration: AI config injection
+- Regression: Renderer integrity
+
+### Comprehensive Test Plan
+
+See `TEST_PLAN.md` for detailed edge case coverage and testing recommendations including:
+
+- Prompt input validation
+- API error handling
+- Physics parameter validation
+- State management
+- Performance benchmarks
+- Accessibility compliance
+
+## API Integration
+
+The platform integrates with AI services for natural language processing. Configure API endpoints in `services/geminiService.ts`.
+
+## Project Structure
+
+```
+SnapLock/
+├── components/          # React components
+│   ├── PhysicsScene.tsx
+│   ├── ControlPanel.tsx
+│   └── TestDashboard.tsx
+├── services/           # External service integrations
+│   ├── geminiService.ts
+│   └── adversarialDirector.ts
+├── types.ts            # TypeScript type definitions
+├── constants.ts        # Default configurations
+├── App.tsx             # Main application
+└── index.tsx           # Entry point
+```
+
+## Performance Considerations
+
+- The physics engine maintains 60fps with default particle counts
+- Large particle counts (>1000) may impact performance on low-end devices
+- WebGL context loss is handled gracefully with automatic recovery
+- Memory is managed through proper cleanup of Three.js resources
+
+## Browser Compatibility
+
+- Modern browsers with WebGL support
+- Tested on Chrome, Firefox, Safari, Edge
+- Requires JavaScript enabled
+- Recommended: Hardware acceleration enabled
+
+## License
+
+Dual licensing model:
+
+### Open Source (AGPLv3)
+For non-commercial, educational, or open-source projects. Source code disclosure required if deployed.
+
+### Commercial
+For proprietary use without source disclosure. Contact the author for licensing details.
+
+## Development Workflow
+
+### Building
+```bash
+npm run build
+```
+
+### Type Checking
+```bash
+tsc --noEmit
+```
+
+### Linting
+Linting configuration can be added to the project as needed.
+
+## Known Limitations
+
+- Physics simulation is deterministic but may vary across different hardware
+- Large numbers of collisions can impact frame rate
+- API rate limits may affect auto-spawn and adversarial director features
+- Mobile device support is limited due to WebGL performance constraints
+
+## Troubleshooting
+
+### Blank screen on deployment
+Ensure `index.html` includes the entry point script tag and `netlify.toml` is configured correctly.
+
+### Build errors
+Clear `node_modules` and `dist`, then reinstall dependencies:
+```bash
+rm -rf node_modules dist
+npm install
+npm run build
+```
+
+### WebGL context loss
+Check browser console for errors. Ensure hardware acceleration is enabled in browser settings.
+
+## Contributing
+
+Contributions should include:
+- TypeScript type safety
+- Test coverage for new features
+- Documentation updates
+- Adherence to existing code style

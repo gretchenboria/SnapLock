@@ -102,6 +102,53 @@ SnapLock includes a comprehensive **In-Browser Regression Suite**. This allows y
     npm start
     ```
 
+## Docker Deployment
+
+SnapLock can be deployed using Docker for a consistent, production-ready environment.
+
+### Using Docker Compose (Recommended)
+
+1.  **Start the application:**
+    ```bash
+    docker-compose up -d
+    ```
+
+2.  **Access the application:**
+    Open your browser and navigate to `http://localhost:8080`
+
+3.  **Stop the application:**
+    ```bash
+    docker-compose down
+    ```
+
+### Using Docker CLI
+
+1.  **Build the image:**
+    ```bash
+    docker build -t snaplock:latest .
+    ```
+
+2.  **Run the container:**
+    ```bash
+    docker run -d -p 8080:80 --name snaplock snaplock:latest
+    ```
+
+3.  **Access the application:**
+    Open your browser and navigate to `http://localhost:8080`
+
+4.  **Stop and remove the container:**
+    ```bash
+    docker stop snaplock
+    docker rm snaplock
+    ```
+
+### Docker Image Details
+
+*   **Multi-stage build**: Optimized image size using Node.js for build and nginx-alpine for serving
+*   **Production-ready**: Includes gzip compression, security headers, and health checks
+*   **Image size**: ~50MB (production image)
+*   **Port**: Exposes port 80 internally (mapped to 8080 by default)
+
 ## Licensing
 
 SnapLock is distributed under a **Dual Licensing** model.

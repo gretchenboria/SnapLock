@@ -19,6 +19,7 @@
     "three": "^0.160.0"
   },
   "devDependencies": {
+    "@types/node": "^20.11.24",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.160.0",

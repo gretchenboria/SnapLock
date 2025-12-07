@@ -228,7 +228,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 relative max-w-2xl flex items-center gap-2">
+        <div className="flex-1 relative max-w-4xl flex items-center gap-2">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Command className="w-3 h-3 text-scifi-cyan/50" />
@@ -237,11 +237,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onFocus={(e) => { 
-                    e.target.select(); 
-                    if(isAutoSpawn) toggleAutoSpawn(); 
+                onFocus={(e) => {
+                    e.target.select();
+                    if(isAutoSpawn) toggleAutoSpawn();
                 }}
-                className="w-full bg-black/40 border border-white/10 rounded-sm pl-9 pr-4 py-1.5 text-xs font-mono text-white placeholder-gray-600 focus:outline-none focus:border-scifi-cyan focus:ring-1 focus:ring-scifi-cyan transition-all"
+                className="w-full bg-black/40 border border-white/10 rounded-sm pl-9 pr-4 py-2 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-scifi-cyan focus:ring-1 focus:ring-scifi-cyan transition-all"
                 placeholder="Simulation Prompt: e.g. 'LIDAR noise test on warehouse clutter'..."
             />
           </div>

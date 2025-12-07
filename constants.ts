@@ -1,28 +1,31 @@
-import { PhysicsParams, SimulationMode, SpawnMode, ShapeType, MovementBehavior } from './types';
+
+import { PhysicsParams, SpawnMode, ShapeType, MovementBehavior } from './types';
 
 export const DEFAULT_PHYSICS: PhysicsParams = {
   gravity: { x: 0, y: -9.81, z: 0 },
   wind: { x: 0, y: 0, z: 0 },
-  particleCount: 500,
-  particleSize: 0.25,
-  
-  // Standard Concrete/Plastic values
-  restitution: 0.5, 
-  friction: 0.5,
-  mass: 1.0,
-  drag: 0.01,
-
-  spawnMode: SpawnMode.PILE,
-  shape: ShapeType.CUBE,
   movementBehavior: MovementBehavior.PHYSICS_GRAVITY,
-  color: '#22d3ee',
-  spread: 4,
+  assetGroups: [
+    {
+      id: 'default_1',
+      name: 'Calibration Debris',
+      count: 200,
+      shape: ShapeType.CUBE,
+      color: '#22d3ee',
+      spawnMode: SpawnMode.PILE,
+      scale: 0.25,
+      mass: 1.0,
+      restitution: 0.5,
+      friction: 0.5,
+      drag: 0.01
+    }
+  ]
 };
 
 export const SAMPLE_PROMPTS = [
-  "A glass jar exploding into shards",
-  "A swarm of drones orbiting a central tower",
-  "Heavy concrete blocks falling on ice",
-  "Rubber balls bouncing in a wind tunnel",
-  "Floating data packets in a sine wave"
+  "Simulate a LIDAR scan of drone debris in zero gravity",
+  "Robotic arm collision test with industrial crates",
+  "Autonomous vehicle sensor noise with falling rocks",
+  "Swarm logic failure causing orbital decay",
+  "Warehouse logistics overflow with varying friction"
 ];

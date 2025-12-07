@@ -1,5 +1,4 @@
-
-import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import SimulationLayer from './SimulationLayer';
@@ -85,17 +84,19 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
           cellThickness={0.5}
         />
         
-        {/* Core Simulation */}
-        <SimulationLayer 
-          ref={simLayerRef}
-          params={params} 
-          isPaused={isPaused} 
-          shouldReset={shouldReset}
-          onResetComplete={onResetComplete}
-          mouseInteraction={mouseInteraction}
-          viewMode={viewMode}
-          telemetryRef={telemetryRef}
-        />
+        {/* Core Simulation with Suspense for GLTF Loading */}
+        <Suspense fallback={null}>
+            <SimulationLayer 
+            ref={simLayerRef}
+            params={params} 
+            isPaused={isPaused} 
+            shouldReset={shouldReset}
+            onResetComplete={onResetComplete}
+            mouseInteraction={mouseInteraction}
+            viewMode={viewMode}
+            telemetryRef={telemetryRef}
+            />
+        </Suspense>
 
         <OrbitControls ref={orbitRef} makeDefault maxPolarAngle={Math.PI / 1.8} />
       </Canvas>

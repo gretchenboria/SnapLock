@@ -1,5 +1,6 @@
 
 
+
 export enum ViewMode {
   RGB = 'RGB',
   DEPTH = 'DEPTH',
@@ -144,8 +145,8 @@ export interface SimulationLayerHandle {
 // --- TESTING INTERFACES ---
 
 export interface TestHooks {
-  sceneRef: React.MutableRefObject<any>;
-  telemetryRef: React.MutableRefObject<TelemetryData>;
+  sceneRef: React.MutableRefObject<any> | React.RefObject<any>;
+  telemetryRef: React.MutableRefObject<TelemetryData> | React.RefObject<TelemetryData>;
   setParams: (p: PhysicsParams) => void;
   getParams: () => PhysicsParams;
   resetSim: () => void;

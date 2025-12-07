@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AdversarialDirector } from '../services/adversarialDirector';
 import { DisturbanceType, MovementBehavior, ShapeType } from '../types';
@@ -84,7 +85,7 @@ const TESTS: Array<{ id: string, name: string, fn: (hooks: any) => Promise<void>
       id: 'reg_canvas_integrity',
       name: 'Regression: Renderer Integrity',
       fn: async (hooks) => {
-          const canvas = document.querySelector('canvas');
+          const canvas = document.querySelector('canvas') as HTMLCanvasElement;
           if (!canvas) throw new Error("Canvas element not found in DOM");
           if (canvas.width === 0 || canvas.height === 0) throw new Error("Canvas has 0 dimensions");
           

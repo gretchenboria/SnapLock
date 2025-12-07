@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DEFAULT_PHYSICS, SAMPLE_PROMPTS } from './constants';
 import { PhysicsParams, LogEntry, ViewMode, TelemetryData } from './types';
@@ -164,7 +165,8 @@ const App: React.FC = () => {
   const handleAnalyze = () => executeAnalysis(prompt, 'MANUAL');
 
   const handleSnap = async () => {
-    const canvas = document.querySelector('canvas');
+    // Explicit Cast for TypeScript Build
+    const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     if (!canvas) {
       addLog('Canvas reference missing. Cannot capture.', 'error');
       return;
@@ -199,7 +201,7 @@ const App: React.FC = () => {
   };
 
   const handleGenerateVideo = async () => {
-    const canvas = document.querySelector('canvas');
+    const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     if (!canvas) return;
     
     setIsGeneratingVideo(true);
@@ -347,7 +349,7 @@ const App: React.FC = () => {
       addLog('Adversarial Director: Online (Scanning every 6s)', 'director');
       
       const runDirectorCycle = async () => {
-         const canvas = document.querySelector('canvas');
+         const canvas = document.querySelector('canvas') as HTMLCanvasElement;
          if (!canvas) return;
          if (isPaused) return; 
          if (isProcessing) return; 

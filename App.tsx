@@ -1,11 +1,13 @@
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DEFAULT_PHYSICS, SAMPLE_PROMPTS } from './constants';
 import { PhysicsParams, LogEntry, ViewMode, TelemetryData } from './types';
 import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
-import { analyzePhysicsPrompt, generateRealityImage, analyzeSceneStability, generateSimulationVideo, generateCreativePrompt } from './services/geminiService';
+import { analyzePhysicsPrompt, generateRealityImage, analyzeSceneStability, generateSimulationVideo, generateCreativePrompt, generateSimulationReport } from './services/geminiService';
 import { AdversarialDirector } from './services/adversarialDirector';
 import { X } from 'lucide-react';
+import { TestDashboard } from './components/TestDashboard';
 
 const App: React.FC = () => {
   // State
@@ -17,11 +19,12 @@ const App: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSnapping, setIsSnapping] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.RGB);
   
   // Auto Spawn State
-  const [isAutoSpawn, setIsAutoSpawn] = useState(false);
-  const isAutoSpawnRef = useRef(false); // Ref to track state inside async closures
+  const [isAutoSpawn, setIsAutoSpawn] = useState(true);
+  const isAutoSpawnRef = useRef(true); // Ref to track state inside async closures
   const autoSpawnTimerRef = useRef<number | null>(null);
   
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -35,12 +38,16 @@ const App: React.FC = () => {
   const sceneRef = useRef<PhysicsSceneHandle>(null);
   const canvasRef = useRef<HTMLDivElement>(null); // To capture the container for screenshots
   
+  // Test Mode Detection
+  const [isTestMode, setIsTestMode] = useState(false);
+  
   const telemetryRef = useRef<TelemetryData>({
      fps: 0,
      particleCount: 0,
      systemEnergy: 0,
      avgVelocity: 0,
      maxVelocity: 0,
+     stabilityScore: 0,
      simTime: 0,
      isWarmup: false
   });
@@ -49,6 +56,34 @@ const App: React.FC = () => {
   useEffect(() => {
     isAutoSpawnRef.current = isAutoSpawn;
   }, [isAutoSpawn]);
+  
+  // Initialize Test Mode & Hooks
+  useEffect(() => {
+      const isTesting = new URLSearchParams(window.location.search).get('test') === 'true';
+      setIsTestMode(isTesting);
+      
+      if (isTesting) {
+          // Disable Auto Spawn in Test Mode to prevent interference
+          setIsAutoSpawn(false);
+          isAutoSpawnRef.current = false;
+      }
+  }, []);
+
+  // Update Test Hooks continuously as state changes
+  useEffect(() => {
+      if (isTestMode) {
+          window.snaplock = {
+              sceneRef,
+              telemetryRef,
+              setParams: (p) => setParams(p),
+              getParams: () => params,
+              resetSim: () => setShouldReset(true),
+              togglePause: () => setIsPaused(prev => !prev),
+              setPrompt: (s) => setPrompt(s),
+              clickAnalyze: () => handleAnalyze()
+          };
+      }
+  }, [isTestMode, params, isPaused, prompt]); // Re-bind when crucial state changes
 
   // Clean up Blob URLs to prevent memory leaks
   useEffect(() => {
@@ -78,37 +113,46 @@ const App: React.FC = () => {
     }
   };
 
-  const executeAnalysis = async (inputPrompt: string) => {
+  const executeAnalysis = async (inputPrompt: string, source: 'MANUAL' | 'AUTO' = 'MANUAL') => {
     if (!inputPrompt.trim()) return;
+    
+    // SAFETY CHECK: If this is an auto-spawn request, but the user has turned off auto-spawn
+    // since the request started, we MUST ABORT to prevent overwriting user input/state.
+    if (source === 'AUTO' && !isAutoSpawnRef.current) {
+        return;
+    }
+
     setIsAnalyzing(true);
     addLog(`Configuring simulation for: "${inputPrompt}"...`);
 
     try {
       const result = await analyzePhysicsPrompt(inputPrompt);
       
-      // Safety check: if auto-spawn was disabled during the request, don't apply changes
-      // unless it was a manual request (we assume manual requests override this)
-      if (isAutoSpawnRef.current || !isAutoSpawnRef.current) { // Logic simplified: manual always applies, auto logic handled in loop
-          // Update Physics State
-          setParams(prev => ({
-            ...prev,
-            gravity: result.gravity,
-            wind: result.wind,
-            movementBehavior: result.movementBehavior,
-            assetGroups: result.assetGroups.map(g => ({
-                ...g,
-                // Ensure logic bounds
-                count: Math.min(g.count, 1000), 
-                scale: Math.max(0.1, Math.min(g.scale, 5.0))
-            }))
-          }));
-
-          // Reset triggers
-          setShouldReset(true); 
-          setIsPaused(false);   
-          
-          addLog(`Simulation Configured: ${result.explanation}`, 'success');
+      // DOUBLE CHECK: Re-verify state after the async operation returns
+      if (source === 'AUTO' && !isAutoSpawnRef.current) {
+          console.log("Auto-spawn aborted due to user interruption.");
+          return;
       }
+
+      // Update Physics State
+      setParams(prev => ({
+        ...prev,
+        gravity: result.gravity,
+        wind: result.wind,
+        movementBehavior: result.movementBehavior,
+        assetGroups: result.assetGroups.map(g => ({
+            ...g,
+            // Ensure logic bounds
+            count: Math.min(g.count, 1000), 
+            scale: Math.max(0.1, Math.min(g.scale, 5.0))
+        }))
+      }));
+
+      // Reset triggers
+      setShouldReset(true); 
+      setIsPaused(false);   
+      
+      addLog(`Simulation Configured: ${result.explanation}`, 'success');
 
     } catch (error) {
       addLog(`Configuration Failed: ${(error as Error).message}`, 'error');
@@ -117,7 +161,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAnalyze = () => executeAnalysis(prompt);
+  const handleAnalyze = () => executeAnalysis(prompt, 'MANUAL');
 
   const handleSnap = async () => {
     const canvas = document.querySelector('canvas');
@@ -181,6 +225,82 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDownloadCSV = useCallback(() => {
+    if (!sceneRef.current) return;
+    
+    // 1. Capture Data
+    const particles = sceneRef.current.captureSnapshot();
+    if (particles.length === 0) {
+        addLog('No simulation data available to export.', 'warning');
+        return;
+    }
+
+    // 2. Format Metadata Header (Physics Config)
+    const metadata = [
+        `# SNAPLOCK SYNTHETIC DATA EXPORT`,
+        `# Timestamp: ${new Date().toISOString()}`,
+        `# Gravity: [${params.gravity.x}, ${params.gravity.y}, ${params.gravity.z}]`,
+        `# Wind: [${params.wind.x}, ${params.wind.y}, ${params.wind.z}]`,
+        `# Behavior: ${params.movementBehavior}`,
+        `# Asset Groups: ${params.assetGroups.length}`
+    ].join('\n');
+
+    // 3. Format CSV Columns
+    const headers = ['frame_id', 'particle_id', 'group_id', 'shape', 'mass', 'pos_x', 'pos_y', 'pos_z', 'vel_x', 'vel_y', 'vel_z', 'rot_x', 'rot_y', 'rot_z'];
+    
+    // Simple placeholder frame_id = 0 for single snapshot
+    const rows = particles.map(p => [
+        0,
+        p.id, p.groupId, p.shape, p.mass,
+        p.position.x.toFixed(4), p.position.y.toFixed(4), p.position.z.toFixed(4),
+        p.velocity.x.toFixed(4), p.velocity.y.toFixed(4), p.velocity.z.toFixed(4),
+        p.rotation.x.toFixed(4), p.rotation.y.toFixed(4), p.rotation.z.toFixed(4)
+    ].join(','));
+
+    const csvContent = `${metadata}\n${headers.join(',')}\n${rows.join('\n')}`;
+    
+    // 4. Trigger Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `snaplock_sim_data_${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addLog(`Exported ${particles.length} particle records to CSV.`, 'success');
+
+  }, [addLog, params]);
+
+  const handleGenerateReport = async () => {
+      setIsGeneratingReport(true);
+      const wasPaused = isPaused;
+      setIsPaused(true);
+
+      try {
+          addLog("Compiling Simulation Audit Report...", "info");
+          const htmlContent = await generateSimulationReport(params, telemetryRef.current);
+          
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+              printWindow.document.write(htmlContent);
+              printWindow.document.close();
+              printWindow.focus();
+              setTimeout(() => {
+                  printWindow.print();
+                  printWindow.close();
+              }, 500);
+          }
+          addLog("Report Generated.", "success");
+      } catch (e) {
+          addLog("Failed to generate report.", "error");
+      } finally {
+          setIsGeneratingReport(false);
+          if (!wasPaused) setIsPaused(false);
+      }
+  };
+
   // --- AUTO SPAWN LOOP ---
   useEffect(() => {
     if (isAutoSpawn) {
@@ -189,13 +309,16 @@ const App: React.FC = () => {
         }
         
         const spawnCycle = async () => {
-            // Check ref to ensure we are still in auto mode when callback fires
             if (!isAutoSpawnRef.current) return;
             if (isAnalyzing) return;
             
             const creativePrompt = await generateCreativePrompt();
+            
+            // Check again before executing
+            if (!isAutoSpawnRef.current) return; 
+            
             setPrompt(creativePrompt);
-            await executeAnalysis(creativePrompt);
+            await executeAnalysis(creativePrompt, 'AUTO');
         };
 
         // Initial run if not already running
@@ -214,7 +337,7 @@ const App: React.FC = () => {
     return () => {
         if (autoSpawnTimerRef.current) window.clearInterval(autoSpawnTimerRef.current);
     }
-  }, [isAutoSpawn]); // Intentionally don't dep isAnalyzing to avoid restarting timer
+  }, [isAutoSpawn]); 
 
   // --- ADVERSARIAL DIRECTOR LOOP ---
   useEffect(() => {
@@ -227,22 +350,17 @@ const App: React.FC = () => {
          const canvas = document.querySelector('canvas');
          if (!canvas) return;
          if (isPaused) return; 
-         if (isProcessing) return; // Prevent Overlap
+         if (isProcessing) return; 
 
          isProcessing = true;
          
-         // 1. Capture Snapshot
-         // Use lower quality (0.5) to reduce payload size and latency
          const dataUrl = canvas.toDataURL('image/png', 0.5); 
          
-         // 2. Analyze (VLM)
          try {
              const instruction = await analyzeSceneStability(dataUrl);
              
              if (instruction.action !== 'NONE') {
                 addLog(`DIRECTOR: ${instruction.action} (${instruction.reasoning})`, 'director');
-                
-                // 3. Modify Physics
                 setParams(current => AdversarialDirector.applyDisturbance(current, instruction));
              }
          } catch (e) {
@@ -270,6 +388,9 @@ const App: React.FC = () => {
   return (
     <div ref={canvasRef} className="relative h-screen w-screen bg-slate-900 text-white overflow-hidden">
       
+      {/* Test Dashboard Overlay */}
+      {isTestMode && <TestDashboard />}
+
       {/* 3D Scene Layer */}
       <div className="absolute inset-0 z-0">
         <PhysicsScene 
@@ -308,11 +429,14 @@ const App: React.FC = () => {
         isAutoSpawn={isAutoSpawn}
         toggleAutoSpawn={() => setIsAutoSpawn(!isAutoSpawn)}
         telemetryRef={telemetryRef}
+        onDownloadCSV={handleDownloadCSV}
+        onGenerateReport={handleGenerateReport}
+        isGeneratingReport={isGeneratingReport}
       />
 
       {/* Generated Result Modal */}
       {(generatedImage || generatedVideo) && (
-        <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-8 animate-in fade-in duration-300">
+        <div className="absolute inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-8 animate-in fade-in duration-300">
            <div className="relative bg-scifi-900 border border-scifi-accent p-1 shadow-[0_0_100px_rgba(244,114,182,0.3)] max-w-6xl w-full h-[80vh] flex flex-col rounded-lg">
               <div className="flex justify-between items-center p-4 bg-scifi-800/50 border-b border-scifi-700 mb-1">
                  <div className="flex items-center gap-4">

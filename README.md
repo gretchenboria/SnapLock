@@ -1,3 +1,4 @@
+
 # SnapLock: Synthetic Data & Physics Simulation Platform
 
 **"Lock physics, snap reality."**
@@ -12,6 +13,7 @@ SnapLock is a high-fidelity, web-based rigid body physics engine designed for **
 *   **Auto-Spawn Mode**: Automated feature that generates scientifically relevant physics scenarios for continuous data harvesting.
 *   **Live Telemetry**: Real-time graphing of system kinetic energy, particle velocity, and framerate for scientific rigor.
 *   **Configuration Management**: Import and Export complex simulation states via JSON to share scenarios or restore specific test conditions.
+*   **System Diagnostics**: Built-in regression test suite to validate physics engine determinism and service integration.
 
 ## Tech Stack & Machine Learning Models
 
@@ -35,9 +37,6 @@ SnapLock addresses the **"Contact Manifold Serialization Trap"** common in advan
 *   **Velocity Clamping**: During warmup, particle velocities are capped to prevent divergence.
 *   **Overdamped Dynamics**: Drag is increased and restitution (bounce) is zeroed. This allows interpenetrating geometries to "settle" gently into a stable contact manifold before full physics integration resumes.
 
-**Domain Randomization:**
-The Adversarial Director includes a `SOLVER_FLUSH` disturbance type. This artificially clears velocity history and friction anchors, simulating the loss of solver cache. This enables the generation of synthetic datasets that train RL agents to be robust against physics state loss.
-
 ## Architecture Overview
 
 SnapLock functions through a continuous loop of Logic > Simulation > Perception > Adaptation.
@@ -47,44 +46,38 @@ SnapLock functions through a continuous loop of Logic > Simulation > Perception 
 3.  **Visual Layer**: Renders the state using `THREE.InstancedMesh`. It supports "Sensor Modes" (Depth/LiDAR) by overriding fragment shaders or material colors on the fly.
 4.  **Adversarial Loop**: The "Director" captures a low-res snapshot of the canvas, sends it to the Multimodal VLM, and receives instructions to inject noise (e.g., change wind vector) if the scene is deemed "too stable."
 
-## Session Behavior & State Management
+## Pipeline Tools (Python)
 
-SnapLock is designed as a **transient simulation environment**.
+### Adversarial Asset Bootstrapper
+A Python pipeline script is included to hydrate the project with high-quality CC0 assets (HDRIs, Textures, Models) for Chaos Engineering tests.
 
-*   **Fresh Start Protocol**: Each time the application is reloaded, the state resets completely to default factory values. No data is persisted in LocalStorage, Cookies, or Browser Cache. This ensures a clean testing slate for every session, preventing pollution from previous experiments or Hot Module Reloads.
-*   **Saving Work**: To preserve a simulation configuration, use the **EXPORT** button in the bottom left inspector panel. This will download a `sim_config.json` file.
-*   **Restoring Work**: Use the **IMPORT** button to upload a valid `sim_config.json` file. This will instantly restore the assets, physics parameters, and environment settings.
+**Usage:**
+```bash
+# Install dependencies
+pip install requests tqdm
 
-## Configuration Guide
+# Run the bootstrapper
+python bootstrap_assets.py
+```
 
-When inspecting assets, the following parameters control the physical properties:
+This will download ~200MB of assets to `./assets/adversarial_pack/` and generate a `manifest.json` that the Adversarial Director uses to select distractor objects.
 
-*   **Restitution (0.0 - 1.2)**: Bounciness. 1.0 is perfectly elastic. >1.0 gains energy on collision.
-*   **Friction (0.0 - 1.0)**: Surface grip. 0.0 is ice, 1.0 is sandpaper. Controls velocity decay on floor contact.
-*   **Mass (0.1 - 50.0)**: Density. Heavier objects are less affected by Wind but fall faster if drag is low.
-*   **Drag (0.0 - 0.2)**: Air resistance. Higher values simulate liquid environments or parachutes.
+## Testing & Validation
 
-## Integration Testing & Validation
+SnapLock includes a comprehensive **In-Browser Regression Suite**. This allows you to verify core functionality without installing external test runners.
 
-To validate core physics functionality manually:
+### How to Run Tests
+1.  Launch the application.
+2.  Append `?test=true` to the URL (e.g., `https://example.com/?test=true`).
+3.  The **SYSTEM DIAGNOSTICS** panel will appear in the top-right corner.
+4.  Click **RUN REGRESSION SUITE**.
 
-1.  **Warm Start Validation**:
-    *   Load the simulation.
-    *   Immediately press PAUSE.
-    *   Observe the "Kinetic Energy" telemetry flashing "WARMUP".
-    *   Wait 5 seconds.
-    *   Unpause.
-    *   **Result**: The debris should settle gently. If it explodes immediately, the Warm Start timer expired while paused (Fail).
-
-2.  **Adversarial Director Test**:
-    *   Enable "Director" toggle.
-    *   Wait for the red "SYSTEM ANOMALY" toast.
-    *   **Result**: Physics parameters (Gravity/Wind) should visibly shift in the inspector panel.
-
-3.  **Fresh Start Check**:
-    *   Modify settings (change colors/shapes).
-    *   Reload the browser page.
-    *   **Result**: All settings must revert to the default Cyan Cubes.
+### Included Tests
+*   **Unit: Adversarial Logic**: Verifies that the Supervisor outputs valid vectors within safe constraints.
+*   **Unit: Physics Config**: Validates default parameter integrity.
+*   **Integration: Warm Start Protocol**: Automatically resets the sim, unpauses, and verifies the transition from "WARMUP" to "ACTIVE" states via telemetry hooks.
+*   **Integration: AI Config Injection**: Mocks the Gemini API response and verifies that the physics engine correctly parses and applies the new JSON configuration.
+*   **Regression: Renderer Integrity**: Checks WebGL context health and canvas dimensions.
 
 ## Quick Start
 
@@ -126,14 +119,3 @@ For proprietary, closed-source, or commercial use where source code disclosure i
 *   Includes priority support and indemnification.
 
 *Contact [me@gretchenboria.com] for commercial inquiries.*
-
-## Troubleshooting
-
-*   **"Director Offline"**: Ensure your API Key has access to `gemini-3-pro-preview`. This feature requires a high-throughput paid key for continuous sampling.
-*   **Video Generation Stuck**: Veo model generation can take 20-60 seconds. Ensure the browser tab remains active. If it fails, check the console for "Quota Exceeded" errors.
-*   **Model Overloaded (503)**: The backend automatically retries up to 3 times with exponential backoff (2s, 4s, 8s). If the error persists, wait 1 minute before retrying.
-*   **Low FPS**: If simulating >1000 particles on a laptop, try reducing the "Particle Count" in the Inspector or switching to "Wireframe" view to reduce GPU load.
-
-## Contributing
-
-We welcome contributions. Please see `CONTRIBUTING.md` for details on how to submit pull requests, report issues, and request features.

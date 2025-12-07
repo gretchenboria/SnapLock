@@ -1,23 +1,45 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAction, DisturbanceType } from "../types";
+import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAction, DisturbanceType, PhysicsParams, TelemetryData } from "../types";
+import { MOCK_ANALYSIS_RESPONSE, MOCK_ADVERSARIAL_ACTION, MOCK_CREATIVE_PROMPT, MOCK_HTML_REPORT } from "./mockData";
 
 // Initialize AI Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const isTestMode = () => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('test') === 'true';
+};
+
 // --- UTILITIES ---
 
+const FALLBACK_PROMPTS = [
+    "Zero-G collision of a heavy gold sphere against a cloud of 200 steel cubes",
+    "Avalanche of red pyramids crashing into a static wall of blue plates",
+    "LIDAR calibration test with floating polyhedrons and a rotating sensor",
+    "Swarm of micro-drones navigating through a debris field",
+    "Heavy industrial pistons crushing soft foam blocks",
+    "Orbital debris containment field failure simulation",
+    "High-velocity impact testing on reinforced glass panels",
+    "Magnetic resonance simulation with metallic shards"
+];
+
 /**
- * Executes a function with exponential backoff retries for transient 503 errors.
+ * Executes a function with exponential backoff retries for transient errors (503, 500, Empty Response).
  */
 async function withRetry<T>(operation: () => Promise<T>, retries = 3, baseDelay = 2000): Promise<T> {
   try {
     return await operation();
   } catch (error: any) {
     const isOverloaded = error?.status === 503 || error?.code === 503 || error?.message?.toLowerCase().includes('overloaded');
+    const isInternalError = error?.status === 500 || error?.code === 500;
+    // Catch empty responses or "Reason: STOP" errors which are transient model glitches
+    const isTransientModelError = error?.message?.includes('Empty response') || error?.message?.includes('Reason: STOP');
     
-    if (retries > 0 && isOverloaded) {
+    if (retries > 0 && (isOverloaded || isInternalError || isTransientModelError)) {
       const delay = baseDelay * (4 - retries); // 2000, 4000, 6000...
-      console.warn(`[Gemini Service] Model overloaded (503). Retrying in ${delay}ms... (${retries} attempts left)`);
+      const errorType = isOverloaded ? 'Overloaded (503)' : isInternalError ? 'Internal Error (500)' : 'Transient Model Error';
+      console.warn(`[Gemini Service] ${errorType}. Retrying in ${delay}ms... (${retries} attempts left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return withRetry(operation, retries - 1, baseDelay);
     }
@@ -27,6 +49,12 @@ async function withRetry<T>(operation: () => Promise<T>, retries = 3, baseDelay 
 }
 
 export const analyzePhysicsPrompt = async (userPrompt: string): Promise<AnalysisResponse> => {
+  if (isTestMode()) {
+      console.log("[GeminiService] Test Mode: Returning Mock Analysis");
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate latency
+      return MOCK_ANALYSIS_RESPONSE;
+  }
+
   return withRetry(async () => {
     try {
         // Using high-fidelity model for STEM/Physics reasoning
@@ -45,14 +73,15 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
             - 'PHYSICS_GRAVITY' -> Standard Earth (y:-9.81).
         
         2. SPAWN MODES:
-            - PILE: Debris/Clutter.
+            - PILE: Debris/Clutter (Good for environment).
             - BLAST: Explosions/Fracture.
-            - GRID: Structured calibration targets.
+            - GRID: Structured calibration targets (Good for Hero/Sensor objects).
 
-        3. ASSET GROUPS:
-            - Distinguish between "The Robot/Sensor" and "The Environment".
-            - Use CAPSULE for robotic limbs/connectors.
-            - Use Icosahedrons/Spheres for sensor nodes.
+        3. ASSET GROUPS (MULTI-LAYERED):
+            - Always attempt to generate at least 2 distinct groups to create depth.
+            - Group 1: "The Subject" (Robot, Sensor, Vehicle, Artifact) -> Low count (1-5), High Mass, CAPSULE/ICOSAHEDRON/CYLINDER.
+            - Group 2: "The Environment" (Debris, Obstacles, Dust) -> High count, Low Mass, CUBE/SPHERE.
+            - Use contrasting colors (e.g., Cyan vs Pink, Orange vs Slate).
 
         Return strictly valid JSON.`,
         config: {
@@ -99,12 +128,15 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
         const jsonText = response.text;
         
         if (!jsonText) {
-            // Provide more detail if available
-            const finishReason = response.candidates?.[0]?.finishReason;
-            if (finishReason) {
+            // Check for valid finish reasons before declaring a block
+            const candidate = response.candidates?.[0];
+            const finishReason = candidate?.finishReason;
+            
+            // STOP is a natural finish. If text is missing but reason is STOP, it's a transient glitch (empty output), not a safety block.
+            if (finishReason && finishReason !== 'STOP') {
                 throw new Error(`AI response blocked. Reason: ${finishReason}`);
             }
-            throw new Error("No text returned from AI. The model may have returned an empty response.");
+            throw new Error("Empty response from AI model.");
         }
         
         return JSON.parse(jsonText) as AnalysisResponse;
@@ -117,28 +149,40 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
 };
 
 export const generateCreativePrompt = async (): Promise<string> => {
-    try {
-        // We don't retry creative prompts aggressively as they run in background loops
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: `Generate a single, short, creative, and scientifically interesting prompt for a physics simulation engine called SnapLock. 
-            The engine handles robotics, rigid body dynamics, zero-g, and various disturbances.
-            
-            Examples:
-            - "Zero-G collision of 200 steel spheres with a magnetic attractor"
-            - "Avalanche of cubes on a high friction slope with heavy wind"
-            - "LIDAR calibration test with floating polyhedrons"
+    if (isTestMode()) return MOCK_CREATIVE_PROMPT;
 
-            OUTPUT: Just the prompt text string. No quotes, no markdown.`,
-        });
-        return response.text?.trim() || "Random entropy burst with heavy gravity";
+    try {
+        // We retry once for creative prompts to handle transient 500/503s or empty responses
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: `Generate a single, short, creative, and scientifically interesting prompt for a physics simulation engine called SnapLock. 
+                The engine handles robotics, rigid body dynamics, zero-g, and multiple interacting asset layers.
+                
+                Examples:
+                - "Zero-G collision of a heavy gold sphere against a cloud of 200 steel cubes"
+                - "Avalanche of red pyramids crashing into a static wall of blue plates"
+                - "LIDAR calibration test with floating polyhedrons and a rotating sensor"
+
+                OUTPUT: Just the prompt text string. No quotes, no markdown.`,
+            });
+            const text = response.text?.trim();
+            if (!text) throw new Error("Empty response");
+            return text;
+        }, 1, 1000); // 1 Retry, 1s delay
     } catch (error) {
-        console.error("Creative Prompt Error:", error);
-        return "Standard gravity test with cubes";
+        console.warn("Creative Prompt API failed, using fallback:", error);
+        // Fallback to local random prompt to ensure the app stays "alive"
+        return FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)];
     }
 };
 
 export const generateRealityImage = async (base64Image: string, prompt: string): Promise<string> => {
+  if (isTestMode()) {
+     // Return a 1x1 pixel base64 image
+     return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+  }
+
   return withRetry(async () => {
     try {
         const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
@@ -192,6 +236,11 @@ export const generateRealityImage = async (base64Image: string, prompt: string):
 };
 
 export const generateSimulationVideo = async (base64Image: string, prompt: string): Promise<string> => {
+  if (isTestMode()) {
+      // Mock video blob url
+      return "mock_video_url.mp4";
+  }
+
   try {
     // 1. Check/Request API Key
     if ((window as any).aistudio && !(await (window as any).aistudio.hasSelectedApiKey())) {
@@ -247,6 +296,8 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
  * Acts as the Supervisor analyzing the simulation state.
  */
 export const analyzeSceneStability = async (base64Image: string): Promise<AdversarialAction> => {
+  if (isTestMode()) return MOCK_ADVERSARIAL_ACTION;
+
   return withRetry(async () => {
     try {
         const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
@@ -304,7 +355,14 @@ export const analyzeSceneStability = async (base64Image: string): Promise<Advers
         });
 
         const jsonText = response.text;
-        if (!jsonText) throw new Error("Adversarial AI failed to respond");
+        if (!jsonText) {
+             const candidate = response.candidates?.[0];
+             const finishReason = candidate?.finishReason;
+             if (finishReason && finishReason !== 'STOP') {
+                 throw new Error(`AI response blocked. Reason: ${finishReason}`);
+             }
+             throw new Error("Empty response from AI model.");
+        }
 
         return JSON.parse(jsonText) as AdversarialAction;
 
@@ -319,4 +377,55 @@ export const analyzeSceneStability = async (base64Image: string): Promise<Advers
         };
     }
   });
+};
+
+/**
+ * GENERATES TECHNICAL REPORT (HTML)
+ */
+export const generateSimulationReport = async (params: PhysicsParams, telemetry: TelemetryData): Promise<string> => {
+    if (isTestMode()) return MOCK_HTML_REPORT;
+
+    try {
+        const dataContext = JSON.stringify({
+            params,
+            telemetry: {
+                ...telemetry,
+                systemEnergy: telemetry.systemEnergy.toFixed(2),
+                avgVelocity: telemetry.avgVelocity.toFixed(2),
+                stabilityScore: telemetry.stabilityScore.toFixed(3)
+            }
+        });
+
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-3-pro-preview",
+                contents: `Generate a professional Technical Simulation Report (HTML format) based on the following JSON data context.
+                
+                DATA CONTEXT: ${dataContext}
+
+                REQUIREMENTS:
+                1. Output strictly valid HTML (no markdown code blocks, just the <html>...</html> content).
+                2. Use a clean, scientific, printable style (Tailwind classes or inline CSS).
+                3. Sections:
+                   - HEADER: "SNAPLOCK // SIMULATION AUDIT REPORT", Date, Simulation ID.
+                   - EXECUTIVE SUMMARY: Brief natural language description of the scene and its complexity.
+                   - CONFIGURATION MATRIX: Table showing gravity, wind, and asset groups.
+                   - TELEMETRY ANALYSIS: Interpret the Energy/Velocity data. 
+                     * STABILITY SCORE (StdDev Velocity): If < 0.1, system is Stable/Settled. If > 2.0, system is Chaotic/Explosive.
+                   - REAL-WORLD TESTING RECOMMENDATIONS: Identify 3-4 specific physical tests to validate this sim in a real lab.
+                     * Example: "Verify friction coefficient of [Material X] on concrete."
+                     * Example: "Calibrate LIDAR sensor for high-velocity particle tracking."
+                
+                TONE: Technical Product Manager / Research Scientist.`,
+            });
+
+            const html = response.text || "<h1>Report Generation Failed</h1>";
+            // Clean markdown if present
+            return html.replace(/```html/g, '').replace(/```/g, '');
+        });
+
+    } catch (error) {
+        console.error("Report Gen Error:", error);
+        return "<h1>Error Generating Report</h1><p>The AI service was unable to compile the analysis.</p>";
+    }
 };

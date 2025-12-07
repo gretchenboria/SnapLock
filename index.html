@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -23,6 +22,12 @@
                 cyan: '#22d3ee',
                 accent: '#f472b6', // Pink
               }
+            },
+            keyframes: {
+                progress: {
+                    '0%': { width: '0%' },
+                    '100%': { width: '100%' },
+                }
             }
           }
         }
@@ -46,6 +51,15 @@
       }
       ::-webkit-scrollbar-thumb:hover {
         background: #22d3ee; 
+      }
+      /* Hide Number Input Spinners */
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type=number] {
+        -moz-appearance: textfield;
       }
     </style>
   <script type="importmap">

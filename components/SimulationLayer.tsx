@@ -1,7 +1,9 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+
+import React, { useRef, useMemo, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { PhysicsParams, ShapeType, MovementBehavior, SpawnMode, ViewMode, TelemetryData } from '../types';
+import { PhysicsParams, ShapeType, MovementBehavior, SpawnMode, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot } from '../types';
+import { AssetRenderer } from './AssetRenderer';
 
 interface SimulationLayerProps {
   params: PhysicsParams;
@@ -13,7 +15,7 @@ interface SimulationLayerProps {
   telemetryRef: React.MutableRefObject<TelemetryData>;
 }
 
-const SimulationLayer: React.FC<SimulationLayerProps> = ({ 
+const SimulationLayer = forwardRef<SimulationLayerHandle, SimulationLayerProps>(({ 
   params, 
   isPaused, 
   shouldReset, 
@@ -21,10 +23,13 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
   mouseInteraction,
   viewMode,
   telemetryRef
-}) => {
+}, ref) => {
   const meshRefs = useRef<(THREE.InstancedMesh | null)[]>([]);
   const { camera } = useThree();
   const frameCountRef = useRef(0);
+  
+  // History buffer for stability calculation (last 60 frames avg velocity)
+  const velocityHistoryRef = useRef<number[]>([]);
   
   // 1. Stable Topology Structure
   const groupStructure = useMemo(() => {
@@ -39,7 +44,7 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
         end: count 
       };
     });
-  }, [JSON.stringify(params.assetGroups.map(g => ({ c: g.count, id: g.id })))]);
+  }, [JSON.stringify(params.assetGroups.map(g => ({ c: g.count, id: g.id, m: g.modelUrl })))]);
 
   const totalParticles = groupStructure.reduce((acc, g) => Math.max(acc, g.end), 0);
 
@@ -50,7 +55,8 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
       count: g.count,
       shape: g.shape,
       spawnMode: g.spawnMode,
-      scale: g.scale 
+      scale: g.scale,
+      model: g.modelUrl // Include model in hash
     }))
   });
 
@@ -65,10 +71,38 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const tempColor = useMemo(() => new THREE.Color(), []);
 
+  // --- DATA EXPORT INTERFACE ---
+  useImperativeHandle(ref, () => ({
+    captureSnapshot: () => {
+      const snapshot: ParticleSnapshot[] = [];
+      const pos = positions.current;
+      const vel = velocities.current;
+      const rot = rotations.current;
+
+      groupStructure.forEach((structure) => {
+        const group = params.assetGroups[structure.index];
+        for (let i = structure.start; i < structure.end; i++) {
+          const i3 = i * 3;
+          snapshot.push({
+            id: i,
+            groupId: group.id,
+            shape: group.shape,
+            mass: group.mass,
+            position: { x: pos[i3], y: pos[i3+1], z: pos[i3+2] },
+            velocity: { x: vel[i3], y: vel[i3+1], z: vel[i3+2] },
+            rotation: { x: rot[i3], y: rot[i3+1], z: rot[i3+2] }
+          });
+        }
+      });
+      return snapshot;
+    }
+  }));
+
   // --- INITIALIZATION ---
   useEffect(() => {
     // Reset frame count to trigger Warm Start Phase
     frameCountRef.current = 0;
+    velocityHistoryRef.current = [];
 
     // Clean up potentially stale references when topology changes
     meshRefs.current = meshRefs.current.slice(0, groupStructure.length);
@@ -118,14 +152,17 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
                    break;
                 case SpawnMode.GRID:
                    const perRow = Math.ceil(Math.pow(group.count, 1/3));
-                   const step = spread * 2 / perRow;
+                   const step = perRow > 1 ? (spread * 2 / perRow) : 0;
+                   const axisOffset = (perRow - 1) / 2;
+                   
                    const localI = i - structure.start;
                    const ix = localI % perRow;
                    const iy = Math.floor((localI / perRow)) % perRow;
                    const iz = Math.floor(localI / (perRow * perRow));
-                   x = (ix - perRow/2) * step;
-                   y = (iy - perRow/2) * step;
-                   z = (iz - perRow/2) * step;
+                   
+                   x = (ix - axisOffset) * step;
+                   y = (iy - axisOffset) * step + 5; 
+                   z = (iz - axisOffset) * step;
                    break;
                 case SpawnMode.FLOAT:
                    x = (Math.random() - 0.5) * spread * 3;
@@ -181,7 +218,7 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
 
             m[i] = Math.random(); 
 
-            // Initialize Color - CRITICAL for optimization
+            // Initialize Color
             if (mesh) {
                 mesh.setColorAt(i - structure.start, baseColor);
             }
@@ -246,14 +283,8 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
     let maxVel = 0;
     let activeParticles = 0;
 
-    // Optimization: Check if we need to update colors this frame
     const isDynamicColorMode = viewMode === ViewMode.DEPTH || viewMode === ViewMode.LIDAR;
 
-    // WARM START LOGIC:
-    // To prevent "Contact Manifold" explosions (the "pop" effect) when loading/resetting,
-    // we run the first 60 frames (approx 1 sec) with clamped velocities and high damping.
-    // This allows interpenetrating objects to settle without violent repulsion.
-    // FIX: Only increment warmup frames if physics is NOT paused.
     if (!isPaused) {
         frameCountRef.current += 1;
     }
@@ -262,7 +293,6 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
     groupStructure.forEach((structure) => {
         const group = params.assetGroups[structure.index];
         const mesh = meshRefs.current[structure.index];
-        const baseColor = new THREE.Color(group.color);
         const halfScale = group.scale / 2;
 
         const applyGravity = params.movementBehavior !== MovementBehavior.LINEAR_FLOW 
@@ -286,7 +316,6 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
                     pos[i3+2] = r * Math.sin(theta);
                     pos[i3+1] = init[i3+1] + Math.sin(time * 2 + m[i] * 5) * 0.5;
                     
-                    // Velocity approximation for orbital (v = r * omega)
                     const vMag = r * speed;
                     sumVel += vMag;
                     maxVel = Math.max(maxVel, vMag);
@@ -302,7 +331,7 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
                     pos[i3+1] = init[i3+1] + Math.sin(pos[i3]*0.3 + zScroll*0.2 + time*2) * 2;
                     rot[i3] += dt; rot[i3+2] += dt;
                     
-                    const vMag = 2; // Approx constant wave speed
+                    const vMag = 2; 
                     sumVel += vMag;
                     sysEnergy += 0.5 * group.mass * (vMag * vMag);
 
@@ -315,7 +344,6 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
                     fx += params.gravity.x + params.wind.x;
                     fz += params.gravity.z + params.wind.z;
 
-                    // Apply increased drag during Warm Start to dampen explosion artifacts
                     const dragCoeff = isWarmup ? 0.5 : (group.drag * 5);
                     fx -= vel[i3] * dragCoeff;
                     fy -= vel[i3+1] * dragCoeff;
@@ -340,7 +368,6 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
                     vel[i3+1] += fy * invMass * dt;
                     vel[i3+2] += fz * invMass * dt;
 
-                    // Clamp max velocity during Warm Start
                     if (isWarmup) {
                         const maxWarmupVel = 0.5;
                         const currentVel = Math.sqrt(vel[i3]**2 + vel[i3+1]**2 + vel[i3+2]**2);
@@ -363,7 +390,6 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
                     if (applyFloor && pos[i3+1] < floorY + halfScale) {
                         pos[i3+1] = floorY + halfScale;
                         if (vel[i3+1] < 0) {
-                            // During Warm Start, restitution is 0 to force settling
                             const effectiveRestitution = isWarmup ? 0.0 : group.restitution;
                             vel[i3+1] = -vel[i3+1] * effectiveRestitution;
                             if (Math.abs(vel[i3+1]) < 0.5) vel[i3+1] = 0;
@@ -377,7 +403,6 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
                         pos[i3] = -20;
                     }
 
-                    // Metrics Update
                     const vSq = vel[i3]*vel[i3] + vel[i3+1]*vel[i3+1] + vel[i3+2]*vel[i3+2];
                     const vMag = Math.sqrt(vSq);
                     sysEnergy += 0.5 * group.mass * vSq;
@@ -388,18 +413,15 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
                     dummy.rotation.set(rot[i3], rot[i3+1], rot[i3+2]);
                 }
             } else {
-                 // Even if paused, update dummy for color application and metrics
                  dummy.position.set(pos[i3], pos[i3+1], pos[i3+2]);
                  dummy.rotation.set(rot[i3], rot[i3+1], rot[i3+2]);
             }
 
-            // Update Mesh Matrix
             if (mesh) {
                 dummy.scale.setScalar(group.scale);
                 dummy.updateMatrix();
                 mesh.setMatrixAt(i - structure.start, dummy.matrix);
 
-                // --- SENSOR SIMULATION COLORING ---
                 if (isDynamicColorMode) {
                     if (viewMode === ViewMode.DEPTH) {
                         const dist = dummy.position.distanceTo(camera.position);
@@ -413,8 +435,7 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
                         mesh.setColorAt(i - structure.start, tempColor);
                     }
                 } else if (frameCountRef.current < 2) { 
-                    // Ensure color is set at least once for RGB mode (fixes reset race conditions)
-                    mesh.setColorAt(i - structure.start, baseColor);
+                    mesh.setColorAt(i - structure.start, new THREE.Color(group.color));
                 }
             }
         }
@@ -427,15 +448,28 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
         }
     });
     
-    // --- UPDATE TELEMETRY ---
-    // Update only if active or occasionally if paused to keep UI responsive
-    if (frameCountRef.current % 5 === 0 || isPaused) { 
+    if (frameCountRef.current % 5 === 0 || isPaused) {
+        const avgVel = activeParticles > 0 ? sumVel / activeParticles : 0;
+        
+        if (!isPaused) {
+            velocityHistoryRef.current.push(avgVel);
+            if (velocityHistoryRef.current.length > 60) velocityHistoryRef.current.shift();
+        }
+        
+        let stabilityScore = 0;
+        if (velocityHistoryRef.current.length > 5) {
+            const mean = velocityHistoryRef.current.reduce((a, b) => a + b, 0) / velocityHistoryRef.current.length;
+            const variance = velocityHistoryRef.current.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / velocityHistoryRef.current.length;
+            stabilityScore = Math.sqrt(variance);
+        }
+
         telemetryRef.current = {
             fps: 1 / dt,
             particleCount: activeParticles,
             systemEnergy: sysEnergy,
-            avgVelocity: activeParticles > 0 ? sumVel / activeParticles : 0,
+            avgVelocity: avgVel,
             maxVelocity: maxVel,
+            stabilityScore: stabilityScore,
             simTime: time,
             isWarmup: isWarmup
         };
@@ -447,43 +481,18 @@ const SimulationLayer: React.FC<SimulationLayerProps> = ({
     <group>
       {groupStructure.map((structure) => {
           const group = params.assetGroups[structure.index];
-          let Geo;
-          switch(group.shape) {
-             case ShapeType.SPHERE: Geo = <sphereGeometry args={[1, 16, 16]} />; break;
-             case ShapeType.CONE: Geo = <coneGeometry args={[1, 2, 16]} />; break;
-             case ShapeType.PYRAMID: Geo = <coneGeometry args={[1, 1.5, 4]} />; break;
-             case ShapeType.CYLINDER: Geo = <cylinderGeometry args={[0.5, 0.5, 2, 16]} />; break;
-             case ShapeType.TORUS: Geo = <torusGeometry args={[1, 0.4, 16, 32]} />; break;
-             case ShapeType.ICOSAHEDRON: Geo = <icosahedronGeometry args={[1, 0]} />; break;
-             case ShapeType.CAPSULE: Geo = <capsuleGeometry args={[0.5, 1, 4, 16]} />; break;
-             case ShapeType.PLATE: Geo = <boxGeometry args={[1, 0.1, 1]} />; break;
-             case ShapeType.CUBE: 
-             default: Geo = <boxGeometry args={[1, 1, 1]} />; break;
-          }
-
           return (
-            <instancedMesh 
-                key={group.id} 
-                ref={(el) => meshRefs.current[structure.index] = el} 
-                args={[undefined, undefined, group.count]} 
-                castShadow 
-                receiveShadow
-            >
-              {Geo}
-              <meshStandardMaterial 
-                color={group.color}
-                wireframe={viewMode === ViewMode.WIREFRAME}
-                roughness={viewMode === ViewMode.RGB ? 1.0 - group.restitution : 1.0} 
-                metalness={viewMode === ViewMode.RGB ? (group.restitution > 0.8 ? 0.1 : 0.6) : 0.0}
-                transparent={viewMode === ViewMode.RGB && group.restitution < 0.2} 
-                opacity={viewMode === ViewMode.RGB && group.restitution < 0.2 ? 0.8 : 1.0}
-                emissive={viewMode === ViewMode.LIDAR ? new THREE.Color(0x222222) : new THREE.Color(0x000000)}
+              <AssetRenderer
+                 key={group.id}
+                 group={group}
+                 meshRef={(el: any) => meshRefs.current[structure.index] = el}
+                 viewMode={viewMode}
               />
-            </instancedMesh>
           );
       })}
     </group>
   );
-};
+});
 
+SimulationLayer.displayName = 'SimulationLayer';
 export default SimulationLayer;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LogEntry, PhysicsParams, ShapeType, MovementBehavior, AssetGroup, SpawnMode, ViewMode, TelemetryData } from '../types';
-import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle } from 'lucide-react';
+import { LogEntry, PhysicsParams, ShapeType, MovementBehavior, AssetGroup, SpawnMode, ViewMode, TelemetryData, MaterialPreset } from '../types';
+import { DEFAULT_MATERIAL_PRESETS } from '../constants';
+import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet } from 'lucide-react';
 
 interface ControlPanelProps {
   prompt: string;
@@ -25,6 +26,9 @@ interface ControlPanelProps {
   isAutoSpawn: boolean;
   toggleAutoSpawn: () => void;
   telemetryRef: React.MutableRefObject<TelemetryData>;
+  onDownloadCSV: () => void;
+  onGenerateReport: () => void;
+  isGeneratingReport: boolean;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -49,12 +53,19 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setViewMode,
   isAutoSpawn,
   toggleAutoSpawn,
-  telemetryRef
+  telemetryRef,
+  onDownloadCSV,
+  onGenerateReport,
+  isGeneratingReport
 }) => {
-  const [activeTab, setActiveTab] = useState<'ASSETS' | 'PHYSICS' | 'ENV'>('ASSETS');
+  const [activeTab, setActiveTab] = useState<'ASSETS' | 'PHYSICS' | 'ENV' | 'DATA'>('ASSETS');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [latestDirectorLog, setLatestDirectorLog] = useState<LogEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Preset State
+  const [presets, setPresets] = useState<MaterialPreset[]>(DEFAULT_MATERIAL_PRESETS);
+  const [newPresetName, setNewPresetName] = useState('');
 
   // Auto-select first group if none selected or invalid
   useEffect(() => {
@@ -114,12 +125,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   };
 
   const addAssetGroup = () => {
+    // Generate a random bright color for distinction
+    const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+    
     const newGroup: AssetGroup = {
         id: `manual_${Date.now()}`,
         name: `Layer ${params.assetGroups.length + 1}`,
         count: 50,
         shape: ShapeType.CUBE,
-        color: '#ffffff',
+        color: randomColor,
         spawnMode: SpawnMode.PILE,
         scale: 0.5,
         mass: 5.0,
@@ -157,6 +171,38 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     });
   };
 
+  const applyPreset = (preset: MaterialPreset) => {
+    if (!activeGroup) return;
+    const newGroups = params.assetGroups.map(g => 
+        g.id === activeGroup.id ? { 
+            ...g, 
+            restitution: preset.restitution,
+            friction: preset.friction,
+            mass: preset.mass,
+            drag: preset.drag
+        } : g
+    );
+    setParams({ ...params, assetGroups: newGroups });
+  };
+
+  const savePreset = () => {
+    if (!activeGroup || !newPresetName.trim()) return;
+    const newPreset: MaterialPreset = {
+        id: `custom_${Date.now()}`,
+        name: newPresetName.trim(),
+        restitution: activeGroup.restitution,
+        friction: activeGroup.friction,
+        mass: activeGroup.mass,
+        drag: activeGroup.drag
+    };
+    setPresets([...presets, newPreset]);
+    setNewPresetName('');
+  };
+
+  const deletePreset = (id: string) => {
+    setPresets(presets.filter(p => p.id !== id));
+  };
+
   const getViewModeIcon = (mode: ViewMode) => {
     switch(mode) {
         case ViewMode.RGB: return <Eye size={14}/>;
@@ -178,7 +224,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
           <div className="flex flex-col justify-center">
             <span className="text-sm font-bold tracking-widest text-white">SNAPLOCK</span>
-            <span className="text-[9px] text-scifi-cyan/80 tracking-widest uppercase">Lock physics, snap reality</span>
+            <span className="text-[10px] text-scifi-cyan/80 tracking-widest uppercase">Lock physics, snap reality</span>
           </div>
         </div>
 
@@ -191,6 +237,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={(e) => { 
+                    e.target.select(); 
+                    if(isAutoSpawn) toggleAutoSpawn(); 
+                }}
                 className="w-full bg-black/40 border border-white/10 rounded-sm pl-9 pr-4 py-1.5 text-xs font-mono text-white placeholder-gray-600 focus:outline-none focus:border-scifi-cyan focus:ring-1 focus:ring-scifi-cyan transition-all"
                 placeholder="Simulation Prompt: e.g. 'LIDAR noise test on warehouse clutter'..."
             />
@@ -212,21 +262,25 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           {/* AUTO SPAWN TOGGLE */}
           <button
              onClick={toggleAutoSpawn}
-             className={`h-8 w-8 flex items-center justify-center rounded-sm transition-all border ${
+             className={`relative overflow-hidden h-8 px-3 flex items-center justify-center gap-2 rounded-sm transition-all border font-bold text-[10px] tracking-wider ${
                  isAutoSpawn 
                  ? 'bg-purple-600/20 border-purple-500 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]'
-                 : 'bg-black/40 border-white/10 text-gray-500 hover:text-purple-400'
+                 : 'bg-black/40 border-white/10 text-gray-500 hover:text-purple-400 hover:border-purple-500/50'
              }`}
-             title="Toggle Auto Spawn Mode"
+             title={isAutoSpawn ? "Auto Spawn Active (Pauses on edit)" : "Enable Auto Spawn Mode"}
           >
-             <Wand2 size={14} className={isAutoSpawn ? "animate-pulse" : ""} />
+             {isAutoSpawn && (
+                <div className="absolute bottom-0 left-0 h-0.5 bg-purple-500/50 w-full animate-[progress_15s_linear_infinite]" />
+             )}
+             <Wand2 size={12} className={isAutoSpawn ? "animate-pulse" : ""} />
+             <span>AUTO SPAWN</span>
           </button>
 
         </div>
 
         <div className="flex-1"></div>
 
-        {/* DIRECTOR TOAST NOTIFICATION (Centered Below Header) */}
+        {/* DIRECTOR TOAST NOTIFICATION */}
         {latestDirectorLog && (
             <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-red-950/90 border border-red-500/50 text-red-200 px-6 py-3 rounded shadow-[0_0_20px_rgba(239,68,68,0.4)] flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none">
                 <div className="flex items-center gap-2 mb-1">
@@ -238,7 +292,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         )}
 
         <div className="flex items-center gap-1 pr-4">
-             {/* View Mode Toggle */}
              <div className="flex items-center bg-black/40 rounded border border-white/10 p-0.5 mr-4">
                  {Object.values(ViewMode).map(mode => (
                      <IconButton 
@@ -312,14 +365,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               <TabButton label="ASSETS" active={activeTab === 'ASSETS'} onClick={() => setActiveTab('ASSETS')} />
               <TabButton label="PHYSICS" active={activeTab === 'PHYSICS'} onClick={() => setActiveTab('PHYSICS')} />
               <TabButton label="ENV" active={activeTab === 'ENV'} onClick={() => setActiveTab('ENV')} />
+              <TabButton label="DATASET" active={activeTab === 'DATA'} onClick={() => setActiveTab('DATA')} />
            </div>
 
            <div className="p-4 space-y-6">
               
               {/* Context Header */}
-              {activeTab !== 'ENV' && (
+              {(activeTab !== 'ENV' && activeTab !== 'DATA') && (
                  <div className="pb-4 border-b border-white/10">
-                    <label className="text-[9px] text-gray-400 font-bold block mb-2">TARGET GROUP</label>
+                    <label className="text-[10px] text-gray-400 font-bold block mb-2">TARGET GROUP</label>
                     <div className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded">
                         <div className="w-3 h-3 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeGroup.color, color: activeGroup.color }}></div>
                         <span className="flex-1 text-xs font-mono font-bold text-white truncate">{activeGroup.name}</span>
@@ -340,17 +394,32 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                        <ShapeButton shape={ShapeType.TORUS} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.TORUS)} icon={<Circle size={14} strokeWidth={4}/>} />
                        <ShapeButton shape={ShapeType.ICOSAHEDRON} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.ICOSAHEDRON)} icon={<Hexagon size={14}/>} />
                        <ShapeButton shape={ShapeType.CAPSULE} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.CAPSULE)} icon={<div className="w-2 h-4 border rounded-full border-current"/>} />
+                       <ShapeButton shape={ShapeType.PYRAMID} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.PYRAMID)} icon={<Triangle size={14}/>} />
                     </div>
                   </Section>
 
                   <Section title="INSTANCE CONFIGURATION">
-                     <RangeControl label="PARTICLE COUNT" value={activeGroup.count} min={10} max={1000} step={10} onChange={(v) => updateActiveGroup('count', v)} />
-                     <RangeControl label="UNIT SCALE" value={activeGroup.scale} min={0.1} max={2.0} step={0.1} onChange={(v) => updateActiveGroup('scale', v)} />
+                     {/* Add Spawn Mode Selector */}
+                     <div className="mb-3">
+                        <label className="text-[10px] text-gray-400 block mb-1">SPAWN TOPOLOGY</label>
+                        <select 
+                            value={activeGroup.spawnMode}
+                            onChange={(e) => updateActiveGroup('spawnMode', e.target.value)}
+                            className="w-full bg-black/40 border border-white/10 text-xs p-1.5 rounded text-white font-mono focus:border-scifi-cyan focus:outline-none"
+                        >
+                            {Object.values(SpawnMode).map(m => (
+                                <option key={m} value={m}>{m}</option>
+                            ))}
+                        </select>
+                     </div>
+
+                     <RangeControl label="PARTICLE COUNT" value={activeGroup.count} min={1} max={1000} step={1} onChange={(v) => updateActiveGroup('count', v)} />
+                     <RangeControl label="UNIT SCALE" value={activeGroup.scale} min={0.1} max={5.0} step={0.1} onChange={(v) => updateActiveGroup('scale', v)} />
                   </Section>
 
                   <Section title="SURFACE MATERIAL">
                      <div className="space-y-2">
-                        <label className="text-[9px] text-gray-400">ALBEDO COLOR</label>
+                        <label className="text-[10px] text-gray-400">ALBEDO COLOR</label>
                         <div className="flex items-center gap-2">
                             <input type="color" value={activeGroup.color} onChange={(e) => updateActiveGroup('color', e.target.value)} className="bg-transparent border border-white/20 rounded w-8 h-8 cursor-pointer p-0.5" />
                             <span className="font-mono text-[9px] text-gray-500 uppercase">{activeGroup.color}</span>
@@ -374,6 +443,47 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                       </select>
                    </Section>
 
+                   <Section title="MATERIAL PRESETS">
+                      <div className="grid grid-cols-3 gap-1 mb-2">
+                          {presets.map(preset => (
+                              <button 
+                                  key={preset.id}
+                                  onClick={() => applyPreset(preset)}
+                                  className="px-2 py-1.5 bg-white/5 hover:bg-scifi-cyan/20 border border-white/10 hover:border-scifi-cyan/50 rounded text-[10px] text-gray-300 truncate transition-colors relative group"
+                                  title={`Restitution: ${preset.restitution}, Friction: ${preset.friction}`}
+                              >
+                                  {preset.name}
+                                  {preset.id.startsWith('custom_') && (
+                                      <div 
+                                          onClick={(e) => { e.stopPropagation(); deletePreset(preset.id); }}
+                                          className="absolute top-0 right-0 bottom-0 w-4 flex items-center justify-center bg-red-900/80 text-red-200 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                                      >
+                                          <X size={10} />
+                                      </div>
+                                  )}
+                              </button>
+                          ))}
+                      </div>
+                      <div className="flex gap-1">
+                          <input 
+                              type="text" 
+                              value={newPresetName} 
+                              onChange={(e) => setNewPresetName(e.target.value)} 
+                              placeholder="Custom Preset Name..." 
+                              className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-[10px] text-white focus:outline-none focus:border-scifi-cyan placeholder-gray-600"
+                          />
+                          <button 
+                              onClick={savePreset}
+                              disabled={!newPresetName.trim()}
+                              className="bg-white/10 hover:bg-white/20 text-white px-2 rounded text-[9px] font-bold disabled:opacity-50 border border-white/10 flex items-center gap-1"
+                              title="Save current material settings as new preset"
+                          >
+                              <Save size={10} />
+                              SAVE
+                          </button>
+                      </div>
+                   </Section>
+
                    <Section title="MATERIAL COEFFICIENTS">
                       <RangeControl label="RESTITUTION (BOUNCE)" value={activeGroup.restitution} min={0} max={1.2} step={0.05} onChange={(v) => updateActiveGroup('restitution', v)} />
                       <RangeControl label="FRICTION (GRIP)" value={activeGroup.friction} min={0} max={1} step={0.05} onChange={(v) => updateActiveGroup('friction', v)} />
@@ -390,7 +500,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                           <div className="space-y-2">
                              <div className="flex items-center gap-2 text-gray-500">
                                 <ArrowDown size={12} />
-                                <label className="text-[9px] font-bold">GRAVITY (M/S²)</label>
+                                <label className="text-[10px] font-bold">GRAVITY (M/S²)</label>
                              </div>
                              <div className="flex gap-2">
                                 <NumInput label="X" value={params.gravity.x} onChange={(v) => updateVector('gravity', 'x', v)} />
@@ -401,7 +511,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                           <div className="space-y-2">
                              <div className="flex items-center gap-2 text-gray-500">
                                 <Wind size={12} />
-                                <label className="text-[9px] font-bold">WIND VELOCITY</label>
+                                <label className="text-[10px] font-bold">WIND VELOCITY</label>
                              </div>
                              <div className="flex gap-2">
                                 <NumInput label="X" value={params.wind.x} onChange={(v) => updateVector('wind', 'x', v)} />
@@ -421,6 +531,35 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                         </div>
                     </Section>
                  </>
+              )}
+
+              {activeTab === 'DATA' && (
+                  <>
+                     <Section title="SYNTHETIC DATA WORKFLOW">
+                        <div className="space-y-3">
+                            <p className="text-[10px] text-gray-400 leading-relaxed">
+                                Capture raw physics data from the current simulation frame for offline training or download a technical report.
+                            </p>
+                            
+                            <button 
+                                onClick={onDownloadCSV}
+                                className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-scifi-cyan/20 border border-white/10 hover:border-scifi-cyan/50 text-white py-3 rounded text-[10px] font-bold transition-all"
+                            >
+                                <FileSpreadsheet size={14} className="text-scifi-cyan" />
+                                DOWNLOAD DATASET (CSV)
+                            </button>
+
+                            <button 
+                                onClick={onGenerateReport}
+                                disabled={isGeneratingReport}
+                                className={`w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-scifi-accent/20 border border-white/10 hover:border-scifi-accent/50 text-white py-3 rounded text-[10px] font-bold transition-all ${isGeneratingReport ? 'opacity-50 cursor-wait' : ''}`}
+                            >
+                                {isGeneratingReport ? <Loader2 size={14} className="animate-spin text-scifi-accent" /> : <FileText size={14} className="text-scifi-accent" />}
+                                {isGeneratingReport ? 'COMPILING REPORT...' : 'GENERATE AUDIT REPORT (PDF)'}
+                            </button>
+                        </div>
+                     </Section>
+                  </>
               )}
 
               <div className="mt-auto pt-8 flex gap-2">
@@ -467,17 +606,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         <div className="w-64 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex flex-col pointer-events-auto p-4 space-y-4">
            
            {/* Header with Add Action */}
-           <div className="flex justify-between items-center border-b border-white/10 pb-2">
+           <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
               <div className="flex items-center gap-2">
                 <Layers className="text-scifi-cyan w-4 h-4" />
                 <span className="font-bold tracking-widest text-scifi-cyan text-[10px]">HIERARCHY</span>
               </div>
               <button 
                  onClick={addAssetGroup}
-                 className="bg-scifi-cyan/10 hover:bg-scifi-cyan/20 text-scifi-cyan rounded p-1 transition-colors"
+                 className="flex items-center gap-1 bg-scifi-cyan/10 hover:bg-scifi-cyan/20 text-scifi-cyan rounded px-2 py-1 transition-colors border border-scifi-cyan/20"
                  title="Add New Asset Group"
               >
-                 <Plus size={14} />
+                 <Plus size={10} />
+                 <span className="text-[9px] font-bold">ADD LAYER</span>
               </button>
            </div>
            
@@ -486,7 +626,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               {params.assetGroups.map((group) => (
                  <div 
                    key={group.id} 
-                   onClick={() => { setSelectedGroupId(group.id); setActiveTab('ASSETS'); }}
+                   onClick={() => setSelectedGroupId(group.id)}
                    className={`p-3 rounded border cursor-pointer transition-all group relative ${
                        selectedGroupId === group.id 
                        ? 'border-scifi-cyan bg-scifi-cyan/10 shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]' 
@@ -578,6 +718,7 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
     const keRef = useRef<HTMLDivElement>(null);
     const velRef = useRef<HTMLDivElement>(null);
     const countRef = useRef<HTMLDivElement>(null);
+    const stabilityRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         let active = true;
@@ -585,7 +726,10 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
             if (!active) return;
             const data = telemetryRef.current;
             
-            if (fpsRef.current) fpsRef.current.innerText = `${data.fps.toFixed(0)} FPS`;
+            if (fpsRef.current) {
+                fpsRef.current.innerText = `${data.fps.toFixed(0)} FPS`;
+                fpsRef.current.style.color = data.fps < 30 ? '#ef4444' : (data.fps < 50 ? '#f59e0b' : '#22d3ee');
+            }
             if (keRef.current) {
                 if (data.isWarmup) {
                     keRef.current.innerText = "WARMUP";
@@ -598,6 +742,21 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
             if (velRef.current) velRef.current.innerText = `${data.avgVelocity.toFixed(2)} m/s`;
             if (countRef.current) countRef.current.innerText = `${data.particleCount}`;
 
+            // Stability Color Coding
+            if (stabilityRef.current) {
+                // If StdDev < 0.1 it's very stable. If > 1.0 it's chaotic.
+                const score = data.stabilityScore || 0;
+                let color = '#22d3ee'; // Blue/Stable default
+                let label = 'STABLE';
+                
+                if (score > 2.0) { color = '#ef4444'; label = 'CHAOTIC'; }
+                else if (score > 0.5) { color = '#f59e0b'; label = 'ACTIVE'; }
+                else if (score < 0.1) { color = '#22c55e'; label = 'SETTLED'; }
+
+                stabilityRef.current.innerText = label;
+                stabilityRef.current.style.color = color;
+            }
+
             requestAnimationFrame(update);
         };
         requestAnimationFrame(update);
@@ -609,7 +768,7 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
             <TelemetryBoxRaw label="KINETIC ENERGY" ref={keRef} />
             <TelemetryBoxRaw label="MEAN VELOCITY" ref={velRef} />
             <TelemetryBoxRaw label="ENTITIES" ref={countRef} />
-            <TelemetryBoxRaw label="FRAMERATE" ref={fpsRef} />
+            <TelemetryBoxRaw label="SYSTEM STATE" ref={stabilityRef} />
         </div>
     );
 };
@@ -663,18 +822,30 @@ const ShapeButton = ({ shape, current, onClick, icon }: any) => (
 
 const RangeControl = ({ label, value, min, max, step, onChange }: any) => (
   <div className="space-y-1">
-    <div className="flex justify-between">
-      <label className="text-[9px] text-gray-400">{label}</label>
-      <span className="text-[9px] font-mono text-scifi-cyan">{value && value.toFixed ? value.toFixed(2) : value}</span>
+    <div className="flex justify-between items-center">
+      <label className="text-[10px] text-gray-400 font-medium">{label}</label>
+      <input
+        type="number"
+        min={min} max={max} step={step}
+        value={value ? parseFloat(value.toFixed(2)) : 0}
+        onChange={(e) => {
+             const val = parseFloat(e.target.value);
+             if(!isNaN(val)) onChange(val);
+        }}
+        className="w-12 bg-transparent text-right text-[10px] font-mono text-scifi-cyan focus:outline-none border-b border-transparent focus:border-scifi-cyan/50 hover:border-white/20 transition-colors p-0"
+      />
     </div>
-    <div className="relative w-full h-1 bg-gray-800 rounded-lg">
-        <div className="absolute top-0 left-0 h-full bg-scifi-cyan rounded-lg" style={{ width: `${((value - min) / (max - min)) * 100}%` }}></div>
+    {/* Increased Hit Area for Slider Usability */}
+    <div className="relative w-full h-4 flex items-center group">
+        <div className="absolute left-0 right-0 h-1 bg-gray-800 rounded-lg overflow-hidden group-hover:bg-gray-700 transition-colors">
+            <div className="h-full bg-scifi-cyan shadow-[0_0_8px_rgba(34,211,238,0.5)]" style={{ width: `${((value - min) / (max - min)) * 100}%` }}></div>
+        </div>
         <input 
             type="range" 
             min={min} max={max} step={step} 
             value={value} 
             onChange={(e) => onChange(parseFloat(e.target.value))}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
         />
     </div>
   </div>
@@ -682,12 +853,12 @@ const RangeControl = ({ label, value, min, max, step, onChange }: any) => (
 
 const NumInput = ({ label, value, onChange }: any) => (
    <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded px-2 py-1 flex-1 focus-within:border-scifi-cyan transition-colors">
-      <span className="text-[9px] text-gray-500 font-bold">{label}</span>
+      <span className="text-[10px] text-gray-500 font-bold">{label}</span>
       <input 
         type="number" 
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full bg-transparent border-none text-[9px] font-mono text-white focus:outline-none p-0 text-right"
+        className="w-full bg-transparent border-none text-[10px] font-mono text-white focus:outline-none p-0 text-right"
         step={0.1}
       />
    </div>

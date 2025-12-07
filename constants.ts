@@ -7,30 +7,17 @@ export const DEFAULT_PHYSICS: PhysicsParams = {
   movementBehavior: MovementBehavior.PHYSICS_GRAVITY,
   assetGroups: [
     {
-      id: 'hero_unit',
-      name: 'Sensor Array',
-      count: 1,
-      shape: ShapeType.ICOSAHEDRON,
-      color: '#f472b6', // Pink
+      id: 'starter_group',
+      name: 'Starter Group',
+      count: 0,
+      shape: ShapeType.SPHERE,
+      color: '#22d3ee',
       spawnMode: SpawnMode.GRID,
-      scale: 1.2,
-      mass: 50.0,
-      restitution: 0.1,
-      friction: 0.9,
-      drag: 0.05
-    },
-    {
-      id: 'env_debris',
-      name: 'Calibration Debris',
-      count: 150,
-      shape: ShapeType.CUBE,
-      color: '#22d3ee', // Cyan
-      spawnMode: SpawnMode.PILE,
-      scale: 0.3,
+      scale: 1.0,
       mass: 1.0,
-      restitution: 0.6,
-      friction: 0.4,
-      drag: 0.02
+      restitution: 0.5,
+      friction: 0.5,
+      drag: 0.05
     }
   ]
 };

@@ -1,8 +1,9 @@
+
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import SimulationLayer from './SimulationLayer';
-import { PhysicsParams, ViewMode, TelemetryData } from '../types';
+import { PhysicsParams, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot } from '../types';
 
 interface PhysicsSceneProps {
   params: PhysicsParams;
@@ -16,6 +17,7 @@ interface PhysicsSceneProps {
 
 export interface PhysicsSceneHandle {
   resetCamera: () => void;
+  captureSnapshot: () => ParticleSnapshot[];
 }
 
 const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
@@ -28,12 +30,19 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
   telemetryRef
 }, ref) => {
   const orbitRef = useRef<any>(null);
+  const simLayerRef = useRef<SimulationLayerHandle>(null);
 
   useImperativeHandle(ref, () => ({
     resetCamera: () => {
       if (orbitRef.current) {
         orbitRef.current.reset();
       }
+    },
+    captureSnapshot: () => {
+      if (simLayerRef.current) {
+        return simLayerRef.current.captureSnapshot();
+      }
+      return [];
     }
   }));
 
@@ -47,14 +56,19 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
       >
         <color attach="background" args={[viewMode === ViewMode.LIDAR ? '#000000' : '#050810']} />
         
-        {/* Cinematic Lighting - Only active in RGB mode */}
+        {/* Dynamic Environment Lighting */}
         {viewMode === ViewMode.RGB && (
           <>
+             {params.environmentUrl ? (
+                 <Environment files={params.environmentUrl} background blur={0.2} />
+             ) : (
+                 <Environment preset="night" blur={0.8} />
+             )}
+             
             <ambientLight intensity={0.2} />
             <pointLight position={[10, 20, 10]} intensity={1.5} castShadow />
             <pointLight position={[-10, 5, -10]} intensity={0.8} color="#22d3ee" />
             <spotLight position={[0, 15, 0]} angle={0.5} penumbra={1} intensity={2} castShadow color="#f472b6" />
-            <Environment preset="night" blur={0.8} />
           </>
         )}
 
@@ -73,6 +87,7 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
         
         {/* Core Simulation */}
         <SimulationLayer 
+          ref={simLayerRef}
           params={params} 
           isPaused={isPaused} 
           shouldReset={shouldReset}

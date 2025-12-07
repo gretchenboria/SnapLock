@@ -1,0 +1,5 @@
+{
+  "name": "SnapLock",
+  "description": "A web-based creative suite bridging real-time WebGL physics simulations with generative AI to ensure geometric ground truth in image generation.",
+  "requestFramePermissions": []
+}

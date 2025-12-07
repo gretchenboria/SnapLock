@@ -413,8 +413,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                         </select>
                      </div>
 
-                     <RangeControl label="PARTICLE COUNT" value={activeGroup.count} min={1} max={1000} step={1} onChange={(v) => updateActiveGroup('count', v)} />
-                     <RangeControl label="UNIT SCALE" value={activeGroup.scale} min={0.1} max={5.0} step={0.1} onChange={(v) => updateActiveGroup('scale', v)} />
+                     <RangeControl label="PARTICLE COUNT" value={activeGroup.count} min={1} max={1000} step={1} onChange={(v: number) => updateActiveGroup('count', v)} />
+                     <RangeControl label="UNIT SCALE" value={activeGroup.scale} min={0.1} max={5.0} step={0.1} onChange={(v: number) => updateActiveGroup('scale', v)} />
                   </Section>
 
                   <Section title="SURFACE MATERIAL">
@@ -485,10 +485,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                    </Section>
 
                    <Section title="MATERIAL COEFFICIENTS">
-                      <RangeControl label="RESTITUTION (BOUNCE)" value={activeGroup.restitution} min={0} max={1.2} step={0.05} onChange={(v) => updateActiveGroup('restitution', v)} />
-                      <RangeControl label="FRICTION (GRIP)" value={activeGroup.friction} min={0} max={1} step={0.05} onChange={(v) => updateActiveGroup('friction', v)} />
-                      <RangeControl label="MASS (DENSITY)" value={activeGroup.mass} min={0.1} max={50} step={0.5} onChange={(v) => updateActiveGroup('mass', v)} />
-                      <RangeControl label="AERODYNAMIC DRAG" value={activeGroup.drag} min={0} max={0.2} step={0.01} onChange={(v) => updateActiveGroup('drag', v)} />
+                      <RangeControl label="RESTITUTION (BOUNCE)" value={activeGroup.restitution} min={0} max={1.2} step={0.05} onChange={(v: number) => updateActiveGroup('restitution', v)} />
+                      <RangeControl label="FRICTION (GRIP)" value={activeGroup.friction} min={0} max={1} step={0.05} onChange={(v: number) => updateActiveGroup('friction', v)} />
+                      <RangeControl label="MASS (DENSITY)" value={activeGroup.mass} min={0.1} max={50} step={0.5} onChange={(v: number) => updateActiveGroup('mass', v)} />
+                      <RangeControl label="AERODYNAMIC DRAG" value={activeGroup.drag} min={0} max={0.2} step={0.01} onChange={(v: number) => updateActiveGroup('drag', v)} />
                    </Section>
                 </>
               )}
@@ -503,9 +503,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                                 <label className="text-[10px] font-bold">GRAVITY (M/S²)</label>
                              </div>
                              <div className="flex gap-2">
-                                <NumInput label="X" value={params.gravity.x} onChange={(v) => updateVector('gravity', 'x', v)} />
-                                <NumInput label="Y" value={params.gravity.y} onChange={(v) => updateVector('gravity', 'y', v)} />
-                                <NumInput label="Z" value={params.gravity.z} onChange={(v) => updateVector('gravity', 'z', v)} />
+                                <NumInput label="X" value={params.gravity.x} onChange={(v: number) => updateVector('gravity', 'x', v)} />
+                                <NumInput label="Y" value={params.gravity.y} onChange={(v: number) => updateVector('gravity', 'y', v)} />
+                                <NumInput label="Z" value={params.gravity.z} onChange={(v: number) => updateVector('gravity', 'z', v)} />
                              </div>
                           </div>
                           <div className="space-y-2">
@@ -514,9 +514,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                                 <label className="text-[10px] font-bold">WIND VELOCITY</label>
                              </div>
                              <div className="flex gap-2">
-                                <NumInput label="X" value={params.wind.x} onChange={(v) => updateVector('wind', 'x', v)} />
-                                <NumInput label="Y" value={params.wind.y} onChange={(v) => updateVector('wind', 'y', v)} />
-                                <NumInput label="Z" value={params.wind.z} onChange={(v) => updateVector('wind', 'z', v)} />
+                                <NumInput label="X" value={params.wind.x} onChange={(v: number) => updateVector('wind', 'x', v)} />
+                                <NumInput label="Y" value={params.wind.y} onChange={(v: number) => updateVector('wind', 'y', v)} />
+                                <NumInput label="Z" value={params.wind.z} onChange={(v: number) => updateVector('wind', 'z', v)} />
                              </div>
                           </div>
                        </div>

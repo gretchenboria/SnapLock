@@ -3,11 +3,9 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DEFAULT_PHYSICS, SAMPLE_PROMPTS } from './constants';
 import { PhysicsParams, LogEntry, ViewMode, TelemetryData } from './types';
-import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
 import { analyzePhysicsPrompt, generateRealityImage, analyzeSceneStability, generateSimulationVideo, generateCreativePrompt, generateSimulationReport } from './services/geminiService';
 import { AdversarialDirector } from './services/adversarialDirector';
-import { X } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
 
 const App: React.FC = () => {
@@ -24,13 +22,10 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.RGB);
   
   // Auto Spawn State
-  const [isAutoSpawn, setIsAutoSpawn] = useState(true);
-  const isAutoSpawnRef = useRef(true); // Ref to track state inside async closures
+  const [isAutoSpawn, setIsAutoSpawn] = useState(false);
+  const isAutoSpawnRef = useRef(false); // Ref to track state inside async closures
   const autoSpawnTimerRef = useRef<number | null>(null);
-  
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
-  
+
   // Adversarial Director State
   const [isDirectorActive, setIsDirectorActive] = useState(false);
   const directorIntervalRef = useRef<number | null>(null);
@@ -85,13 +80,6 @@ const App: React.FC = () => {
           };
       }
   }, [isTestMode, params, isPaused, prompt]); // Re-bind when crucial state changes
-
-  // Clean up Blob URLs to prevent memory leaks
-  useEffect(() => {
-      return () => {
-          if (generatedVideo) URL.revokeObjectURL(generatedVideo);
-      };
-  }, [generatedVideo]);
 
   // Helpers
   const addLog = useCallback((message: string, type: LogEntry['type'] = 'info') => {
@@ -184,13 +172,9 @@ const App: React.FC = () => {
       
       addLog('Generating Photorealistic Skin...', 'info');
       const resultImage = await generateRealityImage(dataUrl, prompt);
-      
-      setGeneratedImage(resultImage);
-      if (generatedVideo) {
-          URL.revokeObjectURL(generatedVideo);
-          setGeneratedVideo(null); 
-      }
+
       addLog('Reality Snapped Successfully.', 'success');
+      // Image generation complete but not displayed in simplified UI
 
     } catch (error) {
       addLog(`Generation Failed: ${(error as Error).message}`, 'error');
@@ -212,13 +196,12 @@ const App: React.FC = () => {
     try {
         const dataUrl = canvas.toDataURL('image/png');
         addLog('Video Engine: Generating stream from simulation state...', 'info');
-        
+
         const videoUrl = await generateSimulationVideo(dataUrl, prompt);
-        
-        if (generatedVideo) URL.revokeObjectURL(generatedVideo); // Cleanup old
-        setGeneratedVideo(videoUrl);
-        setGeneratedImage(null); 
+
         addLog('Video Engine: Render Complete.', 'success');
+        // Video generation complete but not displayed in simplified UI
+        URL.revokeObjectURL(videoUrl); // Cleanup immediately
     } catch (error) {
         addLog(`Video Engine Error: ${(error as Error).message}`, 'error');
     } finally {
@@ -389,13 +372,13 @@ const App: React.FC = () => {
 
   return (
     <div ref={canvasRef} className="relative h-screen w-screen bg-slate-900 text-white overflow-hidden">
-      
+
       {/* Test Dashboard Overlay */}
       {isTestMode && <TestDashboard />}
 
       {/* 3D Scene Layer */}
       <div className="absolute inset-0 z-0">
-        <PhysicsScene 
+        <PhysicsScene
           ref={sceneRef}
           params={params}
           isPaused={isPaused}
@@ -407,65 +390,33 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* UI Overlay Layer */}
-      <ControlPanel 
-        prompt={prompt}
-        setPrompt={setPrompt}
-        onAnalyze={handleAnalyze}
-        onSnap={handleSnap}
-        onGenerateVideo={handleGenerateVideo}
-        params={params}
-        setParams={setParams}
-        isPaused={isPaused}
-        togglePause={() => setIsPaused(!isPaused)}
-        onReset={handleReset}
-        logs={logs}
-        isAnalyzing={isAnalyzing}
-        isSnapping={isSnapping}
-        isGeneratingVideo={isGeneratingVideo}
-        resetCamera={handleResetCamera}
-        isDirectorActive={isDirectorActive}
-        toggleDirector={() => setIsDirectorActive(!isDirectorActive)}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        isAutoSpawn={isAutoSpawn}
-        toggleAutoSpawn={() => setIsAutoSpawn(!isAutoSpawn)}
-        telemetryRef={telemetryRef}
-        onDownloadCSV={handleDownloadCSV}
-        onGenerateReport={handleGenerateReport}
-        isGeneratingReport={isGeneratingReport}
-      />
-
-      {/* Generated Result Modal */}
-      {(generatedImage || generatedVideo) && (
-        <div className="absolute inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-8 animate-in fade-in duration-300">
-           <div className="relative bg-scifi-900 border border-scifi-accent p-1 shadow-[0_0_100px_rgba(244,114,182,0.3)] max-w-6xl w-full h-[80vh] flex flex-col rounded-lg">
-              <div className="flex justify-between items-center p-4 bg-scifi-800/50 border-b border-scifi-700 mb-1">
-                 <div className="flex items-center gap-4">
-                     <h2 className="font-mono text-scifi-accent font-bold tracking-widest text-lg">RENDER OUTPUT</h2>
-                     <span className="text-xs bg-scifi-accent/20 text-scifi-accent px-2 py-1 rounded">
-                         {generatedVideo ? 'TEMPORAL SYNTHESIS (VEO 3.1)' : 'PHOTOREALISTIC GENERATION (GEMINI 3 PRO IMAGE)'}
-                     </span>
-                 </div>
-                 <button onClick={() => { setGeneratedImage(null); if (generatedVideo) { URL.revokeObjectURL(generatedVideo); setGeneratedVideo(null); } }} className="hover:text-white text-gray-400 transition-colors">
-                   <X className="w-8 h-8"/>
-                 </button>
-              </div>
-              <div className="relative flex-1 overflow-hidden bg-black flex items-center justify-center">
-                 {generatedVideo ? (
-                    <video src={generatedVideo} controls autoPlay loop className="max-w-full max-h-full object-contain shadow-2xl" />
-                 ) : (
-                    <img src={generatedImage!} alt="Generated Reality" className="max-w-full max-h-full object-contain shadow-2xl" />
-                 )}
-              </div>
-              <div className="p-4 bg-scifi-800 text-xs text-gray-400 font-mono border-t border-scifi-700 flex justify-between">
-                 <span>GEOMETRY: LOCKED</span>
-                 <span>PHYSICS: VERLET_INTEGRATION</span>
-                 <span>RENDER: {generatedVideo ? 'TEMPORAL_SYNTHESIS' : 'PHOTOREALISTIC'}</span>
-              </div>
-           </div>
+      {/* Simplified Prompt Input - Bottom Center */}
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-4xl px-4">
+        <div className="bg-black/80 backdrop-blur-md border border-white/20 rounded-lg shadow-2xl">
+          <div className="flex gap-2 p-4">
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !isAnalyzing) {
+                  handleAnalyze();
+                }
+              }}
+              placeholder="Describe physics scenario..."
+              className="flex-1 bg-transparent border-none text-white placeholder-gray-500 focus:outline-none text-lg px-2"
+              disabled={isAnalyzing}
+            />
+            <button
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-2 rounded font-medium transition-colors"
+            >
+              {isAnalyzing ? 'Processing...' : 'Execute'}
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

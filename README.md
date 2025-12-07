@@ -49,7 +49,7 @@ SnapLock functions through a continuous loop of Logic > Simulation > Perception 
 ## Pipeline Tools (Python)
 
 ### Adversarial Asset Bootstrapper
-A Python pipeline script is included to hydrate the project with high-quality CC0 assets (HDRIs, Textures, Models) for Chaos Engineering tests.
+A Python pipeline script (`bootstrap_assets.py`) is included to hydrate the project with high-quality CC0 assets (HDRIs, Textures, Models) for Chaos Engineering tests.
 
 **Usage:**
 ```bash
@@ -59,8 +59,7 @@ pip install requests tqdm
 # Run the bootstrapper
 python bootstrap_assets.py
 ```
-
-This will download ~200MB of assets to `./assets/adversarial_pack/` and generate a `manifest.json` that the Adversarial Director uses to select distractor objects.
+This script downloads assets to the local filesystem. For the web application, a TypeScript inventory (`services/chaosInventory.ts`) handles remote asset loading from CDN.
 
 ## Testing & Validation
 
@@ -68,7 +67,7 @@ SnapLock includes a comprehensive **In-Browser Regression Suite**. This allows y
 
 ### How to Run Tests
 1.  Launch the application.
-2.  Append `?test=true` to the URL (e.g., `https://example.com/?test=true`).
+2.  Append `?test=true` to the URL (e.g., `https://snaplock.netlify.app/?test=true`).
 3.  The **SYSTEM DIAGNOSTICS** panel will appear in the top-right corner.
 4.  Click **RUN REGRESSION SUITE**.
 
@@ -105,17 +104,13 @@ SnapLock includes a comprehensive **In-Browser Regression Suite**. This allows y
 
 ## Licensing
 
-SnapLock is distributed under a **Dual Licensing** model to ensure open-source accessibility while sustaining commercial development.
+SnapLock is distributed under a **Dual Licensing** model.
 
 ### 1. Open Source License (AGPLv3)
-For non-commercial, educational, or open-source projects, this software is available under the **GNU Affero General Public License v3.0 (AGPLv3)**. 
+For non-commercial, educational, or open-source projects.
 *   You are free to use, modify, and distribute the code.
-*   **Condition**: If you deploy this application (even over a network), you must disclose your full source code and modifications to users.
+*   **Condition**: If you deploy this application, you must disclose your full source code.
 
 ### 2. Commercial License
-For proprietary, closed-source, or commercial use where source code disclosure is not desired:
-*   You must purchase a Commercial License.
-*   This grants the right to use SnapLock in proprietary products without the copyleft obligations of AGPLv3.
-*   Includes priority support and indemnification.
-
-*Contact [me@gretchenboria.com] for commercial inquiries.*
+For proprietary use without source disclosure.
+*   Contact the author for licensing details.

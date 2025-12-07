@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Screenshots and local assets
+Screenshot*.png
+*.screenshot.png

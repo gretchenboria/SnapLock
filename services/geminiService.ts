@@ -1,10 +1,15 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAction, DisturbanceType, PhysicsParams, TelemetryData } from "../types";
 import { MOCK_ANALYSIS_RESPONSE, MOCK_ADVERSARIAL_ACTION, MOCK_CREATIVE_PROMPT, MOCK_HTML_REPORT } from "./mockData";
 
-// Initialize AI Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy Initialization of AI Client to prevent 'process is not defined' crashes on module load
+let aiInstance: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  }
+  return aiInstance;
+};
 
 const isTestMode = () => {
     if (typeof window === 'undefined') return false;
@@ -33,9 +38,15 @@ async function withRetry<T>(operation: () => Promise<T>, retries = 3, baseDelay 
   } catch (error: any) {
     const isOverloaded = error?.status === 503 || error?.code === 503 || error?.message?.toLowerCase().includes('overloaded');
     const isInternalError = error?.status === 500 || error?.code === 500;
+    const isQuotaExceeded = error?.status === 429 || error?.code === 429 || error?.message?.includes('Quota');
     // Catch empty responses or "Reason: STOP" errors which are transient model glitches
     const isTransientModelError = error?.message?.includes('Empty response') || error?.message?.includes('Reason: STOP');
     
+    // Do not retry on Quota Exceeded (429) - fail fast to trigger fallback
+    if (isQuotaExceeded) {
+        throw error;
+    }
+
     if (retries > 0 && (isOverloaded || isInternalError || isTransientModelError)) {
       const delay = baseDelay * (4 - retries); // 2000, 4000, 6000...
       const errorType = isOverloaded ? 'Overloaded (503)' : isInternalError ? 'Internal Error (500)' : 'Transient Model Error';
@@ -55,8 +66,9 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
       return MOCK_ANALYSIS_RESPONSE;
   }
 
-  return withRetry(async () => {
-    try {
+  try {
+    return await withRetry(async () => {
+        const ai = getAI();
         // Using high-fidelity model for STEM/Physics reasoning
         const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
@@ -140,12 +152,19 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
         }
         
         return JSON.parse(jsonText) as AnalysisResponse;
-
-    } catch (error) {
-        console.error("Analysis Error:", error);
-        throw error;
-    }
-  });
+    });
+  } catch (error: any) {
+      // Gracefully handle Quota Exceeded by falling back to Mock Data
+      if (error?.status === 429 || error?.code === 429 || error?.message?.includes('429') || error?.message?.includes('Quota')) {
+           console.warn("[GeminiService] Quota Exceeded. Switching to Offline Fallback.");
+           return {
+               ...MOCK_ANALYSIS_RESPONSE,
+               explanation: "⚠️ API Quota Limit Reached. Simulation running in Offline Demonstration Mode."
+           };
+      }
+      console.error("Analysis Error:", error);
+      throw error;
+  }
 };
 
 export const generateCreativePrompt = async (): Promise<string> => {
@@ -154,6 +173,7 @@ export const generateCreativePrompt = async (): Promise<string> => {
     try {
         // We retry once for creative prompts to handle transient 500/503s or empty responses
         return await withRetry(async () => {
+            const ai = getAI();
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
                 contents: `Generate a single, short, creative, and scientifically interesting prompt for a physics simulation engine called SnapLock. 
@@ -185,6 +205,7 @@ export const generateRealityImage = async (base64Image: string, prompt: string):
 
   return withRetry(async () => {
     try {
+        const ai = getAI();
         const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
 
         const aiPrompt = `
@@ -247,7 +268,8 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
        await (window as any).aistudio.openSelectKey();
     }
 
-    // 2. Instantiate fresh client with selected key
+    // 2. Instantiate fresh client with selected key for Veo
+    // Ensure we use the process.env which might be populated by the selection flow
     const veoAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
@@ -300,6 +322,7 @@ export const analyzeSceneStability = async (base64Image: string): Promise<Advers
 
   return withRetry(async () => {
     try {
+        const ai = getAI();
         const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
 
         const systemPrompt = `
@@ -397,6 +420,7 @@ export const generateSimulationReport = async (params: PhysicsParams, telemetry:
         });
 
         return await withRetry(async () => {
+            const ai = getAI();
             const response = await ai.models.generateContent({
                 model: "gemini-3-pro-preview",
                 contents: `Generate a professional Technical Simulation Report (HTML format) based on the following JSON data context.

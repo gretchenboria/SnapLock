@@ -228,10 +228,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 relative max-w-4xl flex items-center gap-2">
+        <div className="flex-1 relative max-w-5xl flex items-center gap-3">
           <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Command className="w-3 h-3 text-scifi-cyan/50" />
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Command className="w-4 h-4 text-scifi-cyan/50" />
             </div>
             <input
                 value={prompt}
@@ -241,21 +241,21 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     e.target.select();
                     if(isAutoSpawn) toggleAutoSpawn();
                 }}
-                className="w-full bg-black/40 border border-white/10 rounded-sm pl-9 pr-4 py-2 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-scifi-cyan focus:ring-1 focus:ring-scifi-cyan transition-all"
-                placeholder="Simulation Prompt: e.g. 'LIDAR noise test on warehouse clutter'..."
+                className="w-full bg-black/40 border border-white/10 rounded pl-11 pr-4 py-3 text-base font-mono text-white placeholder-gray-500 focus:outline-none focus:border-scifi-cyan focus:ring-2 focus:ring-scifi-cyan/50 transition-all"
+                placeholder="Enter simulation prompt: e.g. 'LIDAR scan of warehouse debris'"
             />
           </div>
-          
+
           <button
             onClick={onAnalyze}
             disabled={isAnalyzing}
-            className={`h-8 px-4 rounded-sm font-mono text-[10px] font-bold transition-all border flex items-center gap-2 ${
-                isAnalyzing 
-                ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-500 cursor-wait' 
+            className={`h-11 px-6 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 ${
+                isAnalyzing
+                ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-500 cursor-wait'
                 : 'bg-scifi-cyan/10 border-scifi-cyan/50 text-scifi-cyan hover:bg-scifi-cyan hover:text-black'
             }`}
           >
-            {isAnalyzing ? <Activity className="w-3 h-3 animate-spin"/> : <Database className="w-3 h-3"/>}
+            {isAnalyzing ? <Activity className="w-4 h-4 animate-spin"/> : <Database className="w-4 h-4"/>}
             {isAnalyzing ? 'SIMULATING...' : 'EXECUTE'}
           </button>
 

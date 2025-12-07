@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { DEFAULT_PHYSICS, SAMPLE_PROMPTS } from './constants';
+import { DEFAULT_PHYSICS } from './constants';
 import { PhysicsParams, LogEntry, ViewMode, TelemetryData } from './types';
 import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
@@ -12,7 +12,7 @@ import { TestDashboard } from './components/TestDashboard';
 
 const App: React.FC = () => {
   // State
-  const [prompt, setPrompt] = useState(SAMPLE_PROMPTS[0]);
+  const [prompt, setPrompt] = useState('');
   const [params, setParams] = useState<PhysicsParams>(DEFAULT_PHYSICS);
   const [isPaused, setIsPaused] = useState(false);
   const [shouldReset, setShouldReset] = useState(false);
@@ -24,8 +24,8 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.RGB);
   
   // Auto Spawn State
-  const [isAutoSpawn, setIsAutoSpawn] = useState(true);
-  const isAutoSpawnRef = useRef(true); // Ref to track state inside async closures
+  const [isAutoSpawn, setIsAutoSpawn] = useState(false);
+  const isAutoSpawnRef = useRef(false); // Ref to track state inside async closures
   const autoSpawnTimerRef = useRef<number | null>(null);
   
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);

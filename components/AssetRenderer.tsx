@@ -11,22 +11,19 @@ interface AssetRendererProps {
 
 // Component for rendering GLB Models - Encapsulates the hook
 const ModelAsset: React.FC<AssetRendererProps> = ({ group, meshRef, viewMode }) => {
-    let gltfGeometry: THREE.BufferGeometry | null = null;
+    // We assume this component is only mounted when group.modelUrl exists.
+    // Call hook unconditionally to satisfy React Rules of Hooks.
+    // The parent AssetRenderer component handles the conditional mounting.
+    const url = group.modelUrl!; 
+    const { nodes } = useGLTF(url);
     
-    // Unconditional hook call - valid here because this component is only rendered when needed
-    try {
-        if (group.modelUrl) {
-            const { nodes } = useGLTF(group.modelUrl);
-            const firstMesh = Object.values(nodes).find((n: any) => n.isMesh) as THREE.Mesh;
-            if (firstMesh) {
-                gltfGeometry = firstMesh.geometry;
-            }
-        }
-    } catch (e) {
-        console.warn(`Failed to load model: ${group.modelUrl}`, e);
+    let gltfGeometry: THREE.BufferGeometry | null = null;
+    const firstMesh = Object.values(nodes).find((n: any) => n.isMesh) as THREE.Mesh;
+    if (firstMesh) {
+        gltfGeometry = firstMesh.geometry;
     }
 
-    // Fallback to cube if model fails
+    // Fallback if geometry loading failed
     if (!gltfGeometry) {
         return (
             <instancedMesh 
@@ -97,7 +94,8 @@ const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }
 );
 
 export const AssetRenderer: React.FC<AssetRendererProps> = (props) => {
-    // Conditional Rendering based on type - Safe because hooks are encapsulated in children
+    // Conditional Rendering: Only mount ModelAsset if modelUrl is present.
+    // This ensures useGLTF inside ModelAsset is always called with a valid URL.
     if (props.group.shape === ShapeType.MODEL && props.group.modelUrl) {
         return <ModelAsset {...props} />;
     }

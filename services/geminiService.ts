@@ -6,7 +6,8 @@ import { MOCK_ANALYSIS_RESPONSE, MOCK_ADVERSARIAL_ACTION, MOCK_CREATIVE_PROMPT, 
 let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
   if (!aiInstance) {
-    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const key = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+    aiInstance = new GoogleGenAI({ apiKey: key });
   }
   return aiInstance;
 };
@@ -203,9 +204,17 @@ export const generateRealityImage = async (base64Image: string, prompt: string):
      return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
   }
 
+  // Mandatory API Key Selection for High-Quality Image Generation (Gemini 3 Pro Image)
+  if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
+     await window.aistudio.openSelectKey();
+  }
+
   return withRetry(async () => {
     try {
-        const ai = getAI();
+        // Ensure we use the latest key selected by the user
+        const key = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+        const ai = new GoogleGenAI({ apiKey: key });
+
         const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
 
         const aiPrompt = `
@@ -264,13 +273,13 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
 
   try {
     // 1. Check/Request API Key
-    if ((window as any).aistudio && !(await (window as any).aistudio.hasSelectedApiKey())) {
-       await (window as any).aistudio.openSelectKey();
+    if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
+       await window.aistudio.openSelectKey();
     }
 
     // 2. Instantiate fresh client with selected key for Veo
     // Ensure we use the process.env which might be populated by the selection flow
-    const veoAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const veoAi = new GoogleGenAI({ apiKey: (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '' });
     
     const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
 
@@ -303,7 +312,8 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
     if (!downloadLink) throw new Error("Video generation failed: No video URI returned");
 
     // 6. Fetch Bytes
-    const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+    const key = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+    const videoResponse = await fetch(`${downloadLink}&key=${key}`);
     const blob = await videoResponse.blob();
     return URL.createObjectURL(blob);
 

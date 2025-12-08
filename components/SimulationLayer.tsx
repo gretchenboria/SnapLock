@@ -95,6 +95,10 @@ const SimulationLayer = forwardRef<SimulationLayerHandle, SimulationLayerProps>(
         }
       });
       return snapshot;
+    },
+    captureMLGroundTruth: () => {
+      // Legacy SimulationLayer does not support ML ground truth export
+      throw new Error('ML ground truth export not available in legacy SimulationLayer. Use SimulationLayerV2.');
     }
   }));
 
@@ -471,7 +475,9 @@ const SimulationLayer = forwardRef<SimulationLayerHandle, SimulationLayerProps>(
             maxVelocity: maxVel,
             stabilityScore: stabilityScore,
             simTime: time,
-            isWarmup: isWarmup
+            isWarmup: isWarmup,
+            activeCollisions: 0,  // Legacy layer doesn't track collisions
+            physicsSteps: frameCountRef.current
         };
     }
 

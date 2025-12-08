@@ -8,7 +8,7 @@
 import React, { useRef, useMemo, useEffect, useImperativeHandle, forwardRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { PhysicsParams, ShapeType, MovementBehavior, SpawnMode, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot, MLGroundTruthFrame, BoundingBox2D, BoundingBox3D, CameraIntrinsics, CameraExtrinsics } from '../types';
+import { PhysicsParams, ShapeType, MovementBehavior, SpawnMode, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot, MLGroundTruthFrame, BoundingBox2D, BoundingBox3D, CameraIntrinsics, CameraExtrinsics, Vector3Data } from '../types';
 import { AssetRenderer } from './AssetRenderer';
 import { PhysicsEngine } from '../services/physicsEngine';
 
@@ -258,7 +258,19 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
       const intrinsics = getCameraIntrinsics();
       const extrinsics = getCameraExtrinsics();
 
-      const objects = [];
+      const objects: Array<{
+        id: number;
+        groupId: string;
+        class: string;
+        pose3D: any;
+        boundingBox2D: BoundingBox2D;
+        boundingBox3D: BoundingBox3D;
+        velocity: Vector3Data;
+        angularVelocity: Vector3Data;
+        inFrustum: boolean;
+        occlusionLevel: number;
+        distanceFromCamera: number;
+      }> = [];
 
       groupStructure.forEach((structure) => {
         const group = params.assetGroups[structure.index];

@@ -15,6 +15,7 @@ import { TestDashboard } from './components/TestDashboard';
 import { SnappyAssistant } from './components/SnappyAssistant';
 import { GuidedTour } from './components/GuidedTour';
 import { Characters } from './components/Characters';
+import { FloatingCharacters } from './components/FloatingCharacters';
 import { askSnappy } from './services/snappyChatbot';
 
 const App: React.FC = () => {
@@ -649,6 +650,62 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // --- LAZARUS AUTO-FIX HANDLER ---
+  const handleLazarusClick = useCallback(async () => {
+    addLog('🐛 Lazarus: Running diagnostics...', 'info');
+
+    try {
+      const report = await LazarusDebugger.runDiagnostics(
+        params,
+        telemetryRef.current,
+        logs,
+        {
+          prompt,
+          isAutoSpawn,
+          isPaused,
+          isAnalyzing,
+          isChaosActive
+        }
+      );
+
+      // Log diagnosis
+      addLog(`🐛 Lazarus: ${report.summary}`, report.overallStatus === 'HEALTHY' ? 'success' : 'warning');
+
+      // Auto-fix common issues
+      if (report.errors.length > 0 || report.warnings.length > 0) {
+        // Fix empty asset groups
+        if (params.assetGroups.length === 0) {
+          addLog('🐛 Lazarus: Fixing empty scene...', 'info');
+          if (isAutoSpawn) {
+            const creativePrompt = await generateCreativePrompt();
+            setPrompt(creativePrompt);
+            await executeAnalysis(creativePrompt, 'MANUAL');
+            addLog('🐛 Lazarus: Scene populated!', 'success');
+          } else {
+            addLog('🐛 Lazarus: Enable Auto-Spawn or enter a prompt to populate scene', 'warning');
+          }
+        }
+
+        // Fix paused simulation with no reason
+        if (isPaused && params.assetGroups.length > 0) {
+          addLog('🐛 Lazarus: Unpausing simulation...', 'info');
+          setIsPaused(false);
+        }
+
+        // Recommend fixes for other issues
+        if (report.recommendations.length > 0) {
+          report.recommendations.forEach(rec => {
+            addLog(`🐛 Lazarus suggests: ${rec}`, 'info');
+          });
+        }
+      } else {
+        addLog('🐛 Lazarus: All systems healthy! No fixes needed.', 'success');
+      }
+    } catch (error) {
+      addLog(`🐛 Lazarus: Diagnostics failed - ${(error as Error).message}`, 'error');
+    }
+  }, [params, logs, prompt, isAutoSpawn, isPaused, isAnalyzing, isChaosActive, addLog, executeAnalysis]);
+
   return (
     <div ref={canvasRef} className="relative h-screen w-screen bg-slate-900 text-white overflow-hidden">
       
@@ -746,15 +803,12 @@ const App: React.FC = () => {
         onClose={() => setIsSnappyEnabled(false)}
       />
 
-      {/* Characters: Chaos, Lazarus, Snappy */}
-      <Characters
+      {/* Floating Characters: Chaos, Lazarus, Snappy (Free-floating gently around UI) */}
+      <FloatingCharacters
         isChaosActive={isChaosActive}
-        chaosActivity={chaosActivity}
         onChaosClick={() => setIsChaosActive(!isChaosActive)}
-        lazarusStatus={lazarusStatus}
-        lazarusSummary={lazarusSummary}
-        onLazarusClick={() => console.log('[Lazarus] Diagnostics:', lazarusSummary)}
-        onSnappyMessage={handleSnappyMessage}
+        onLazarusClick={handleLazarusClick}
+        onSnappyClick={() => setIsSnappyEnabled(true)}
       />
 
       {/* Guided Tour */}

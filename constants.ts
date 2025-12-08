@@ -1,25 +1,18 @@
 
 import { PhysicsParams, SpawnMode, ShapeType, MovementBehavior, MaterialPreset } from './types';
 
+/**
+ * BLANK SLATE DEFAULT
+ *
+ * Start with completely empty simulation.
+ * Asset groups will be populated when user hits simulate with auto-spawn enabled,
+ * or manually adds groups through the UI.
+ */
 export const DEFAULT_PHYSICS: PhysicsParams = {
   gravity: { x: 0, y: -9.81, z: 0 },
   wind: { x: 0, y: 0, z: 0 },
   movementBehavior: MovementBehavior.PHYSICS_GRAVITY,
-  assetGroups: [
-    {
-      id: 'starter_group',
-      name: 'Starter Group',
-      count: 0,
-      shape: ShapeType.SPHERE,
-      color: '#22d3ee',
-      spawnMode: SpawnMode.GRID,
-      scale: 1.0,
-      mass: 1.0,
-      restitution: 0.5,
-      friction: 0.5,
-      drag: 0.05
-    }
-  ]
+  assetGroups: [] // BLANK SLATE - No pre-configured assets
 };
 
 export const DEFAULT_MATERIAL_PRESETS: MaterialPreset[] = [

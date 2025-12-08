@@ -7,6 +7,7 @@ import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
 import { analyzePhysicsPrompt, generateRealityImage, analyzeSceneStability, generateSimulationVideo, generateCreativePrompt, generateSimulationReport } from './services/geminiService';
 import { AdversarialDirector } from './services/adversarialDirector';
+import { validateAndSanitize, ValidationOntology } from './services/validationService';
 import { X } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
 
@@ -23,9 +24,9 @@ const App: React.FC = () => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.RGB);
   
-  // Auto Spawn State
-  const [isAutoSpawn, setIsAutoSpawn] = useState(false);
-  const isAutoSpawnRef = useRef(false); // Ref to track state inside async closures
+  // Auto Spawn State - DEFAULT ON for blank slate workflow
+  const [isAutoSpawn, setIsAutoSpawn] = useState(true);
+  const isAutoSpawnRef = useRef(true); // Ref to track state inside async closures
   const autoSpawnTimerRef = useRef<number | null>(null);
   
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -62,11 +63,15 @@ const App: React.FC = () => {
   useEffect(() => {
       const isTesting = new URLSearchParams(window.location.search).get('test') === 'true';
       setIsTestMode(isTesting);
-      
+
       if (isTesting) {
           // Disable Auto Spawn in Test Mode to prevent interference
+          console.log('[TEST MODE] Auto-spawn disabled for testing');
           setIsAutoSpawn(false);
           isAutoSpawnRef.current = false;
+      } else {
+          // Production mode - auto-spawn enabled by default for blank slate workflow
+          console.log('[PRODUCTION MODE] Auto-spawn enabled by default');
       }
   }, []);
 
@@ -128,31 +133,31 @@ const App: React.FC = () => {
 
     try {
       const result = await analyzePhysicsPrompt(inputPrompt);
-      
+
       // DOUBLE CHECK: Re-verify state after the async operation returns
       if (source === 'AUTO' && !isAutoSpawnRef.current) {
           console.log("Auto-spawn aborted due to user interruption.");
           return;
       }
 
-      // Update Physics State
-      setParams(prev => ({
-        ...prev,
+      // Construct new params from AI result
+      const newParams: PhysicsParams = {
         gravity: result.gravity,
         wind: result.wind,
         movementBehavior: result.movementBehavior,
-        assetGroups: result.assetGroups.map(g => ({
-            ...g,
-            // Ensure logic bounds
-            count: Math.min(g.count, 1000), 
-            scale: Math.max(0.1, Math.min(g.scale, 5.0))
-        }))
-      }));
+        assetGroups: result.assetGroups
+      };
+
+      // VALIDATION & SANITIZATION - Ensure data integrity
+      const validatedParams = validateAndSanitize(newParams);
+
+      // Update Physics State with validated params
+      setParams(validatedParams);
 
       // Reset triggers
-      setShouldReset(true); 
-      setIsPaused(false);   
-      
+      setShouldReset(true);
+      setIsPaused(false);
+
       addLog(`Simulation Configured: ${result.explanation}`, 'success');
 
     } catch (error) {

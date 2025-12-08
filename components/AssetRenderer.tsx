@@ -81,17 +81,24 @@ const PrimitiveAsset: React.FC<AssetRendererProps> = ({ group, meshRef, viewMode
 };
 
 // Shared Material Logic
-const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }) => (
-    <meshStandardMaterial 
-        color={group.color}
-        wireframe={viewMode === ViewMode.WIREFRAME}
-        roughness={viewMode === ViewMode.RGB ? 1.0 - group.restitution : 1.0} 
-        metalness={viewMode === ViewMode.RGB ? (group.restitution > 0.8 ? 0.1 : 0.6) : 0.0}
-        transparent={viewMode === ViewMode.RGB && group.restitution < 0.2} 
-        opacity={viewMode === ViewMode.RGB && group.restitution < 0.2 ? 0.8 : 1.0}
-        emissive={viewMode === ViewMode.LIDAR ? new THREE.Color(0x222222) : new THREE.Color(0x000000)}
-    />
-);
+const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }) => {
+    const baseColor = new THREE.Color(group.color);
+    // Brighten colors by 50% for much better visibility
+    const brightenedColor = baseColor.clone().multiplyScalar(1.5);
+
+    return (
+        <meshStandardMaterial
+            color={brightenedColor}
+            wireframe={viewMode === ViewMode.WIREFRAME}
+            roughness={viewMode === ViewMode.RGB ? Math.max(0.3, 1.0 - group.restitution) : 1.0}
+            metalness={viewMode === ViewMode.RGB ? 0.1 : 0.0}
+            transparent={viewMode === ViewMode.RGB && group.restitution < 0.2}
+            opacity={viewMode === ViewMode.RGB && group.restitution < 0.2 ? 0.8 : 1.0}
+            emissive={viewMode === ViewMode.LIDAR ? new THREE.Color(0x222222) : baseColor.clone().multiplyScalar(0.2)}
+            emissiveIntensity={viewMode === ViewMode.RGB ? 0.3 : 0.0}
+        />
+    );
+};
 
 export const AssetRenderer: React.FC<AssetRendererProps> = (props) => {
     // Conditional Rendering: Only mount ModelAsset if modelUrl is present.

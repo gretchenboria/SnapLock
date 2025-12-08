@@ -14,11 +14,16 @@ export default {
       },
       colors: {
         scifi: {
+          950: '#0a0e1a',
           900: '#0f172a',
           800: '#1e293b',
           700: '#334155',
-          cyan: '#22d3ee',
-          accent: '#f472b6',
+          600: '#475569',
+          cyan: '#06b6d4',
+          'cyan-light': '#22d3ee',
+          'cyan-bright': '#67e8f9',
+          accent: '#ec4899',
+          'accent-light': '#f472b6',
         }
       },
       keyframes: {

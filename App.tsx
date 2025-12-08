@@ -134,7 +134,7 @@ const App: React.FC = () => {
 
   const executeAnalysis = async (inputPrompt: string, source: 'MANUAL' | 'AUTO' = 'MANUAL') => {
     if (!inputPrompt.trim()) return;
-    
+
     // SAFETY CHECK: If this is an auto-spawn request, but the user has turned off auto-spawn
     // since the request started, we MUST ABORT to prevent overwriting user input/state.
     if (source === 'AUTO' && !isAutoSpawnRef.current) {
@@ -174,7 +174,16 @@ const App: React.FC = () => {
       addLog(`Simulation Configured: ${result.explanation}`, 'success');
 
     } catch (error) {
-      addLog(`Configuration Failed: ${(error as Error).message}`, 'error');
+      const errorMsg = (error as Error).message;
+
+      // Provide helpful error messages for common issues
+      if (errorMsg.includes('API') || errorMsg.includes('key') || errorMsg.includes('401') || errorMsg.includes('403')) {
+        addLog(`Configuration Failed: Missing API key. Please configure VITE_GEMINI_API_KEY in your .env file or set up VITE_BACKEND_URL`, 'error');
+      } else if (errorMsg.includes('backend') || errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        addLog(`Configuration Failed: Backend unavailable. Check VITE_BACKEND_URL in .env or configure direct API access`, 'error');
+      } else {
+        addLog(`Configuration Failed: ${errorMsg}`, 'error');
+      }
     } finally {
       setIsAnalyzing(false);
     }

@@ -62,7 +62,7 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
         shadows
         dpr={[1, 2]} 
       >
-        <color attach="background" args={[viewMode === ViewMode.LIDAR ? '#000000' : '#050810']} />
+        <color attach="background" args={[viewMode === ViewMode.LIDAR ? '#000000' : '#0a0e1a']} />
         
         {/* Dynamic Environment Lighting */}
         {viewMode === ViewMode.RGB && (
@@ -70,13 +70,15 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
              {params.environmentUrl ? (
                  <Environment files={params.environmentUrl} background blur={0.2} />
              ) : (
-                 <Environment preset="night" blur={0.8} />
+                 <Environment preset="city" blur={0.5} />
              )}
-             
-            <ambientLight intensity={0.2} />
-            <pointLight position={[10, 20, 10]} intensity={1.5} castShadow />
-            <pointLight position={[-10, 5, -10]} intensity={0.8} color="#22d3ee" />
-            <spotLight position={[0, 15, 0]} angle={0.5} penumbra={1} intensity={2} castShadow color="#f472b6" />
+
+            <ambientLight intensity={1.0} />
+            <directionalLight position={[10, 20, 10]} intensity={2.5} castShadow color="#ffffff" />
+            <directionalLight position={[-10, 20, -10]} intensity={1.5} color="#ffffff" />
+            <pointLight position={[-10, 10, -10]} intensity={2.0} color="#67e8f9" />
+            <pointLight position={[5, 5, 5]} intensity={1.8} color="#ffffff" />
+            <hemisphereLight groundColor="#334155" intensity={0.8} />
           </>
         )}
 

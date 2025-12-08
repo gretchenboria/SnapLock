@@ -345,7 +345,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between z-50 font-sans text-xs select-none">
       
       {/* --- TOP HEADER --- */}
-      <div className="w-full bg-scifi-900 border-b border-white/10 p-2 pointer-events-auto flex items-center gap-4 shadow-xl z-50 h-14 relative">
+      <div className="w-full bg-scifi-900 border-b border-white/10 p-2 pointer-events-auto flex items-center gap-3 shadow-xl z-50 h-12 relative">
         {/* Left: Branding */}
         <div className="flex items-center gap-3 px-4 border-r border-white/10 h-full">
           <div className="relative w-8 h-8 flex items-center justify-center bg-scifi-cyan/10 rounded-md border border-scifi-cyan/20">
@@ -386,8 +386,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     setShowSuggestions(true);
                   }
                 }}
-                className="w-full h-14 bg-transparent border-none pl-14 pr-40 text-base font-mono text-white placeholder-gray-500 focus:outline-none"
-                placeholder="Type simulation command or press Ctrl+Space for suggestions..."
+                className="w-full h-10 bg-transparent border-none pl-12 pr-32 text-sm font-mono text-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-600"
+                placeholder="Type simulation command or Ctrl+Space for suggestions..."
               />
 
               {/* Right Action Buttons */}
@@ -403,7 +403,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 <button
                   onClick={handleEnhancePrompt}
                   disabled={!prompt.trim() || isEnhancing}
-                  className={`h-9 px-3 rounded flex items-center gap-1.5 transition-all border text-[10px] font-bold tracking-wider ${
+                  className={`h-7 px-2 rounded flex items-center gap-1 transition-all border text-[9px] font-bold tracking-wider ${
                     isEnhancing
                       ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
                       : prompt.trim()
@@ -413,9 +413,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   title="Enhance prompt with AI"
                 >
                   {isEnhancing ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-3 h-3 animate-spin" />
                   ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-3 h-3" />
                   )}
                   <span>AI</span>
                 </button>
@@ -429,7 +429,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     }
                   }}
                   disabled={isAnalyzing || !prompt.trim()}
-                  className={`h-9 px-4 rounded flex items-center gap-2 transition-all border font-bold text-[10px] tracking-wider ${
+                  className={`h-7 px-3 rounded flex items-center gap-1.5 transition-all border font-bold text-[9px] tracking-wider ${
                     isAnalyzing
                       ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
                       : prompt.trim()
@@ -439,9 +439,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   title="Execute simulation (Enter)"
                 >
                   {isAnalyzing ? (
-                    <Activity className="w-3.5 h-3.5 animate-spin" />
+                    <Activity className="w-3 h-3 animate-spin" />
                   ) : (
-                    <Database className="w-3.5 h-3.5" />
+                    <Database className="w-3 h-3" />
                   )}
                   <span>RUN</span>
                 </button>
@@ -514,15 +514,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           {/* Auto-Spawn Toggle - Compact Design */}
           <button
              onClick={toggleAutoSpawn}
-             className={`h-14 px-5 flex flex-col items-center justify-center gap-0.5 rounded-lg transition-all border-2 font-bold whitespace-nowrap group ${
+             className={`h-9 px-3 flex items-center justify-center gap-1.5 rounded-lg transition-all border font-bold whitespace-nowrap group relative ${
                  isAutoSpawn
-                 ? 'bg-purple-600/20 border-purple-500 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]'
-                 : 'bg-black/40 border-white/20 text-gray-500 hover:text-purple-400 hover:border-purple-500/50 hover:bg-purple-600/10'
+                 ? 'bg-purple-600/20 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+                 : 'bg-black/40 border-white/20 text-gray-400 hover:text-purple-300 hover:border-purple-500/50 hover:bg-purple-600/10'
              }`}
              title={isAutoSpawn ? "Auto-Spawn Active (15s intervals)" : "Enable Auto-Spawn Mode"}
           >
-             <Wand2 size={16} className={isAutoSpawn ? "animate-pulse" : "group-hover:scale-110 transition-transform"} />
-             <span className="text-[9px] tracking-widest">AUTO</span>
+             <Wand2 size={14} className={isAutoSpawn ? "animate-pulse" : "group-hover:scale-110 transition-transform"} />
+             <span className="text-[10px] tracking-wider font-bold">AUTO SPAWN</span>
              {isAutoSpawn && (
                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500/50 rounded-full overflow-hidden">
                  <div className="h-full bg-purple-400 animate-[progress_15s_linear_infinite]" />
@@ -548,75 +548,40 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
              {/* ADVERSARIAL DIRECTOR - PROMINENT TOGGLE */}
              {toggleDirector && (
-                 <div className={`relative h-14 px-4 rounded-lg border-2 transition-all duration-300 ${
-                     isDirectorActive
-                     ? 'bg-gradient-to-r from-red-950/40 via-red-900/30 to-red-950/40 border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]'
-                     : 'bg-black/40 border-red-900/30 hover:border-red-700/50 hover:bg-red-950/20'
-                 }`}>
-                    {/* Animated Background Effect When Active */}
+                 <button
+                    onClick={toggleDirector}
+                    title={isDirectorActive ? "Disable Adversarial Director" : "Enable Adversarial Director"}
+                    className={`h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group ${
+                        isDirectorActive
+                        ? 'bg-gradient-to-r from-red-950/40 via-red-900/30 to-red-950/40 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]'
+                        : 'bg-black/40 border-red-900/30 hover:border-red-700/50 hover:bg-red-950/20'
+                    }`}
+                 >
+                    <Skull size={14} className={`${isDirectorActive ? 'text-red-400 animate-pulse' : 'text-red-700 group-hover:text-red-500'} transition-colors`} strokeWidth={2} />
+                    <div className="flex flex-col items-start">
+                        <span className={`font-bold text-[10px] tracking-wider ${
+                            isDirectorActive ? 'text-red-300' : 'text-red-700 group-hover:text-red-400'
+                        }`}>
+                            DIRECTOR
+                        </span>
+                    </div>
                     {isDirectorActive && (
-                        <div className="absolute inset-0 overflow-hidden rounded-lg">
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/10 to-transparent animate-[shimmer_2s_ease-in-out_infinite]" />
-                        </div>
+                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping absolute -top-1 -right-1" />
                     )}
-
-                    <button
-                       onClick={toggleDirector}
-                       title={isDirectorActive ? "Disable Adversarial Director" : "Enable Adversarial Director"}
-                       className="relative h-full flex flex-col items-center justify-center gap-0.5 group"
-                    >
-                       {/* Icon with Pulse Effect */}
-                       <div className="relative">
-                           <Skull size={20} className={`${isDirectorActive ? 'text-red-400 animate-pulse' : 'text-red-800 group-hover:text-red-600'} transition-colors`} strokeWidth={2.5} />
-                           {isDirectorActive && (
-                               <>
-                                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
-                                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-                               </>
-                           )}
-                       </div>
-
-                       {/* Label */}
-                       <div className="flex flex-col items-center gap-0">
-                           <span className={`font-bold text-[9px] tracking-widest ${
-                               isDirectorActive ? 'text-red-400' : 'text-red-800 group-hover:text-red-600'
-                           }`}>
-                               {isDirectorActive ? 'ACTIVE' : 'OFFLINE'}
-                           </span>
-                           <span className={`text-[8px] tracking-wider ${
-                               isDirectorActive ? 'text-red-500/80' : 'text-red-900/60'
-                           }`}>
-                               AI DIRECTOR
-                           </span>
-                       </div>
-
-                       {/* Warning Stripes When Active */}
-                       {isDirectorActive && (
-                           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50" />
-                       )}
-                    </button>
-                 </div>
+                 </button>
              )}
 
              {/* LAZARUS DEBUGGER - DIAGNOSTIC BUTTON */}
              <button
                 onClick={onRunDiagnostics}
                 title="Run Lazarus Diagnostics"
-                className="h-14 px-4 rounded-lg border-2 transition-all duration-300 bg-black/40 border-blue-900/30 hover:border-blue-500/50 hover:bg-blue-950/20 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                className="h-9 px-3 rounded-lg border transition-all duration-300 bg-black/40 border-blue-900/30 hover:border-blue-500/50 hover:bg-blue-950/20 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] flex items-center gap-1.5 group"
              >
-                <div className="flex flex-col items-center justify-center gap-0.5 group">
-                   {/* Icon */}
-                   <Bug size={20} className="text-blue-800 group-hover:text-blue-500 transition-colors" strokeWidth={2.5} />
-
-                   {/* Labels */}
-                   <div className="flex flex-col items-center gap-0">
-                       <span className="font-bold text-[9px] tracking-widest text-blue-800 group-hover:text-blue-500">
-                           LAZARUS
-                       </span>
-                       <span className="text-[8px] tracking-wider text-blue-900/60 group-hover:text-blue-600/80">
-                           DEBUGGER
-                       </span>
-                   </div>
+                <Bug size={14} className="text-blue-700 group-hover:text-blue-400 transition-colors" strokeWidth={2} />
+                <div className="flex flex-col items-start">
+                    <span className="font-bold text-[10px] tracking-wider text-blue-700 group-hover:text-blue-400">
+                        LAZARUS
+                    </span>
                 </div>
              </button>
 
@@ -624,38 +589,35 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
              <button
                 onClick={toggleSnappy}
                 title={isSnappyEnabled ? "Hide Snappy Assistant" : "Show Snappy Assistant"}
-                className={`h-14 px-4 rounded-lg border-2 transition-all duration-300 ${
+                className={`h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group relative ${
                   isSnappyEnabled
-                    ? 'bg-cyan-950/40 border-cyan-500/50 shadow-[0_0_20px_rgba(34,211,238,0.4)]'
-                    : 'bg-black/40 border-cyan-900/30 hover:border-cyan-500/50 hover:bg-cyan-950/20 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]'
+                    ? 'bg-cyan-950/40 border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.4)]'
+                    : 'bg-black/40 border-cyan-900/30 hover:border-cyan-500/50 hover:bg-cyan-950/20'
                 }`}
              >
-                <div className="flex flex-col items-center justify-center gap-0.5 group">
-                   {/* Icon */}
-                   <Smile size={20} className={`transition-colors ${
-                     isSnappyEnabled
-                       ? 'text-cyan-400'
-                       : 'text-cyan-800 group-hover:text-cyan-500'
-                   }`} strokeWidth={2.5} />
-
-                   {/* Labels */}
-                   <div className="flex flex-col items-center gap-0">
-                       <span className={`font-bold text-[9px] tracking-widest transition-colors ${
-                         isSnappyEnabled
-                           ? 'text-cyan-400'
-                           : 'text-cyan-800 group-hover:text-cyan-500'
-                       }`}>
-                           SNAPPY
-                       </span>
-                       <span className={`text-[8px] tracking-wider transition-colors ${
-                         isSnappyEnabled
-                           ? 'text-cyan-500/80'
-                           : 'text-cyan-900/60 group-hover:text-cyan-600/80'
-                       }`}>
-                           ASSISTANT
-                       </span>
-                   </div>
+                {/* Snappy Character Icon - Two Eyes */}
+                <div className="relative flex items-center gap-0.5">
+                   <div className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                     isSnappyEnabled ? 'bg-cyan-300 shadow-[0_0_4px_rgba(34,211,238,0.8)]' : 'bg-cyan-700'
+                   }`} />
+                   <div className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                     isSnappyEnabled ? 'bg-cyan-300 shadow-[0_0_4px_rgba(34,211,238,0.8)]' : 'bg-cyan-700'
+                   }`} />
                 </div>
+
+                <div className="flex flex-col items-start">
+                    <span className={`font-bold text-[10px] tracking-wider transition-colors ${
+                      isSnappyEnabled
+                        ? 'text-cyan-300'
+                        : 'text-cyan-700 group-hover:text-cyan-400'
+                    }`}>
+                        SNAPPY
+                    </span>
+                </div>
+
+                {isSnappyEnabled && (
+                    <Sparkles size={10} className="text-cyan-400 animate-pulse absolute -top-1 -right-1" />
+                )}
              </button>
         </div>
 
@@ -696,7 +658,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               {/* Context Header */}
               {(activeTab !== 'ENV' && activeTab !== 'DATA') && (
                  <div className="pb-4 border-b border-white/10">
-                    <label className="text-[10px] text-gray-400 font-bold block mb-2">TARGET GROUP</label>
+                    <label className="text-[10px] text-gray-300 font-bold block mb-2 tracking-wider">TARGET GROUP</label>
                     {activeGroup ? (
                       <div className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded">
                           <div className="w-3 h-3 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeGroup.color, color: activeGroup.color }}></div>
@@ -704,9 +666,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                           <span className="text-[9px] text-gray-500 uppercase">{activeGroup.shape}</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 p-3 bg-yellow-900/10 border border-yellow-500/20 rounded">
-                          <Sparkles className="w-4 h-4 text-yellow-500" />
-                          <span className="text-xs text-yellow-200/80">No groups yet - Enable Auto-Spawn or add manually</span>
+                      <div className="flex items-center gap-2 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded">
+                          <Sparkles className="w-4 h-4 text-yellow-400" />
+                          <span className="text-xs text-yellow-200">No groups yet - Enable Auto-Spawn or add manually</span>
                       </div>
                     )}
                  </div>
@@ -749,11 +711,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   <Section title="INSTANCE CONFIGURATION">
                      {/* Add Spawn Mode Selector */}
                      <div className="mb-3">
-                        <label className="text-[10px] text-gray-400 block mb-1">SPAWN TOPOLOGY</label>
-                        <select 
+                        <label className="text-[10px] text-gray-200 font-bold block mb-1 tracking-wide">SPAWN TOPOLOGY</label>
+                        <select
                             value={activeGroup.spawnMode}
                             onChange={(e) => updateActiveGroup('spawnMode', e.target.value)}
-                            className="w-full bg-black/40 border border-white/10 text-xs p-1.5 rounded text-white font-mono focus:border-scifi-cyan focus:outline-none"
+                            className="w-full bg-black/40 border border-white/10 text-xs p-1.5 rounded text-white font-mono focus:border-scifi-cyan-light focus:outline-none font-bold"
                         >
                             {Object.values(SpawnMode).map(m => (
                                 <option key={m} value={m}>{m}</option>
@@ -767,10 +729,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
                   <Section title="SURFACE MATERIAL">
                      <div className="space-y-2">
-                        <label className="text-[10px] text-gray-400">ALBEDO COLOR</label>
+                        <label className="text-[10px] text-gray-200 font-bold tracking-wide">ALBEDO COLOR</label>
                         <div className="flex items-center gap-2">
                             <input type="color" value={activeGroup.color} onChange={(e) => updateActiveGroup('color', e.target.value)} className="bg-transparent border border-white/20 rounded w-8 h-8 cursor-pointer p-0.5" />
-                            <span className="font-mono text-[9px] text-gray-500 uppercase">{activeGroup.color}</span>
+                            <span className="font-mono text-[9px] text-gray-300 font-bold uppercase">{activeGroup.color}</span>
                         </div>
                      </div>
                   </Section>
@@ -798,10 +760,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               {activeTab === 'PHYSICS' && activeGroup && (
                 <>
                    <Section title="SIMULATION ALGORITHM">
-                      <select 
+                      <select
                         value={params.movementBehavior}
                         onChange={(e) => setParams({ ...params, movementBehavior: e.target.value as MovementBehavior })}
-                        className="w-full bg-black/40 border border-white/10 text-xs p-2 rounded text-scifi-cyan font-mono mb-4 focus:border-scifi-cyan focus:outline-none"
+                        className="w-full bg-black/40 border border-white/10 text-xs p-2 rounded text-white font-mono mb-4 focus:border-scifi-cyan-light focus:outline-none font-bold"
                       >
                          {Object.values(MovementBehavior).map(b => (
                            <option key={b} value={b}>{b.replace('PHYSICS_', '')}</option>
@@ -864,9 +826,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     <Section title="GLOBAL FORCE VECTORS">
                        <div className="space-y-4">
                           <div className="space-y-2">
-                             <div className="flex items-center gap-2 text-gray-500">
+                             <div className="flex items-center gap-2 text-gray-200">
                                 <ArrowDown size={12} />
-                                <label className="text-[10px] font-bold">GRAVITY (M/S²)</label>
+                                <label className="text-[10px] font-bold tracking-wide">GRAVITY (M/S²)</label>
                              </div>
                              <div className="flex gap-2">
                                 <NumInput label="X" value={params.gravity.x} onChange={(v: number) => updateVector('gravity', 'x', v)} />
@@ -875,9 +837,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                              </div>
                           </div>
                           <div className="space-y-2">
-                             <div className="flex items-center gap-2 text-gray-500">
+                             <div className="flex items-center gap-2 text-gray-200">
                                 <Wind size={12} />
-                                <label className="text-[10px] font-bold">WIND VELOCITY</label>
+                                <label className="text-[10px] font-bold tracking-wide">WIND VELOCITY</label>
                              </div>
                              <div className="flex gap-2">
                                 <NumInput label="X" value={params.wind.x} onChange={(v: number) => updateVector('wind', 'x', v)} />
@@ -1054,12 +1016,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
            {/* Header with Add Action */}
            <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
               <div className="flex items-center gap-2">
-                <Layers className="text-scifi-cyan w-4 h-4" />
-                <span className="font-bold tracking-widest text-scifi-cyan text-[10px]">HIERARCHY</span>
+                <Layers className="text-scifi-cyan-light w-4 h-4" />
+                <span className="font-bold tracking-widest text-scifi-cyan-light text-[10px]">HIERARCHY</span>
               </div>
-              <button 
+              <button
                  onClick={addAssetGroup}
-                 className="flex items-center gap-1 bg-scifi-cyan/10 hover:bg-scifi-cyan/20 text-scifi-cyan rounded px-2 py-1 transition-colors border border-scifi-cyan/20"
+                 className="flex items-center gap-1 bg-scifi-cyan/10 hover:bg-scifi-cyan/20 text-scifi-cyan-light rounded px-2 py-1 transition-colors border border-scifi-cyan/20"
                  title="Add New Asset Group"
               >
                  <Plus size={10} />
@@ -1074,26 +1036,26 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                    key={group.id} 
                    onClick={() => setSelectedGroupId(group.id)}
                    className={`p-3 rounded border cursor-pointer transition-all group relative ${
-                       selectedGroupId === group.id 
-                       ? 'border-scifi-cyan bg-scifi-cyan/10 shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]' 
+                       selectedGroupId === group.id
+                       ? 'border-scifi-cyan-light bg-scifi-cyan/10 shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]'
                        : 'border-white/10 bg-black/50 hover:border-white/30'
                    }`}
                  >
                     <div className="flex justify-between items-start mb-2">
                         <div className="flex flex-col">
-                            <span className={`text-[10px] font-bold uppercase ${selectedGroupId === group.id ? 'text-white' : 'text-gray-400'}`}>{group.name}</span>
-                            <span className="text-[8px] text-gray-600">{group.shape} / {group.spawnMode}</span>
+                            <span className={`text-[10px] font-bold uppercase ${selectedGroupId === group.id ? 'text-white' : 'text-gray-300'}`}>{group.name}</span>
+                            <span className="text-[8px] text-gray-500">{group.shape} / {group.spawnMode}</span>
                         </div>
                         <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: group.color }}></div>
                     </div>
-                    
+
                     <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] text-gray-500">
+                        <div className="flex justify-between text-[9px] text-gray-300">
                             <span>PARTICLES</span>
-                            <span className="font-mono text-gray-300">{group.count}</span>
+                            <span className="font-mono text-white font-bold">{group.count}</span>
                         </div>
                         <div className="w-full bg-white/5 h-1 rounded overflow-hidden">
-                            <div className="bg-scifi-cyan h-full transition-all duration-500" style={{ width: `${Math.min(100, (group.count / 500) * 100)}%` }}></div>
+                            <div className="bg-scifi-cyan-light h-full transition-all duration-500" style={{ width: `${Math.min(100, (group.count / 500) * 100)}%` }}></div>
                         </div>
                     </div>
 
@@ -1114,23 +1076,23 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
            {/* RIGOROUS LIVE TELEMETRY DASHBOARD */}
            <div className="bg-white/5 rounded p-3 space-y-3 border border-white/5">
-              <div className="flex items-center gap-2 text-gray-500 mb-1">
-                  <Activity size={12} className={isAutoSpawn ? "text-purple-400" : ""} />
+              <div className="flex items-center gap-2 text-gray-300 mb-1">
+                  <Activity size={12} className={isAutoSpawn ? "text-purple-300" : ""} />
                   <span className="text-[9px] font-bold tracking-wider">LIVE TELEMETRY</span>
-                  {isAutoSpawn && <span className="text-[9px] text-purple-400 ml-auto animate-pulse">AUTOMATED</span>}
+                  {isAutoSpawn && <span className="text-[9px] text-purple-300 ml-auto animate-pulse">AUTOMATED</span>}
               </div>
               
               <TelemetryReadout telemetryRef={telemetryRef} />
               
               {/* Force Readout */}
               <div className="space-y-1 pt-1 border-t border-white/5 mt-2">
-                  <div className="flex justify-between text-[9px] text-gray-500">
+                  <div className="flex justify-between text-[9px] text-gray-300">
                       <span>GRAVITY Y</span>
-                      <span className={`font-mono ${Math.abs(params.gravity.y) > 0.1 ? 'text-white' : 'text-gray-600'}`}>{params.gravity.y.toFixed(2)}</span>
+                      <span className={`font-mono font-bold ${Math.abs(params.gravity.y) > 0.1 ? 'text-white' : 'text-gray-500'}`}>{params.gravity.y.toFixed(2)}</span>
                   </div>
-                   <div className="flex justify-between text-[9px] text-gray-500">
+                   <div className="flex justify-between text-[9px] text-gray-300">
                       <span>WIND MAG</span>
-                      <span className={`font-mono ${Math.abs(params.wind.x) + Math.abs(params.wind.z) > 0.1 ? 'text-white' : 'text-gray-600'}`}>
+                      <span className={`font-mono font-bold ${Math.abs(params.wind.x) + Math.abs(params.wind.z) > 0.1 ? 'text-white' : 'text-gray-500'}`}>
                           {(Math.abs(params.wind.x) + Math.abs(params.wind.z)).toFixed(2)}
                       </span>
                   </div>
@@ -1149,14 +1111,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           <button
             onClick={onAnalyze}
             disabled={isAnalyzing}
-            className={`h-10 px-6 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 ${
+            className={`h-8 px-4 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 ${
               isAnalyzing
-                ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-500 cursor-wait'
-                : 'bg-scifi-cyan/10 border-scifi-cyan/50 text-scifi-cyan hover:bg-scifi-cyan hover:text-black'
+                ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
+                : 'bg-scifi-cyan/10 border-scifi-cyan/50 text-scifi-cyan-light hover:bg-scifi-cyan hover:text-black'
             }`}
             title="Execute Prompt"
           >
-            {isAnalyzing ? <Activity className="w-4 h-4 animate-spin"/> : <Database className="w-4 h-4"/>}
+            {isAnalyzing ? <Activity className="w-3.5 h-3.5 animate-spin"/> : <Database className="w-3.5 h-3.5"/>}
             {isAnalyzing ? 'RUNNING' : 'RUN'}
           </button>
 
@@ -1165,9 +1127,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
           {/* Playback Controls */}
           <div className="flex items-center gap-1 bg-black/40 rounded border border-white/10 p-1">
-            <IconButton onClick={togglePause} icon={isPaused ? <Play size={18}/> : <Pause size={18}/>} active={!isPaused} title={isPaused ? "Play" : "Pause"} />
-            <IconButton onClick={onReset} icon={<RefreshCw size={18}/>} title="Reset" />
-            <IconButton onClick={resetCamera} icon={<RotateCcw size={18}/>} title="Reset Camera" />
+            <IconButton onClick={togglePause} icon={isPaused ? <Play size={16}/> : <Pause size={16}/>} active={!isPaused} title={isPaused ? "Play" : "Pause"} />
+            <IconButton onClick={onReset} icon={<RefreshCw size={16}/>} title="Reset" />
+            <IconButton onClick={resetCamera} icon={<RotateCcw size={16}/>} title="Reset Camera" />
           </div>
 
           {/* Separator */}
@@ -1178,20 +1140,20 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             <button
               onClick={onSnap}
               disabled={isSnapping}
-              className="h-10 bg-white text-black px-5 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition-all border border-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-8 bg-white text-black px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition-all border border-white disabled:opacity-50 disabled:cursor-not-allowed"
               title="Capture Image"
             >
-              <Aperture size={16} className={isSnapping ? 'animate-spin' : ''}/>
+              <Aperture size={14} className={isSnapping ? 'animate-spin' : ''}/>
               IMAGE
             </button>
 
             <button
               onClick={onGenerateVideo}
               disabled={isGeneratingVideo}
-              className="h-10 bg-white/10 border border-white/20 text-white px-5 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-8 bg-white/10 border border-white/20 text-white px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               title="Generate Video"
             >
-              {isGeneratingVideo ? <Loader2 className="animate-spin" size={16} /> : <Video size={16}/>}
+              {isGeneratingVideo ? <Loader2 className="animate-spin" size={14} /> : <Video size={14}/>}
               VIDEO
             </button>
           </div>
@@ -1206,13 +1168,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 // --- SUB-COMPONENTS ---
 
 const ModelBadge = ({ icon, label, model }: any) => (
-    <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded p-1.5 hover:border-scifi-cyan/30 transition-colors">
-        <div className="p-1 rounded bg-white/5 text-gray-400">
+    <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded p-1.5 hover:border-scifi-cyan-light/30 transition-colors">
+        <div className="p-1 rounded bg-white/5 text-gray-300">
             {icon}
         </div>
         <div className="flex flex-col">
-            <span className="text-[8px] font-bold text-gray-500 tracking-wider">{label}</span>
-            <span className="text-[9px] font-mono text-scifi-cyan">{model}</span>
+            <span className="text-[8px] font-bold text-gray-300 tracking-wider">{label}</span>
+            <span className="text-[9px] font-mono text-scifi-cyan-light font-bold">{model}</span>
         </div>
     </div>
 );
@@ -1281,22 +1243,22 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
 const TelemetryBoxRaw = React.forwardRef<HTMLDivElement, { label: string }>(({ label }, ref) => (
    <div className="bg-black/40 border border-white/5 rounded p-2 text-center">
       <div ref={ref} className="text-[10px] font-mono text-white font-bold truncate">--</div>
-      <div className="text-[8px] text-gray-600 mt-0.5">{label}</div>
+      <div className="text-[8px] text-gray-400 mt-0.5 font-medium">{label}</div>
    </div>
 ));
 
 const Section = ({ title, children }: any) => (
   <div className="space-y-3 animate-in fade-in duration-300">
-    <h3 className="text-[9px] font-bold text-gray-500 tracking-widest uppercase border-l-2 border-scifi-cyan/20 pl-2">{title}</h3>
+    <h3 className="text-[9px] font-bold text-gray-300 tracking-widest uppercase border-l-2 border-scifi-cyan/30 pl-2">{title}</h3>
     {children}
   </div>
 );
 
 const TabButton = ({ label, active, onClick }: any) => (
-  <button 
+  <button
     onClick={onClick}
     className={`flex-1 py-3 text-[10px] font-bold tracking-wider transition-colors border-b-2 ${
-      active ? 'border-scifi-cyan text-white bg-white/5' : 'border-transparent text-gray-600 hover:text-gray-300 hover:bg-white/5'
+      active ? 'border-scifi-cyan-light text-white bg-white/5' : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5'
     }`}
   >
     {label}
@@ -1304,10 +1266,10 @@ const TabButton = ({ label, active, onClick }: any) => (
 );
 
 const IconButton = ({ onClick, icon, active, title }: any) => (
-  <button 
+  <button
     onClick={onClick}
     title={title}
-    className={`p-1.5 rounded-sm hover:bg-white/20 transition-colors ${active ? 'text-scifi-cyan bg-scifi-cyan/10' : 'text-gray-400'}`}
+    className={`p-1.5 rounded-sm hover:bg-white/20 transition-colors ${active ? 'text-scifi-cyan-light bg-scifi-cyan/10' : 'text-gray-300 hover:text-white'}`}
   >
     {icon}
   </button>
@@ -1316,8 +1278,8 @@ const IconButton = ({ onClick, icon, active, title }: any) => (
 const ShapeButton = ({ shape, current, onClick, icon }: any) => (
   <button
     onClick={onClick}
-    className={`aspect-square flex flex-col items-center justify-center gap-1 rounded border transition-all ${
-      current === shape ? 'border-scifi-cyan bg-scifi-cyan/20 text-scifi-cyan shadow-[0_0_10px_rgba(34,211,238,0.2)]' : 'border-white/10 bg-black/40 text-gray-500 hover:border-white/30 hover:text-white'
+    className={`aspect-square flex flex-col items-center justify-center gap-1 rounded border transition-all p-2 ${
+      current === shape ? 'border-scifi-cyan-light bg-scifi-cyan/20 text-scifi-cyan-light shadow-[0_0_10px_rgba(34,211,238,0.2)]' : 'border-white/10 bg-black/40 text-gray-400 hover:border-white/30 hover:text-gray-200'
     }`}
     title={shape}
   >
@@ -1328,7 +1290,7 @@ const ShapeButton = ({ shape, current, onClick, icon }: any) => (
 const RangeControl = ({ label, value, min, max, step, onChange }: any) => (
   <div className="space-y-1">
     <div className="flex justify-between items-center">
-      <label className="text-[10px] text-gray-400 font-medium">{label}</label>
+      <label className="text-[10px] text-gray-300 font-medium tracking-wide">{label}</label>
       <input
         type="number"
         min={min} max={max} step={step}
@@ -1337,7 +1299,7 @@ const RangeControl = ({ label, value, min, max, step, onChange }: any) => (
              const val = parseFloat(e.target.value);
              if(!isNaN(val)) onChange(val);
         }}
-        className="w-12 bg-transparent text-right text-[10px] font-mono text-scifi-cyan focus:outline-none border-b border-transparent focus:border-scifi-cyan/50 hover:border-white/20 transition-colors p-0"
+        className="w-12 bg-transparent text-right text-[10px] font-mono text-scifi-cyan-light font-bold focus:outline-none border-b border-transparent focus:border-scifi-cyan-light/50 hover:border-white/20 transition-colors p-0"
       />
     </div>
     {/* Increased Hit Area for Slider Usability */}
@@ -1357,13 +1319,13 @@ const RangeControl = ({ label, value, min, max, step, onChange }: any) => (
 );
 
 const NumInput = ({ label, value, onChange }: any) => (
-   <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded px-2 py-1 flex-1 focus-within:border-scifi-cyan transition-colors">
-      <span className="text-[10px] text-gray-500 font-bold">{label}</span>
-      <input 
-        type="number" 
+   <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded px-2 py-1 flex-1 focus-within:border-scifi-cyan-light transition-colors">
+      <span className="text-[10px] text-gray-300 font-bold">{label}</span>
+      <input
+        type="number"
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full bg-transparent border-none text-[10px] font-mono text-white focus:outline-none p-0 text-right"
+        className="w-full bg-transparent border-none text-[10px] font-mono text-white font-bold focus:outline-none p-0 text-right"
         step={0.1}
       />
    </div>

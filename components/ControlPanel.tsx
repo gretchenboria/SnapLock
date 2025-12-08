@@ -82,6 +82,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         if (!selectedGroupId || !params.assetGroups.find(g => g.id === selectedGroupId)) {
             setSelectedGroupId(params.assetGroups[0].id);
         }
+    } else {
+        // No asset groups - clear selection
+        setSelectedGroupId(null);
     }
   }, [params.assetGroups, selectedGroupId]);
 
@@ -98,7 +101,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     }
   }, [logs]);
 
-  const activeGroup = params.assetGroups.find(g => g.id === selectedGroupId) || params.assetGroups[0];
+  const activeGroup = params.assetGroups.find(g => g.id === selectedGroupId) || params.assetGroups[0] || null;
 
   // Auto-complete suggestions based on input
   useEffect(() => {
@@ -607,17 +610,42 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
            </div>
 
            <div className="p-4 space-y-6">
-              
+
               {/* Context Header */}
               {(activeTab !== 'ENV' && activeTab !== 'DATA') && (
                  <div className="pb-4 border-b border-white/10">
                     <label className="text-[10px] text-gray-400 font-bold block mb-2">TARGET GROUP</label>
-                    <div className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded">
-                        <div className="w-3 h-3 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeGroup.color, color: activeGroup.color }}></div>
-                        <span className="flex-1 text-xs font-mono font-bold text-white truncate">{activeGroup.name}</span>
-                        <span className="text-[9px] text-gray-500 uppercase">{activeGroup.shape}</span>
-                    </div>
+                    {activeGroup ? (
+                      <div className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded">
+                          <div className="w-3 h-3 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeGroup.color, color: activeGroup.color }}></div>
+                          <span className="flex-1 text-xs font-mono font-bold text-white truncate">{activeGroup.name}</span>
+                          <span className="text-[9px] text-gray-500 uppercase">{activeGroup.shape}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-yellow-900/10 border border-yellow-500/20 rounded">
+                          <Sparkles className="w-4 h-4 text-yellow-500" />
+                          <span className="text-xs text-yellow-200/80">No groups yet - Enable Auto-Spawn or add manually</span>
+                      </div>
+                    )}
                  </div>
+              )}
+
+              {/* Empty State for ASSETS */}
+              {activeTab === 'ASSETS' && !activeGroup && (
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <Wand2 className="w-12 h-12 text-gray-600 mb-4" />
+                  <h3 className="text-sm font-bold text-gray-400 mb-2">No Asset Groups</h3>
+                  <p className="text-xs text-gray-500 mb-4 max-w-xs">
+                    Start with a prompt using Auto-Spawn, or manually add an asset group below.
+                  </p>
+                  <button
+                    onClick={addAssetGroup}
+                    className="flex items-center gap-2 bg-scifi-cyan/10 hover:bg-scifi-cyan/20 text-scifi-cyan rounded px-4 py-2 transition-colors border border-scifi-cyan/20 text-xs font-bold"
+                  >
+                    <Plus size={14} />
+                    ADD FIRST GROUP
+                  </button>
+                </div>
               )}
 
               {activeTab === 'ASSETS' && activeGroup && (
@@ -665,6 +693,24 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                      </div>
                   </Section>
                 </>
+              )}
+
+              {/* Empty State for PHYSICS */}
+              {activeTab === 'PHYSICS' && !activeGroup && (
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <Activity className="w-12 h-12 text-gray-600 mb-4" />
+                  <h3 className="text-sm font-bold text-gray-400 mb-2">No Asset Groups</h3>
+                  <p className="text-xs text-gray-500 mb-4 max-w-xs">
+                    Create an asset group first to configure physics properties.
+                  </p>
+                  <button
+                    onClick={addAssetGroup}
+                    className="flex items-center gap-2 bg-scifi-cyan/10 hover:bg-scifi-cyan/20 text-scifi-cyan rounded px-4 py-2 transition-colors border border-scifi-cyan/20 text-xs font-bold"
+                  >
+                    <Plus size={14} />
+                    ADD FIRST GROUP
+                  </button>
+                </div>
               )}
 
               {activeTab === 'PHYSICS' && activeGroup && (

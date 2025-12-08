@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LogEntry, PhysicsParams, ShapeType, MovementBehavior, AssetGroup, SpawnMode, ViewMode, TelemetryData, MaterialPreset } from '../types';
 import { DEFAULT_MATERIAL_PRESETS, SAMPLE_PROMPTS } from '../constants';
-import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug, Smile, PlayCircle, StopCircle, Package } from 'lucide-react';
+import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug, Smile, PlayCircle, StopCircle, Package, Settings, User, Mail, Image as ImageIcon, HelpCircle } from 'lucide-react';
+import { ApiKeyModal } from './ApiKeyModal';
+import { SupportForm } from './SupportForm';
 
 interface ControlPanelProps {
   prompt: string;
@@ -80,7 +82,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   isRecording = false,
   recordedFrameCount = 0
 }) => {
-  const [activeTab, setActiveTab] = useState<'ASSETS' | 'PHYSICS' | 'ENV' | 'DATA'>('ASSETS');
+  const [activeTab, setActiveTab] = useState<'ASSETS' | 'PHYSICS' | 'ENV' | 'DATA' | 'SETTINGS'>('ASSETS');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [latestDirectorLog, setLatestDirectorLog] = useState<LogEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +99,36 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const [promptHistory, setPromptHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const commandLineRef = useRef<HTMLInputElement>(null);
+
+  // API Key Modal State
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+
+  // User Profile State
+  const [userProfile, setUserProfile] = useState<{
+    username: string;
+    email: string;
+    profilePicture: string;
+  }>(() => {
+    const saved = localStorage.getItem('snaplock_user_profile');
+    return saved ? JSON.parse(saved) : { username: '', email: '', profilePicture: '' };
+  });
+
+  const handleUpdateProfile = (updates: Partial<typeof userProfile>) => {
+    const updated = { ...userProfile, ...updates };
+    setUserProfile(updated);
+    localStorage.setItem('snaplock_user_profile', JSON.stringify(updated));
+  };
+
+  const handleProfilePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        handleUpdateProfile({ profilePicture: event.target?.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Auto-select first group if none selected or invalid
   useEffect(() => {
@@ -619,6 +651,20 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     <Sparkles size={10} className="text-cyan-400 animate-pulse absolute -top-1 -right-1" />
                 )}
              </button>
+
+             {/* API SETTINGS BUTTON */}
+             <button
+                onClick={() => setShowApiKeyModal(true)}
+                title="Configure API Key"
+                className="h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group bg-black/40 border-white/20 hover:border-scifi-cyan-light/50 hover:bg-white/5"
+             >
+                <Settings size={14} className="text-gray-400 group-hover:text-scifi-cyan-light transition-colors" />
+                <div className="flex flex-col items-start">
+                    <span className="font-bold text-[10px] tracking-wider text-gray-400 group-hover:text-scifi-cyan-light transition-colors">
+                        API
+                    </span>
+                </div>
+             </button>
         </div>
 
         {/* DIRECTOR TOAST NOTIFICATION - More Dramatic */}
@@ -646,17 +692,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         {/* --- LEFT PANEL (Inspector) --- */}
         <div className="w-72 bg-scifi-900/95 backdrop-blur-md border-r border-white/10 flex flex-col pointer-events-auto overflow-y-auto custom-scrollbar">
            
-           <div className="flex border-b border-white/10">
+           <div className="flex border-b border-white/10 overflow-x-auto">
               <TabButton label="ASSETS" active={activeTab === 'ASSETS'} onClick={() => setActiveTab('ASSETS')} />
               <TabButton label="PHYSICS" active={activeTab === 'PHYSICS'} onClick={() => setActiveTab('PHYSICS')} />
               <TabButton label="ENV" active={activeTab === 'ENV'} onClick={() => setActiveTab('ENV')} />
-              <TabButton label="DATASET" active={activeTab === 'DATA'} onClick={() => setActiveTab('DATA')} />
+              <TabButton label="DATA" active={activeTab === 'DATA'} onClick={() => setActiveTab('DATA')} />
+              <TabButton label="SETTINGS" active={activeTab === 'SETTINGS'} onClick={() => setActiveTab('SETTINGS')} />
            </div>
 
            <div className="p-4 space-y-6">
 
               {/* Context Header */}
-              {(activeTab !== 'ENV' && activeTab !== 'DATA') && (
+              {(activeTab !== 'ENV' && activeTab !== 'DATA' && activeTab !== 'SETTINGS') && (
                  <div className="pb-4 border-b border-white/10">
                     <label className="text-[10px] text-gray-300 font-bold block mb-2 tracking-wider">TARGET GROUP</label>
                     {activeGroup ? (
@@ -970,6 +1017,114 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   </>
               )}
 
+              {activeTab === 'SETTINGS' && (
+                  <>
+                     {/* User Profile Section */}
+                     <Section title="USER PROFILE">
+                        <div className="space-y-4">
+                           {/* Profile Picture */}
+                           <div className="flex items-center gap-4">
+                              {userProfile.profilePicture ? (
+                                 <img
+                                    src={userProfile.profilePicture}
+                                    alt="Profile"
+                                    className="w-16 h-16 rounded-full object-cover border-2 border-scifi-cyan-light shadow-[0_0_15px_rgba(34,211,238,0.3)]"
+                                 />
+                              ) : (
+                                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-600 flex items-center justify-center">
+                                    <User className="w-8 h-8 text-gray-500" />
+                                 </div>
+                              )}
+                              <label className="cursor-pointer">
+                                 <div className="px-3 py-2 bg-black/40 border border-white/20 rounded text-xs font-bold text-gray-300 hover:text-white hover:border-scifi-cyan-light transition-colors flex items-center gap-2">
+                                    <ImageIcon size={14} />
+                                    CHANGE PICTURE
+                                 </div>
+                                 <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleProfilePictureUpload}
+                                    className="hidden"
+                                 />
+                              </label>
+                           </div>
+
+                           {/* Username */}
+                           <div>
+                              <label className="text-xs font-bold text-gray-200 block mb-2 tracking-wide flex items-center gap-2">
+                                 <User size={14} />
+                                 USERNAME
+                              </label>
+                              <input
+                                 type="text"
+                                 value={userProfile.username}
+                                 onChange={(e) => handleUpdateProfile({ username: e.target.value })}
+                                 placeholder="Enter your username"
+                                 className="w-full bg-black/40 border border-white/20 rounded px-3 py-2 text-white text-sm focus:border-scifi-cyan-light focus:outline-none transition-colors"
+                              />
+                           </div>
+
+                           {/* Email */}
+                           <div>
+                              <label className="text-xs font-bold text-gray-200 block mb-2 tracking-wide flex items-center gap-2">
+                                 <Mail size={14} />
+                                 EMAIL
+                              </label>
+                              <input
+                                 type="email"
+                                 value={userProfile.email}
+                                 onChange={(e) => handleUpdateProfile({ email: e.target.value })}
+                                 placeholder="your@email.com"
+                                 className="w-full bg-black/40 border border-white/20 rounded px-3 py-2 text-white text-sm focus:border-scifi-cyan-light focus:outline-none transition-colors"
+                              />
+                              <p className="text-[10px] text-gray-500 mt-1">For support and updates</p>
+                           </div>
+                        </div>
+                     </Section>
+
+                     {/* Default Preferences */}
+                     <Section title="DEFAULT PREFERENCES">
+                        <div className="space-y-3">
+                           <div className="bg-blue-900/10 border border-blue-500/20 rounded p-3">
+                              <p className="text-[10px] text-gray-400">
+                                 These settings control what's enabled when you start SnapLock. You can always toggle them using the buttons in the top right.
+                              </p>
+                           </div>
+                        </div>
+                     </Section>
+
+                     {/* API Configuration */}
+                     <Section title="API CONFIGURATION">
+                        <div className="space-y-3">
+                           <p className="text-[10px] text-gray-400">
+                              Configure your Gemini API key for AI features like Auto-Spawn and prompt enhancement.
+                           </p>
+                           <button
+                              onClick={() => setShowApiKeyModal(true)}
+                              className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-scifi-cyan/20 border border-white/10 hover:border-scifi-cyan/50 text-white py-3 rounded text-[10px] font-bold transition-all"
+                           >
+                              <Settings size={14} className="text-scifi-cyan-light" />
+                              CONFIGURE API KEY
+                           </button>
+                        </div>
+                     </Section>
+
+                     {/* Help & Support */}
+                     <Section title="HELP & SUPPORT">
+                        <div className="space-y-3">
+                           <div className="flex items-center gap-2 mb-3">
+                              <HelpCircle className="w-5 h-5 text-scifi-cyan-light" />
+                              <h4 className="font-bold text-white text-sm">Get Help</h4>
+                           </div>
+                           <p className="text-[10px] text-gray-400 mb-4">
+                              Having issues or have feedback? Send me a message and I'll respond as soon as possible.
+                           </p>
+                           <SupportForm userEmail={userProfile.email} username={userProfile.username} />
+                        </div>
+                     </Section>
+                  </>
+              )}
+
               <div className="mt-auto pt-8 flex gap-2">
                  {/* Hidden File Input for Import */}
                  <input 
@@ -1160,6 +1315,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
         </div>
       </div>
+
+      {/* API Key Configuration Modal */}
+      <ApiKeyModal isOpen={showApiKeyModal} onClose={() => setShowApiKeyModal(false)} />
 
     </div>
   );

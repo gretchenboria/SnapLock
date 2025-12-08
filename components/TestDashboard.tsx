@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AdversarialDirector } from '../services/adversarialDirector';
+import { ChaosMode } from '../services/chaosMode';
 import { DisturbanceType, MovementBehavior, ShapeType } from '../types';
 import { Play, RotateCcw, CheckCircle2, XCircle, AlertTriangle, Terminal } from 'lucide-react';
 
@@ -19,7 +19,7 @@ const TESTS: Array<{ id: string, name: string, fn: (hooks: any) => Promise<void>
     name: 'Unit: Adversarial Logic Range',
     fn: async () => {
        const mockParams: any = { gravity: {x:0,y:0,z:0}, assetGroups: [] };
-       const result = AdversarialDirector.applyDisturbance(mockParams, {
+       const result = ChaosMode.applyDisturbance(mockParams, {
            detectedState: "STABLE",
            action: DisturbanceType.WIND_GUST,
            intensity: 1.0,

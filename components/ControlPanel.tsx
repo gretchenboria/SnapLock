@@ -22,8 +22,8 @@ interface ControlPanelProps {
   isSnapping: boolean;
   isGeneratingVideo?: boolean;
   resetCamera: () => void;
-  isDirectorActive?: boolean;
-  toggleDirector?: () => void;
+  isChaosActive?: boolean;
+  toggleChaos?: () => void;
   viewMode: ViewMode;
   setViewMode: (v: ViewMode) => void;
   isAutoSpawn: boolean;
@@ -61,8 +61,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   isSnapping,
   isGeneratingVideo,
   resetCamera,
-  isDirectorActive,
-  toggleDirector,
+  isChaosActive,
+  toggleChaos,
   viewMode,
   setViewMode,
   isAutoSpawn,
@@ -85,7 +85,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'ASSETS' | 'PHYSICS' | 'ENV' | 'DATA' | 'SETTINGS'>('ASSETS');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [latestDirectorLog, setLatestDirectorLog] = useState<LogEntry | null>(null);
+  const [latestChaosLog, setLatestChaosLog] = useState<LogEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Preset State
@@ -143,14 +143,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     }
   }, [params.assetGroups, selectedGroupId]);
 
-  // Toast System for Director Logs
+  // Toast System for Chaos Logs
   useEffect(() => {
-    const directorLogs = logs.filter(l => l.type === 'director');
-    if (directorLogs.length > 0) {
-        const last = directorLogs[directorLogs.length - 1];
-        if (last !== latestDirectorLog) {
-            setLatestDirectorLog(last);
-            const timer = setTimeout(() => setLatestDirectorLog(null), 4000); // Hide after 4s
+    const chaosLogs = logs.filter(l => l.type === 'chaos');
+    if (chaosLogs.length > 0) {
+        const last = chaosLogs[chaosLogs.length - 1];
+        if (last !== latestChaosLog) {
+            setLatestChaosLog(last);
+            const timer = setTimeout(() => setLatestChaosLog(null), 4000); // Hide after 4s
             return () => clearTimeout(timer);
         }
     }
@@ -436,7 +436,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 <button
                   onClick={handleEnhancePrompt}
                   disabled={!prompt.trim() || isEnhancing}
-                  className={`h-7 px-2 rounded flex items-center gap-1 transition-all border text-[9px] font-bold tracking-wider ${
+                  className={`h-7 px-3 rounded flex items-center gap-1.5 transition-all border text-[9px] font-bold tracking-wider pointer-events-auto ${
                     isEnhancing
                       ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
                       : prompt.trim()
@@ -450,7 +450,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   ) : (
                     <Sparkles className="w-3 h-3" />
                   )}
-                  <span>AI</span>
+                  <span>ENHANCE</span>
                 </button>
 
                 {/* Execute Button */}
@@ -579,26 +579,26 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                  ))}
              </div>
 
-             {/* ADVERSARIAL DIRECTOR - PROMINENT TOGGLE */}
-             {toggleDirector && (
+             {/* CHAOS MODE - PROMINENT TOGGLE */}
+             {toggleChaos && (
                  <button
-                    onClick={toggleDirector}
-                    title={isDirectorActive ? "Disable Adversarial Director" : "Enable Adversarial Director"}
+                    onClick={toggleChaos}
+                    title={isChaosActive ? "Disable Chaos Mode" : "Enable Chaos Mode"}
                     className={`h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group ${
-                        isDirectorActive
+                        isChaosActive
                         ? 'bg-gradient-to-r from-red-950/40 via-red-900/30 to-red-950/40 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]'
                         : 'bg-black/40 border-red-900/30 hover:border-red-700/50 hover:bg-red-950/20'
                     }`}
                  >
-                    <Skull size={14} className={`${isDirectorActive ? 'text-red-400 animate-pulse' : 'text-red-700 group-hover:text-red-500'} transition-colors`} strokeWidth={2} />
+                    <Skull size={14} className={`${isChaosActive ? 'text-red-400 animate-pulse' : 'text-red-700 group-hover:text-red-500'} transition-colors`} strokeWidth={2} />
                     <div className="flex flex-col items-start">
                         <span className={`font-bold text-[10px] tracking-wider ${
-                            isDirectorActive ? 'text-red-300' : 'text-red-700 group-hover:text-red-400'
+                            isChaosActive ? 'text-red-300' : 'text-red-700 group-hover:text-red-400'
                         }`}>
-                            DIRECTOR
+                            CHAOS
                         </span>
                     </div>
-                    {isDirectorActive && (
+                    {isChaosActive && (
                         <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping absolute -top-1 -right-1" />
                     )}
                  </button>
@@ -668,18 +668,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
              </button>
         </div>
 
-        {/* DIRECTOR TOAST NOTIFICATION - More Dramatic */}
-        {latestDirectorLog && (
+        {/* CHAOS TOAST NOTIFICATION - More Dramatic */}
+        {latestChaosLog && (
             <div className="absolute top-[72px] left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-950/95 via-red-900/95 to-red-950/95 backdrop-blur-md border-2 border-red-500 text-red-100 px-8 py-4 rounded-lg shadow-[0_0_40px_rgba(239,68,68,0.6)] flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none min-w-[400px] z-50">
                 {/* Warning Header */}
                 <div className="flex items-center gap-3 mb-2">
                     <AlertTriangle className="w-5 h-5 animate-pulse text-red-400" strokeWidth={2.5} />
-                    <span className="font-bold tracking-widest text-red-400 text-xs">ADVERSARIAL INTERVENTION</span>
+                    <span className="font-bold tracking-widest text-red-400 text-xs">CHAOS INTERVENTION</span>
                     <AlertTriangle className="w-5 h-5 animate-pulse text-red-400" strokeWidth={2.5} />
                 </div>
 
                 {/* Message */}
-                <span className="font-mono text-sm text-center">{latestDirectorLog.message}</span>
+                <span className="font-mono text-sm text-center">{latestChaosLog.message}</span>
 
                 {/* Bottom Warning Strip */}
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent" />
@@ -1277,7 +1277,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           <button
             onClick={onAnalyze}
             disabled={isAnalyzing}
-            className={`h-8 px-4 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 ${
+            className={`h-8 px-4 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 pointer-events-auto ${
               isAnalyzing
                 ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
                 : 'bg-scifi-cyan/10 border-scifi-cyan/50 text-scifi-cyan-light hover:bg-scifi-cyan hover:text-black'
@@ -1306,7 +1306,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             <button
               onClick={onSnap}
               disabled={isSnapping}
-              className="h-8 bg-white text-black px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition-all border border-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-8 bg-white text-black px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition-all border border-white disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto"
               title="Capture Image"
             >
               <Aperture size={14} className={isSnapping ? 'animate-spin' : ''}/>
@@ -1316,7 +1316,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             <button
               onClick={onGenerateVideo}
               disabled={isGeneratingVideo}
-              className="h-8 bg-white/10 border border-white/20 text-white px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-8 bg-white/10 border border-white/20 text-white px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto"
               title="Generate Video"
             >
               {isGeneratingVideo ? <Loader2 className="animate-spin" size={14} /> : <Video size={14}/>}
@@ -1438,7 +1438,7 @@ const IconButton = ({ onClick, icon, active, title }: any) => (
   <button
     onClick={onClick}
     title={title}
-    className={`p-1.5 rounded-sm hover:bg-white/20 transition-colors ${active ? 'text-scifi-cyan-light bg-scifi-cyan/10' : 'text-gray-300 hover:text-white'}`}
+    className={`p-1.5 rounded-sm hover:bg-white/20 transition-colors pointer-events-auto ${active ? 'text-scifi-cyan-light bg-scifi-cyan/10' : 'text-gray-300 hover:text-white'}`}
   >
     {icon}
   </button>

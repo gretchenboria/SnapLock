@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LogEntry, PhysicsParams, ShapeType, MovementBehavior, AssetGroup, SpawnMode, ViewMode, TelemetryData, MaterialPreset } from '../types';
 import { DEFAULT_MATERIAL_PRESETS, SAMPLE_PROMPTS } from '../constants';
-import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard } from 'lucide-react';
+import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug } from 'lucide-react';
 
 interface ControlPanelProps {
   prompt: string;
@@ -29,6 +29,7 @@ interface ControlPanelProps {
   onDownloadCSV: () => void;
   onGenerateReport: () => void;
   isGeneratingReport: boolean;
+  onRunDiagnostics: () => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -56,7 +57,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   telemetryRef,
   onDownloadCSV,
   onGenerateReport,
-  isGeneratingReport
+  isGeneratingReport,
+  onRunDiagnostics
 }) => {
   const [activeTab, setActiveTab] = useState<'ASSETS' | 'PHYSICS' | 'ENV' | 'DATA'>('ASSETS');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -575,6 +577,28 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     </button>
                  </div>
              )}
+
+             {/* LAZARUS DEBUGGER - DIAGNOSTIC BUTTON */}
+             <button
+                onClick={onRunDiagnostics}
+                title="Run Lazarus Diagnostics"
+                className="h-14 px-4 rounded-lg border-2 transition-all duration-300 bg-black/40 border-blue-900/30 hover:border-blue-500/50 hover:bg-blue-950/20 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+             >
+                <div className="flex flex-col items-center justify-center gap-0.5 group">
+                   {/* Icon */}
+                   <Bug size={20} className="text-blue-800 group-hover:text-blue-500 transition-colors" strokeWidth={2.5} />
+
+                   {/* Labels */}
+                   <div className="flex flex-col items-center gap-0">
+                       <span className="font-bold text-[9px] tracking-widest text-blue-800 group-hover:text-blue-500">
+                           LAZARUS
+                       </span>
+                       <span className="text-[8px] tracking-wider text-blue-900/60 group-hover:text-blue-600/80">
+                           DEBUGGER
+                       </span>
+                   </div>
+                </div>
+             </button>
         </div>
 
         {/* DIRECTOR TOAST NOTIFICATION - More Dramatic */}

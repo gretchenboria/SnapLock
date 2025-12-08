@@ -8,6 +8,7 @@ import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
 import { analyzePhysicsPrompt, generateRealityImage, analyzeSceneStability, generateSimulationVideo, generateCreativePrompt, generateSimulationReport } from './services/geminiService';
 import { AdversarialDirector } from './services/adversarialDirector';
 import { validateAndSanitize, ValidationOntology } from './services/validationService';
+import { LazarusDebugger } from './services/lazarusDebugger';
 import { X } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
 
@@ -308,6 +309,49 @@ const App: React.FC = () => {
       }
   };
 
+  const handleRunDiagnostics = async () => {
+      addLog("Running Lazarus Diagnostics...", "info");
+
+      try {
+          const report = await LazarusDebugger.runDiagnostics(
+              params,
+              telemetryRef.current,
+              logs,
+              {
+                  prompt,
+                  isAutoSpawn,
+                  isPaused,
+                  isAnalyzing,
+                  isDirectorActive
+              }
+          );
+
+          // Format and log report
+          const formattedReport = LazarusDebugger.formatReport(report);
+          console.log(formattedReport);
+
+          // Add summary to logs
+          addLog(`Diagnostics Complete: ${report.overallStatus}`,
+                 report.overallStatus === 'HEALTHY' ? 'success' :
+                 report.overallStatus === 'CRITICAL' ? 'error' : 'warning');
+
+          if (report.errors.length > 0) {
+              addLog(`Found ${report.errors.length} errors - see console for details`, 'error');
+          }
+
+          if (report.warnings.length > 0) {
+              addLog(`Found ${report.warnings.length} warnings - see console for details`, 'warning');
+          }
+
+          // Show alert with summary
+          alert(`LAZARUS DIAGNOSTIC REPORT\n\nStatus: ${report.overallStatus}\n${report.summary}\n\nErrors: ${report.errors.length}\nWarnings: ${report.warnings.length}\n\nFull report available in browser console.`);
+
+      } catch (error) {
+          addLog(`Diagnostics failed: ${(error as Error).message}`, 'error');
+          console.error('Lazarus diagnostics error:', error);
+      }
+  };
+
   // --- AUTO SPAWN LOOP ---
   useEffect(() => {
     if (isAutoSpawn) {
@@ -439,6 +483,7 @@ const App: React.FC = () => {
         onDownloadCSV={handleDownloadCSV}
         onGenerateReport={handleGenerateReport}
         isGeneratingReport={isGeneratingReport}
+        onRunDiagnostics={handleRunDiagnostics}
       />
 
       {/* Generated Result Modal */}

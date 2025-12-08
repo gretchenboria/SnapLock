@@ -4,6 +4,7 @@ import { DEFAULT_MATERIAL_PRESETS, SAMPLE_PROMPTS } from '../constants';
 import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug, Smile, PlayCircle, StopCircle, Package, Settings, User, Mail, Image as ImageIcon, HelpCircle } from 'lucide-react';
 import { ApiKeyModal } from './ApiKeyModal';
 import { SupportForm } from './SupportForm';
+import { AuthSection } from './AuthSection';
 
 interface ControlPanelProps {
   prompt: string;
@@ -1019,8 +1020,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
               {activeTab === 'SETTINGS' && (
                   <>
+                     {/* Authentication Section */}
+                     <Section title="ACCOUNT">
+                        <AuthSection />
+                     </Section>
+
                      {/* User Profile Section */}
-                     <Section title="USER PROFILE">
+                     <Section title="LOCAL PROFILE">
+                        <div className="bg-blue-900/10 border border-blue-500/20 rounded p-3 mb-4">
+                           <p className="text-xs text-gray-400">
+                              Local profile is stored in your browser. Sign in above to sync across devices.
+                           </p>
+                        </div>
                         <div className="space-y-4">
                            {/* Profile Picture */}
                            <div className="flex items-center gap-4">

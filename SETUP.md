@@ -56,12 +56,24 @@ VITE_GEMINI_API_KEY=your_gemini_api_key_here
 
 Access comprehensive settings via the **SETTINGS** tab in the left panel:
 
-- **User Profile**: Set your username, email, and profile picture
+- **Account (NEW)**: Sign in with GitHub, Google, Microsoft, or other OAuth providers
+- **Local Profile**: Set your username, email, and profile picture (stored in browser)
 - **Default Preferences**: Configure what features are enabled by default
 - **API Configuration**: Manage your Gemini API key
 - **Help & Support**: Send me feedback or report issues directly from the app
 
-All settings are stored locally in your browser.
+#### Authentication (Optional)
+
+Sign in to sync your settings across devices:
+
+- **GitHub** - Sign in with your GitHub account
+- **Google** - Sign in with your Google account
+- **Microsoft** - Sign in with your Microsoft/Outlook account
+- **And more** - Discord, Twitter, etc.
+
+**Setup**: See [CLERK_SETUP.md](./CLERK_SETUP.md) for detailed instructions on enabling OAuth authentication.
+
+**Note**: Authentication is **optional**. SnapLock works perfectly without signing in - your settings will be stored locally in your browser.
 
 ### Auto-Spawn Mode
 - **What it does**: Automatically generates creative physics simulations every 15 seconds

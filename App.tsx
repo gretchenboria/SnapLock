@@ -62,7 +62,9 @@ const App: React.FC = () => {
      maxVelocity: 0,
      stabilityScore: 0,
      simTime: 0,
-     isWarmup: false
+     isWarmup: false,
+     activeCollisions: 0,
+     physicsSteps: 0
   });
 
   // Sync ref with state

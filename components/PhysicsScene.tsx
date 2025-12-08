@@ -1,8 +1,9 @@
 import React, { forwardRef, useImperativeHandle, useRef, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment } from '@react-three/drei';
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import SimulationLayerV2 from './SimulationLayerV2';
-import { PhysicsParams, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot } from '../types';
+import { PhysicsParams, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot, MLGroundTruthFrame } from '../types';
 
 interface PhysicsSceneProps {
   params: PhysicsParams;
@@ -17,6 +18,7 @@ interface PhysicsSceneProps {
 export interface PhysicsSceneHandle {
   resetCamera: () => void;
   captureSnapshot: () => ParticleSnapshot[];
+  captureMLGroundTruth: () => MLGroundTruthFrame;
 }
 
 const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
@@ -29,7 +31,7 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
   telemetryRef
 }, ref) => {
   // Fixed: Properly typed OrbitControls ref instead of 'any'
-  const orbitRef = useRef<typeof OrbitControls | null>(null);
+  const orbitRef = useRef<OrbitControlsImpl | null>(null);
   const simLayerRef = useRef<SimulationLayerHandle>(null);
 
   useImperativeHandle(ref, () => ({
@@ -43,6 +45,12 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
         return simLayerRef.current.captureSnapshot();
       }
       return [];
+    },
+    captureMLGroundTruth: () => {
+      if (simLayerRef.current) {
+        return simLayerRef.current.captureMLGroundTruth();
+      }
+      throw new Error('Simulation layer not initialized');
     }
   }));
 

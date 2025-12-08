@@ -153,7 +153,12 @@ export class JSONBinStorage {
   /**
    * Save simulation record
    */
-  static async saveSimulation(simulation: StorageData['simulations'][0]): Promise<boolean> {
+  static async saveSimulation(simulation: {
+    id: string;
+    timestamp: string;
+    params: any;
+    telemetry: any;
+  }): Promise<boolean> {
     const existing = await this.fetch();
     const simulations = existing?.simulations || [];
 
@@ -166,7 +171,12 @@ export class JSONBinStorage {
   /**
    * Get simulation history
    */
-  static async getSimulationHistory(): Promise<StorageData['simulations']> {
+  static async getSimulationHistory(): Promise<Array<{
+    id: string;
+    timestamp: string;
+    params: any;
+    telemetry: any;
+  }>> {
     const data = await this.fetch();
     return data?.simulations || [];
   }

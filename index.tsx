@@ -12,10 +12,18 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
+
+// Only use ClerkProvider if key is configured
+const AppWithAuth = clerkPubKey ? (
+  <ClerkProvider publishableKey={clerkPubKey}>
+    <App />
+  </ClerkProvider>
+) : (
+  <App />
+);
+
 root.render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={clerkPubKey}>
-      <App />
-    </ClerkProvider>
+    {AppWithAuth}
   </React.StrictMode>
 );

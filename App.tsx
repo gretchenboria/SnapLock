@@ -527,7 +527,7 @@ const App: React.FC = () => {
     return () => {
         if (autoSpawnTimerRef.current) window.clearInterval(autoSpawnTimerRef.current);
     }
-  }, [isAutoSpawn]); 
+  }, [isAutoSpawn, addLog, executeAnalysis]); 
 
   // --- ADVERSARIAL DIRECTOR LOOP ---
   useEffect(() => {

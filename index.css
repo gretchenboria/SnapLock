@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Remove all button borders */
+button {
+  border: none !important;
+}
+
+/* Override any border classes on buttons */
+button[class*="border"] {
+  border: none !important;
+}

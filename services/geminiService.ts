@@ -3,9 +3,37 @@ import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAc
 import { MOCK_ANALYSIS_RESPONSE, MOCK_ADVERSARIAL_ACTION, MOCK_CREATIVE_PROMPT, MOCK_HTML_REPORT } from "./mockData";
 
 // BACKEND API CONFIGURATION
-// If VITE_BACKEND_URL is set, use backend proxy (RECOMMENDED for security)
-// Otherwise, fall back to direct Gemini API calls (requires API key in .env)
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+// Priority order:
+// 1. localStorage (user-provided via UI)
+// 2. .env file (VITE_BACKEND_URL or VITE_GEMINI_API_KEY)
+const getBackendUrl = (): string | null => {
+  if (typeof window !== 'undefined') {
+    const storedUrl = localStorage.getItem('snaplock_backend_url');
+    if (storedUrl) return storedUrl;
+  }
+  return import.meta.env.VITE_BACKEND_URL || null;
+};
+
+const getApiKey = (): string => {
+  // Check localStorage first (user-provided)
+  if (typeof window !== 'undefined') {
+    const storedKey = localStorage.getItem('snaplock_api_key');
+    if (storedKey) return storedKey;
+  }
+
+  // Fall back to environment variable
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (envKey) return envKey;
+
+  // Legacy: check process.env (for older builds)
+  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    return process.env.API_KEY;
+  }
+
+  return '';
+};
+
+const BACKEND_URL = getBackendUrl();
 const USE_BACKEND = Boolean(BACKEND_URL);
 
 if (USE_BACKEND) {
@@ -18,7 +46,7 @@ if (USE_BACKEND) {
 let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
   if (!aiInstance) {
-    const key = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+    const key = getApiKey();
     aiInstance = new GoogleGenAI({ apiKey: key });
   }
   return aiInstance;
@@ -26,7 +54,7 @@ const getAI = () => {
 
 // Check if API key is configured
 const hasApiKey = () => {
-  return Boolean((typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '');
+  return Boolean(getApiKey());
 };
 
 // Model selection: ALWAYS use best SOTA models by default, fallback to Flash only if no API key

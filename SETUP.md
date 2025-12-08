@@ -7,36 +7,61 @@
 npm install
 ```
 
-### 2. Configure API Access (Required for Auto-Spawn)
-
-You have two options for API configuration:
-
-#### Option A: Using Backend Proxy (Recommended for Production)
-Create a `.env` file in the project root:
-```bash
-VITE_BACKEND_URL=http://localhost:3001
-```
-
-Then start your backend server that proxies Gemini API requests.
-
-#### Option B: Direct API Access (Development Only)
-Create a `.env` file in the project root:
-```bash
-VITE_GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-**Get your API key from:** https://aistudio.google.com/apikey
-
-⚠️ **Note**: Without API configuration, Auto-Spawn and AI features won't work. You'll see helpful error messages in the log panel guiding you to configure the API.
-
-### 3. Start Development Server
+### 2. Start Development Server
 ```bash
 npm run dev
 ```
 
 Open browser to `http://localhost:5173`
 
+### 3. Configure API Access (Required for Auto-Spawn)
+
+**NEW: In-App API Configuration** 🎉
+
+You can now configure your API key directly in the app without editing files:
+
+1. Click the **API** button in the top right corner
+2. Choose between:
+   - **Direct API Key**: Enter your Gemini API key (development only)
+   - **Backend Proxy**: Enter your backend URL (recommended for production)
+3. Click **Save & Reload**
+
+**Get your free API key from:** https://aistudio.google.com/apikey
+
+#### Alternative: Environment Variables
+
+You can still configure via `.env` file if preferred:
+
+**Option A: Backend Proxy (Recommended for Production)**
+```bash
+VITE_BACKEND_URL=http://localhost:3001
+```
+
+**Option B: Direct API Key (Development Only)**
+```bash
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+**Priority Order:**
+1. In-app configuration (localStorage)
+2. Environment variables (.env file)
+
+⚠️ **Note**: Without API configuration, Auto-Spawn and AI features won't work. You'll see helpful error messages in the log panel guiding you to configure the API.
+
 ## Features Overview
+
+### User Profile & Settings
+
+**NEW: Settings Tab**
+
+Access comprehensive settings via the **SETTINGS** tab in the left panel:
+
+- **User Profile**: Set your username, email, and profile picture
+- **Default Preferences**: Configure what features are enabled by default
+- **API Configuration**: Manage your Gemini API key
+- **Help & Support**: Send me feedback or report issues directly from the app
+
+All settings are stored locally in your browser.
 
 ### Auto-Spawn Mode
 - **What it does**: Automatically generates creative physics simulations every 15 seconds

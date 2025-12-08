@@ -506,53 +506,91 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </button>
         </div>
 
-        {/* Right: View Controls */}
-        <div className="flex-1 flex justify-end"></div>
-
-        {/* DIRECTOR TOAST NOTIFICATION */}
-        {latestDirectorLog && (
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-red-950/90 border border-red-500/50 text-red-200 px-6 py-3 rounded shadow-[0_0_20px_rgba(239,68,68,0.4)] flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none">
-                <div className="flex items-center gap-2 mb-1">
-                    <AlertTriangle className="w-4 h-4 animate-pulse text-red-500" />
-                    <span className="font-bold tracking-widest text-red-500 text-[10px]">SYSTEM ANOMALY</span>
-                </div>
-                <span className="font-mono text-xs">{latestDirectorLog.message}</span>
-            </div>
-        )}
-
-        <div className="flex items-center gap-1 pr-4">
-             <div className="flex items-center bg-black/40 rounded border border-white/10 p-0.5 mr-4">
+        {/* Right: View Controls & AI Director */}
+        <div className="flex items-center gap-3 pr-4">
+             {/* View Mode Selector */}
+             <div className="flex items-center bg-black/40 rounded border border-white/10 p-0.5">
                  {Object.values(ViewMode).map(mode => (
-                     <IconButton 
+                     <IconButton
                         key={mode}
-                        onClick={() => setViewMode(mode)} 
-                        icon={getViewModeIcon(mode)} 
-                        active={viewMode === mode} 
-                        title={`Sensor View: ${mode}`} 
+                        onClick={() => setViewMode(mode)}
+                        icon={getViewModeIcon(mode)}
+                        active={viewMode === mode}
+                        title={`Sensor View: ${mode}`}
                      />
                  ))}
              </div>
 
-             {/* Director Toggle */}
+             {/* ADVERSARIAL DIRECTOR - PROMINENT TOGGLE */}
              {toggleDirector && (
-                 <button 
-                    onClick={toggleDirector}
-                    title={isDirectorActive ? "Disable Adversarial Director" : "Enable Adversarial Director"}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded border transition-all mr-4 ${
-                        isDirectorActive 
-                        ? 'bg-red-900/20 border-red-500/50 text-red-500 shadow-[0_0_10px_rgba(220,38,38,0.2)]' 
-                        : 'bg-transparent border-transparent text-gray-500 hover:text-white hover:bg-white/5'
-                    }`}
-                 >
-                    <div className="relative w-3 h-3">
-                        <Skull size={12} className={isDirectorActive ? "animate-pulse" : ""} />
-                        {isDirectorActive && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />}
-                    </div>
-                    <span className="font-bold text-[9px] tracking-wider">{isDirectorActive ? 'DIRECTOR' : 'OFF'}</span>
-                 </button>
+                 <div className={`relative h-14 px-4 rounded-lg border-2 transition-all duration-300 ${
+                     isDirectorActive
+                     ? 'bg-gradient-to-r from-red-950/40 via-red-900/30 to-red-950/40 border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]'
+                     : 'bg-black/40 border-red-900/30 hover:border-red-700/50 hover:bg-red-950/20'
+                 }`}>
+                    {/* Animated Background Effect When Active */}
+                    {isDirectorActive && (
+                        <div className="absolute inset-0 overflow-hidden rounded-lg">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/10 to-transparent animate-[shimmer_2s_ease-in-out_infinite]" />
+                        </div>
+                    )}
+
+                    <button
+                       onClick={toggleDirector}
+                       title={isDirectorActive ? "Disable Adversarial Director" : "Enable Adversarial Director"}
+                       className="relative h-full flex flex-col items-center justify-center gap-0.5 group"
+                    >
+                       {/* Icon with Pulse Effect */}
+                       <div className="relative">
+                           <Skull size={20} className={`${isDirectorActive ? 'text-red-400 animate-pulse' : 'text-red-800 group-hover:text-red-600'} transition-colors`} strokeWidth={2.5} />
+                           {isDirectorActive && (
+                               <>
+                                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                               </>
+                           )}
+                       </div>
+
+                       {/* Label */}
+                       <div className="flex flex-col items-center gap-0">
+                           <span className={`font-bold text-[9px] tracking-widest ${
+                               isDirectorActive ? 'text-red-400' : 'text-red-800 group-hover:text-red-600'
+                           }`}>
+                               {isDirectorActive ? 'ACTIVE' : 'OFFLINE'}
+                           </span>
+                           <span className={`text-[8px] tracking-wider ${
+                               isDirectorActive ? 'text-red-500/80' : 'text-red-900/60'
+                           }`}>
+                               AI DIRECTOR
+                           </span>
+                       </div>
+
+                       {/* Warning Stripes When Active */}
+                       {isDirectorActive && (
+                           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50" />
+                       )}
+                    </button>
+                 </div>
              )}
-             
         </div>
+
+        {/* DIRECTOR TOAST NOTIFICATION - More Dramatic */}
+        {latestDirectorLog && (
+            <div className="absolute top-[72px] left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-950/95 via-red-900/95 to-red-950/95 backdrop-blur-md border-2 border-red-500 text-red-100 px-8 py-4 rounded-lg shadow-[0_0_40px_rgba(239,68,68,0.6)] flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none min-w-[400px] z-50">
+                {/* Warning Header */}
+                <div className="flex items-center gap-3 mb-2">
+                    <AlertTriangle className="w-5 h-5 animate-pulse text-red-400" strokeWidth={2.5} />
+                    <span className="font-bold tracking-widest text-red-400 text-xs">ADVERSARIAL INTERVENTION</span>
+                    <AlertTriangle className="w-5 h-5 animate-pulse text-red-400" strokeWidth={2.5} />
+                </div>
+
+                {/* Message */}
+                <span className="font-mono text-sm text-center">{latestDirectorLog.message}</span>
+
+                {/* Bottom Warning Strip */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+            </div>
+        )}
       </div>
 
       {/* --- MAIN WORKSPACE --- */}

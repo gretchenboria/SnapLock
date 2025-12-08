@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LogEntry, PhysicsParams, ShapeType, MovementBehavior, AssetGroup, SpawnMode, ViewMode, TelemetryData, MaterialPreset } from '../types';
 import { DEFAULT_MATERIAL_PRESETS, SAMPLE_PROMPTS } from '../constants';
-import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug, Smile, PlayCircle, StopCircle, Package, Settings, User, Mail, Image as ImageIcon, HelpCircle } from 'lucide-react';
+import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, EyeOff, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug, Smile, PlayCircle, StopCircle, Package, Settings, User, Mail, Image as ImageIcon, HelpCircle } from 'lucide-react';
 import { ApiKeyModal } from './ApiKeyModal';
 import { SupportForm } from './SupportForm';
 import { AuthSection } from './AuthSection';
@@ -316,6 +316,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     if (selectedGroupId === id) {
         setSelectedGroupId(newGroups[newGroups.length - 1].id);
     }
+  };
+
+  const toggleVisibility = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const newGroups = params.assetGroups.map(g =>
+      g.id === id ? { ...g, visible: g.visible === false ? true : false } : g
+    );
+    setParams({ ...params, assetGroups: newGroups });
   };
 
   const updateActiveGroup = (key: keyof AssetGroup, value: any) => {
@@ -1149,14 +1157,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
            {/* Group List */}
            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
               {params.assetGroups.map((group) => (
-                 <div 
-                   key={group.id} 
+                 <div
+                   key={group.id}
                    onClick={() => setSelectedGroupId(group.id)}
                    className={`p-3 rounded border cursor-pointer transition-all group relative ${
                        selectedGroupId === group.id
                        ? 'border-scifi-cyan-light bg-scifi-cyan/10 shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]'
                        : 'border-white/10 bg-black/50 hover:border-white/30'
-                   }`}
+                   } ${group.visible === false ? 'opacity-50' : ''}`}
                  >
                     <div className="flex justify-between items-start mb-2">
                         <div className="flex flex-col">
@@ -1176,9 +1184,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                         </div>
                     </div>
 
+                    {/* Visibility Toggle Button */}
+                    <button
+                        onClick={(e) => toggleVisibility(e, group.id)}
+                        className={`absolute top-2 right-14 transition-all p-1 ${
+                          group.visible === false
+                            ? 'opacity-100 text-gray-400 hover:text-cyan-400'
+                            : 'opacity-0 group-hover:opacity-100 text-gray-500 hover:text-cyan-400'
+                        }`}
+                        title={group.visible === false ? "Show layer" : "Hide layer"}
+                    >
+                        {group.visible === false ? <EyeOff size={12} /> : <Eye size={12} />}
+                    </button>
+
                     {/* Delete Button */}
                     {params.assetGroups.length > 1 && (
-                        <button 
+                        <button
                             onClick={(e) => removeAssetGroup(e, group.id)}
                             className="absolute top-2 right-8 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-500 hover:text-red-400"
                         >

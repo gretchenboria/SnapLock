@@ -45,20 +45,23 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
   // Simulation ID for ML ground truth
   const simulationIdRef = useRef(`sim_${Date.now()}`);
 
-  // 1. Stable Topology Structure
+  // 1. Stable Topology Structure (only include visible groups)
   const groupStructure = useMemo(() => {
     let count = 0;
-    return params.assetGroups.map((g, index) => {
+    // Filter to only visible groups (visible defaults to true)
+    const visibleGroups = params.assetGroups.filter(g => g.visible !== false);
+    return visibleGroups.map((g, index) => {
       const start = count;
       count += g.count;
       return {
         index,
         id: g.id,
+        group: g, // Store the actual group reference
         start,
         end: count
       };
     });
-  }, [JSON.stringify(params.assetGroups.map(g => ({ c: g.count, id: g.id, m: g.modelUrl })))]);
+  }, [JSON.stringify(params.assetGroups.map(g => ({ c: g.count, id: g.id, m: g.modelUrl, v: g.visible })))]);
 
   const totalParticles = groupStructure.reduce((acc, g) => Math.max(acc, g.end), 0);
 
@@ -221,7 +224,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
       const angVel = angularVelocities.current;
 
       groupStructure.forEach((structure) => {
-        const group = params.assetGroups[structure.index];
+        const group = structure.group;
         for (let i = structure.start; i < structure.end; i++) {
           const i3 = i * 3;
 
@@ -272,7 +275,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
       }> = [];
 
       groupStructure.forEach((structure) => {
-        const group = params.assetGroups[structure.index];
+        const group = structure.group;
 
         for (let i = structure.start; i < structure.end; i++) {
           const i3 = i * 3;
@@ -606,7 +609,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
   return (
     <group>
       {groupStructure.map((structure) => {
-          const group = params.assetGroups[structure.index];
+          const group = structure.group;
           return (
               <AssetRenderer
                  key={group.id}

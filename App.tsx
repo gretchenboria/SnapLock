@@ -121,7 +121,13 @@ const App: React.FC = () => {
   }, []);
 
   const handleReset = () => {
+    // Clear all asset groups to completely empty the scene
+    setParams(prev => ({
+      ...prev,
+      assetGroups: []
+    }));
     setShouldReset(true);
+    addLog('Scene cleared - all objects removed', 'info');
   };
   
   const handleResetCamera = () => {

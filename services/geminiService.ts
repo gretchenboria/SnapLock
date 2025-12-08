@@ -2,6 +2,18 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAction, DisturbanceType, PhysicsParams, TelemetryData } from "../types";
 import { MOCK_ANALYSIS_RESPONSE, MOCK_ADVERSARIAL_ACTION, MOCK_CREATIVE_PROMPT, MOCK_HTML_REPORT } from "./mockData";
 
+// BACKEND API CONFIGURATION
+// If VITE_BACKEND_URL is set, use backend proxy (RECOMMENDED for security)
+// Otherwise, fall back to direct Gemini API calls (requires API key in .env)
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const USE_BACKEND = Boolean(BACKEND_URL);
+
+if (USE_BACKEND) {
+  console.log('[GeminiService] Using backend API proxy:', BACKEND_URL);
+} else {
+  console.warn('[GeminiService] No backend URL configured. Using direct Gemini API calls (INSECURE in production)');
+}
+
 // Lazy Initialization of AI Client to prevent 'process is not defined' crashes on module load
 let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
@@ -10,6 +22,37 @@ const getAI = () => {
     aiInstance = new GoogleGenAI({ apiKey: key });
   }
   return aiInstance;
+};
+
+// Check if API key is configured
+const hasApiKey = () => {
+  return Boolean((typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '');
+};
+
+// Model selection: ALWAYS use best SOTA models by default, fallback to Flash only if no API key
+const getModelForTask = (task: 'reasoning' | 'vision' | 'creative' | 'image' | 'video'): string => {
+  const apiKeyAvailable = hasApiKey();
+
+  if (!apiKeyAvailable) {
+    console.warn('[GeminiService] No API key detected, falling back to gemini-2.5-flash');
+    return 'gemini-2.5-flash';
+  }
+
+  // API key available - use BEST models
+  switch (task) {
+    case 'reasoning':
+      return 'gemini-3-pro-preview'; // Best for physics reasoning
+    case 'vision':
+      return 'gemini-3-pro-preview'; // Best for adversarial director
+    case 'creative':
+      return 'gemini-3-pro-preview'; // Best for creative prompts too
+    case 'image':
+      return 'gemini-3-pro-image-preview'; // Best for image generation
+    case 'video':
+      return 'veo-3.1-generate-preview'; // Best for video
+    default:
+      return 'gemini-3-pro-preview';
+  }
 };
 
 const isTestMode = () => {
@@ -67,12 +110,34 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
       return MOCK_ANALYSIS_RESPONSE;
   }
 
+  // Use backend API if configured
+  if (USE_BACKEND) {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/analyze-physics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: userPrompt })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(`Backend API error: ${error.error || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('[GeminiService] Backend API failed:', error);
+      throw error;
+    }
+  }
+
+  // Fallback to direct Gemini API calls
   try {
     return await withRetry(async () => {
         const ai = getAI();
-        // Using high-fidelity model for STEM/Physics reasoning
+        // Use best reasoning model for physics configuration (Gemini 3 Pro when available)
         const response = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
+        model: getModelForTask('reasoning'),
         contents: `You are a Physics Configuration Engine for Robotics & AR Simulation.
         
         INPUT: "${userPrompt}"
@@ -171,12 +236,33 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
 export const generateCreativePrompt = async (): Promise<string> => {
     if (isTestMode()) return MOCK_CREATIVE_PROMPT;
 
+    // Use backend API if configured
+    if (USE_BACKEND) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/generate-creative-prompt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Backend API error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.prompt;
+      } catch (error: any) {
+        console.warn('[GeminiService] Backend creative prompt failed, using fallback:', error);
+        return FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)];
+      }
+    }
+
+    // Fallback to direct API
     try {
         // We retry once for creative prompts to handle transient 500/503s or empty responses
         return await withRetry(async () => {
             const ai = getAI();
             const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
+                model: getModelForTask('creative'),
                 contents: `Generate a single, short, creative, and scientifically interesting prompt for a physics simulation engine called SnapLock. 
                 The engine handles robotics, rigid body dynamics, zero-g, and multiple interacting asset layers.
                 
@@ -330,6 +416,33 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
 export const analyzeSceneStability = async (base64Image: string): Promise<AdversarialAction> => {
   if (isTestMode()) return MOCK_ADVERSARIAL_ACTION;
 
+  // Use backend API if configured
+  if (USE_BACKEND) {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/analyze-scene-stability`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64Image })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend API error: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('[GeminiService] Backend scene analysis failed:', error);
+      // Fallback to NONE action
+      return {
+        detectedState: 'Error',
+        action: DisturbanceType.NONE,
+        intensity: 0,
+        reasoning: 'Backend offline or overloaded.'
+      };
+    }
+  }
+
+  // Fallback to direct API
   return withRetry(async () => {
     try {
         const ai = getAI();
@@ -358,9 +471,9 @@ export const analyzeSceneStability = async (base64Image: string): Promise<Advers
         Return strictly valid JSON matching the schema.
         `;
 
-        // Using Multimodal Reasoning Model for Vision Tasks
+        // Use best vision model for adversarial scene analysis (Gemini 3 Pro)
         const response = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
+        model: getModelForTask('vision'),
         contents: {
             parts: [
             { text: systemPrompt },
@@ -432,7 +545,7 @@ export const generateSimulationReport = async (params: PhysicsParams, telemetry:
         return await withRetry(async () => {
             const ai = getAI();
             const response = await ai.models.generateContent({
-                model: "gemini-3-pro-preview",
+                model: getModelForTask('reasoning'),
                 contents: `Generate a professional Technical Simulation Report (HTML format) based on the following JSON data context.
                 
                 DATA CONTEXT: ${dataContext}

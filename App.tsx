@@ -9,8 +9,10 @@ import { analyzePhysicsPrompt, generateRealityImage, analyzeSceneStability, gene
 import { AdversarialDirector } from './services/adversarialDirector';
 import { validateAndSanitize, ValidationOntology } from './services/validationService';
 import { LazarusDebugger } from './services/lazarusDebugger';
+import { MLExportService } from './services/mlExportService';
 import { X } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
+import { SnappyAssistant } from './components/SnappyAssistant';
 
 const App: React.FC = () => {
   // State
@@ -36,6 +38,14 @@ const App: React.FC = () => {
   // Adversarial Director State
   const [isDirectorActive, setIsDirectorActive] = useState(false);
   const directorIntervalRef = useRef<number | null>(null);
+
+  // Snappy Assistant State
+  const [isSnappyEnabled, setIsSnappyEnabled] = useState(false);
+
+  // ML Export State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedFrameCount, setRecordedFrameCount] = useState(0);
+  const recordingIntervalRef = useRef<number | null>(null);
 
   // Refs
   const sceneRef = useRef<PhysicsSceneHandle>(null);
@@ -352,6 +362,98 @@ const App: React.FC = () => {
       }
   };
 
+  // --- ML GROUND TRUTH EXPORT HANDLERS ---
+  const handleCaptureMLFrame = useCallback(() => {
+      if (!sceneRef.current?.captureMLGroundTruth) {
+          addLog('ML ground truth capture not available (using old SimulationLayer?)', 'error');
+          return;
+      }
+
+      try {
+          const groundTruth = sceneRef.current.captureMLGroundTruth();
+          MLExportService.addFrame(groundTruth);
+          setRecordedFrameCount(MLExportService.getBufferSize());
+          addLog(`ML frame captured (${MLExportService.getBufferSize()} total)`, 'success');
+      } catch (error) {
+          addLog(`Failed to capture ML frame: ${(error as Error).message}`, 'error');
+      }
+  }, []);
+
+  const handleStartRecording = useCallback(() => {
+      if (!sceneRef.current?.captureMLGroundTruth) {
+          addLog('ML ground truth capture not available', 'error');
+          return;
+      }
+
+      setIsRecording(true);
+      MLExportService.clearBuffer();
+      setRecordedFrameCount(0);
+      addLog('Started ML sequence recording (30 FPS)', 'info');
+
+      // Record at 30 FPS (every ~33ms)
+      recordingIntervalRef.current = window.setInterval(() => {
+          try {
+              const groundTruth = sceneRef.current?.captureMLGroundTruth();
+              if (groundTruth) {
+                  MLExportService.addFrame(groundTruth);
+                  setRecordedFrameCount(MLExportService.getBufferSize());
+              }
+          } catch (error) {
+              console.error('Recording frame error:', error);
+          }
+      }, 33); // ~30 FPS
+  }, []);
+
+  const handleStopRecording = useCallback(() => {
+      if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current);
+          recordingIntervalRef.current = null;
+      }
+      setIsRecording(false);
+      const frameCount = MLExportService.getBufferSize();
+      addLog(`Stopped recording. ${frameCount} frames captured.`, 'success');
+  }, []);
+
+  const handleExportCOCO = useCallback(() => {
+      try {
+          const dataset = MLExportService.exportSequenceCOCO();
+          const json = JSON.stringify(dataset, null, 2);
+          MLExportService.downloadFile(
+              `snaplock_coco_${Date.now()}.json`,
+              json,
+              'application/json'
+          );
+          addLog(`COCO dataset exported (${dataset.images.length} images, ${dataset.annotations.length} annotations)`, 'success');
+      } catch (error) {
+          addLog(`COCO export failed: ${(error as Error).message}`, 'error');
+      }
+  }, []);
+
+  const handleExportYOLO = useCallback(() => {
+      try {
+          const files = MLExportService.exportSequenceYOLO();
+          addLog(`Exporting ${files.size} YOLO files...`, 'info');
+
+          // Download each file
+          files.forEach((content, filename) => {
+              MLExportService.downloadFile(filename, content, 'text/plain');
+          });
+
+          addLog(`YOLO dataset exported (${files.size} files)`, 'success');
+      } catch (error) {
+          addLog(`YOLO export failed: ${(error as Error).message}`, 'error');
+      }
+  }, []);
+
+  // Cleanup recording on unmount
+  useEffect(() => {
+      return () => {
+          if (recordingIntervalRef.current) {
+              clearInterval(recordingIntervalRef.current);
+          }
+      };
+  }, []);
+
   // --- AUTO SPAWN LOOP ---
   useEffect(() => {
     if (isAutoSpawn) {
@@ -484,6 +586,16 @@ const App: React.FC = () => {
         onGenerateReport={handleGenerateReport}
         isGeneratingReport={isGeneratingReport}
         onRunDiagnostics={handleRunDiagnostics}
+        isSnappyEnabled={isSnappyEnabled}
+        toggleSnappy={() => setIsSnappyEnabled(!isSnappyEnabled)}
+        // ML Export props
+        onCaptureMLFrame={handleCaptureMLFrame}
+        onStartRecording={handleStartRecording}
+        onStopRecording={handleStopRecording}
+        onExportCOCO={handleExportCOCO}
+        onExportYOLO={handleExportYOLO}
+        isRecording={isRecording}
+        recordedFrameCount={recordedFrameCount}
       />
 
       {/* Generated Result Modal */}
@@ -516,6 +628,12 @@ const App: React.FC = () => {
            </div>
         </div>
       )}
+
+      {/* Snappy Assistant */}
+      <SnappyAssistant
+        isEnabled={isSnappyEnabled}
+        onClose={() => setIsSnappyEnabled(false)}
+      />
     </div>
   );
 };

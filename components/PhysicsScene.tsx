@@ -1,7 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment } from '@react-three/drei';
-import SimulationLayer from './SimulationLayer';
+import SimulationLayerV2 from './SimulationLayerV2';
 import { PhysicsParams, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot } from '../types';
 
 interface PhysicsSceneProps {
@@ -28,7 +28,8 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
   viewMode,
   telemetryRef
 }, ref) => {
-  const orbitRef = useRef<any>(null);
+  // Fixed: Properly typed OrbitControls ref instead of 'any'
+  const orbitRef = useRef<typeof OrbitControls | null>(null);
   const simLayerRef = useRef<SimulationLayerHandle>(null);
 
   useImperativeHandle(ref, () => ({
@@ -85,11 +86,12 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
         />
         
         {/* Core Simulation with Suspense for GLTF Loading */}
+        {/* Using SimulationLayerV2 with Rapier physics engine */}
         <Suspense fallback={null}>
-            <SimulationLayer 
+            <SimulationLayerV2
             ref={simLayerRef}
-            params={params} 
-            isPaused={isPaused} 
+            params={params}
+            isPaused={isPaused}
             shouldReset={shouldReset}
             onResetComplete={onResetComplete}
             mouseInteraction={mouseInteraction}

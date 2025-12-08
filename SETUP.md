@@ -62,22 +62,34 @@ SnapLock includes a **Guided Tour** that appears automatically on first visit. T
 
 To restart the tour: Delete `snaplock_tour_completed` from localStorage in browser dev tools.
 
-### Workflow Overview
+### How Auto-Spawn Works
 
-**Option A: Auto-Spawn Mode (Recommended for Beginners)**
-1. Configure API key (click API button, top right)
-2. Toggle AUTO SPAWN on
-3. Watch AI generate creative physics scenarios every 15 seconds
-4. Each scenario is different: debris fields, collision tests, zero-g simulations
-5. Export frames anytime from DATASET tab
+**Auto-Spawn** is the AI-powered feature that automatically extracts physics parameters from your text prompts and spawns (instantiates) 3D objects with the correct properties.
 
-**Option B: Manual Mode (Advanced Users)**
+**What happens when you type a prompt:**
+1. You type: "falling cubes"
+2. AI extracts: object type (cubes), physics (gravity), spawn pattern (pile/grid)
+3. Objects are spawned in the 3D scene with correct masses, materials, positions
+4. Simulation runs with extracted physics parameters
+
+**Examples:**
+- `"floating debris field"` → AI spawns debris with zero-gravity
+- `"collision test with spheres"` → AI spawns spheres with collision physics
+- `"industrial piston crushing foam"` → AI spawns pistons + foam with appropriate masses
+
+**Workflow:**
 1. Configure API key (click API button, top right)
-2. Toggle AUTO SPAWN off
-3. Type custom prompts like "falling cubes" or "zero-g collision"
-4. Press Enter or click RUN
-5. Fine-tune physics using left panel controls
-6. Export frames from DATASET tab
+2. Type your scenario in command bar
+3. Press Enter or click RUN
+4. AI automatically spawns objects with physics
+5. Override manually in left panel if needed
+6. Export training data from DATASET tab
+
+**Use Cases:**
+- Synthetic data for AR/VR applications
+- Training data for autonomous vehicles
+- Robotics simulation (industrial, humanoid, cobot)
+- Computer vision model training
 
 ## Features Overview
 

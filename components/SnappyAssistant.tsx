@@ -46,9 +46,9 @@ const TIPS: Tip[] = [
     category: 'feature'
   },
   {
-    id: 'director',
-    title: 'Adversarial Director',
-    message: 'The Director adds chaos and unpredictability to test your AI systems under stress conditions.',
+    id: 'chaos',
+    title: 'Chaos Mode',
+    message: 'Chaos Mode adds unpredictability and disturbances to test your AI systems under stress conditions.',
     category: 'advanced'
   },
   {

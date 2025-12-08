@@ -64,7 +64,7 @@ const getModelForTask = (task: 'reasoning' | 'vision' | 'creative' | 'image' | '
     case 'reasoning':
       return 'gemini-3-pro-preview'; // Best for physics reasoning
     case 'vision':
-      return 'gemini-3-pro-preview'; // Best for adversarial director
+      return 'gemini-3-pro-preview'; // Best for chaos mode
     case 'creative':
       return 'gemini-3-pro-preview'; // Best for creative prompts too
     case 'image':
@@ -517,13 +517,13 @@ export const analyzeSceneStability = async (base64Image: string): Promise<Advers
         return JSON.parse(jsonText) as AdversarialAction;
 
     } catch (error) {
-        console.error("Director Error:", error);
-        // Fallback for Director to keep loop alive without crashing
+        console.error("Chaos Mode Error:", error);
+        // Fallback for Chaos Mode to keep loop alive without crashing
         return {
             detectedState: "Error",
             action: DisturbanceType.NONE,
             intensity: 0,
-            reasoning: "Director offline or overloaded."
+            reasoning: "Chaos Mode offline or overloaded."
         };
     }
   });

@@ -30,36 +30,39 @@ export function GuidedTour({ onComplete }: GuidedTourProps) {
       ]
     },
     {
-      title: "Step 2: Choose Your Workflow",
-      description: "You have two options for generating simulations:",
+      title: "Step 2: How It Works",
+      description: "SnapLock uses AI to automatically extract physics parameters from your text descriptions - no manual configuration needed.",
       icon: Zap,
       spotlight: null,
       actions: [
-        "AUTO-SPAWN: AI generates creative scenarios every 15s (recommended for beginners)",
-        "MANUAL: Type your own prompts and customize physics parameters"
+        "Type a scenario like 'falling cubes' or 'zero-g debris field'",
+        "AI automatically extracts: object types, physics properties, spawn patterns",
+        "Objects are instantiated (spawned) with correct properties",
+        "Perfect for rapid synthetic data generation"
       ]
     },
     {
-      title: "Auto-Spawn Mode",
-      description: "Toggle AUTO SPAWN on to let AI continuously generate diverse physics scenarios. Perfect for collecting varied training data.",
+      title: "Auto-Spawn Feature",
+      description: "AI automatically analyzes your prompts and spawns objects with physics. No manual parameter tweaking required.",
       icon: Play,
       spotlight: "auto-spawn-button",
       actions: [
-        "Click AUTO SPAWN button to toggle on/off",
-        "Watch as AI creates scenarios like 'floating debris fields' or 'collision tests'",
-        "Each scenario runs for 15 seconds before generating a new one"
+        "Type: 'floating debris field' → AI spawns debris with zero gravity",
+        "Type: 'falling cubes' → AI spawns cubes with Earth gravity",
+        "Type: 'collision test' → AI spawns objects with collision physics",
+        "AI extracts shapes, masses, materials, spawn positions automatically"
       ]
     },
     {
-      title: "Manual Mode",
-      description: "Turn off Auto-Spawn to manually control everything. Type custom prompts like 'falling cubes' or 'zero-g collision'.",
+      title: "Manual Control",
+      description: "For advanced users: override AI decisions and manually adjust physics parameters in the left panel.",
       icon: Play,
       spotlight: "command-input",
       actions: [
-        "Type a physics scenario in the command bar",
-        "Press Enter or click RUN",
-        "Use left panel to fine-tune physics parameters",
-        "Adjust gravity, wind, asset properties"
+        "Type your prompt as usual",
+        "AI spawns initial configuration",
+        "Override: Use left panel to manually adjust gravity, wind, materials",
+        "Fine-tune: Modify spawn patterns, object properties, physics behavior"
       ]
     },
     {
@@ -199,7 +202,7 @@ export function GuidedTour({ onComplete }: GuidedTourProps) {
               </button>
               <button
                 onClick={handleNext}
-                className="px-8 py-2 text-sm font-bold text-black bg-scifi-cyan-light hover:bg-scifi-cyan-bright rounded transition-colors flex items-center gap-2"
+                className="px-8 py-3 text-sm font-bold text-scifi-900 bg-scifi-cyan-light hover:bg-scifi-cyan-bright rounded transition-colors flex items-center gap-2 shadow-lg"
               >
                 {step === steps.length - 1 ? (
                   <>

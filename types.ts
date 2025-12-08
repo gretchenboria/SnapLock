@@ -95,7 +95,7 @@ export interface LogEntry {
   id: string;
   timestamp: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'director';
+  type: 'info' | 'success' | 'warning' | 'error' | 'chaos';
 }
 
 export interface AnalysisResponse {

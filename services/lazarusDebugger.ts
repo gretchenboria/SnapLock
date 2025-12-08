@@ -42,7 +42,7 @@ export class LazarusDebugger {
       isAutoSpawn?: boolean;
       isPaused?: boolean;
       isAnalyzing?: boolean;
-      isDirectorActive?: boolean;
+      isChaosActive?: boolean;
     }
   ): Promise<DiagnosticReport> {
 
@@ -333,7 +333,7 @@ export class LazarusDebugger {
         totalLogs: logs.length,
         errors: logs.filter(l => l.type === 'error').length,
         warnings: logs.filter(l => l.type === 'warning').length,
-        directorActions: logs.filter(l => l.type === 'director').length
+        chaosActions: logs.filter(l => l.type === 'chaos').length
       }
     };
 
@@ -368,7 +368,7 @@ export class LazarusDebugger {
       isAutoSpawn?: boolean;
       isPaused?: boolean;
       isAnalyzing?: boolean;
-      isDirectorActive?: boolean;
+      isChaosActive?: boolean;
     },
     report: DiagnosticReport
   ): DiagnosticSection {
@@ -380,7 +380,7 @@ export class LazarusDebugger {
         autoSpawnEnabled: context.isAutoSpawn ?? 'unknown',
         simulationPaused: context.isPaused ?? 'unknown',
         analyzing: context.isAnalyzing ?? 'unknown',
-        directorActive: context.isDirectorActive ?? 'unknown',
+        chaosActive: context.isChaosActive ?? 'unknown',
         promptLength: context.prompt?.length ?? 0
       }
     };

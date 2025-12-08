@@ -6,7 +6,7 @@ import { PhysicsParams, LogEntry, ViewMode, TelemetryData } from './types';
 import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
 import { analyzePhysicsPrompt, generateRealityImage, analyzeSceneStability, generateSimulationVideo, generateCreativePrompt, generateSimulationReport } from './services/geminiService';
-import { AdversarialDirector } from './services/adversarialDirector';
+import { ChaosMode } from './services/chaosMode';
 import { validateAndSanitize, ValidationOntology } from './services/validationService';
 import { LazarusDebugger } from './services/lazarusDebugger';
 import { MLExportService } from './services/mlExportService';
@@ -14,6 +14,7 @@ import { X } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
 import { SnappyAssistant } from './components/SnappyAssistant';
 import { GuidedTour } from './components/GuidedTour';
+import { FloatingCharacters } from './components/FloatingCharacters';
 
 const App: React.FC = () => {
   // State
@@ -42,9 +43,9 @@ const App: React.FC = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   
-  // Adversarial Director State
-  const [isDirectorActive, setIsDirectorActive] = useState(false);
-  const directorIntervalRef = useRef<number | null>(null);
+  // Chaos Mode State
+  const [isChaosActive, setIsChaosActive] = useState(false);
+  const chaosIntervalRef = useRef<number | null>(null);
 
   // Snappy Assistant State
   const [isSnappyEnabled, setIsSnappyEnabled] = useState(false);
@@ -349,7 +350,7 @@ const App: React.FC = () => {
                   isAutoSpawn,
                   isPaused,
                   isAnalyzing,
-                  isDirectorActive
+                  isChaosActive
               }
           );
 
@@ -535,14 +536,14 @@ const App: React.FC = () => {
     }
   }, [isAutoSpawn, addLog, executeAnalysis]); 
 
-  // --- ADVERSARIAL DIRECTOR LOOP ---
+  // --- CHAOS MODE LOOP ---
   useEffect(() => {
     let isProcessing = false;
 
-    if (isDirectorActive) {
-      addLog('Adversarial Director: Online (Scanning every 6s)', 'director');
-      
-      const runDirectorCycle = async () => {
+    if (isChaosActive) {
+      addLog('Chaos Mode: Active (Scanning every 6s)', 'chaos');
+
+      const runChaosCycle = async () => {
          const canvas = document.querySelector('canvas') as HTMLCanvasElement;
          if (!canvas) return;
          if (isPaused) return; 
@@ -556,30 +557,30 @@ const App: React.FC = () => {
              const instruction = await analyzeSceneStability(dataUrl);
              
              if (instruction.action !== 'NONE') {
-                addLog(`DIRECTOR: ${instruction.action} (${instruction.reasoning})`, 'director');
-                setParams(current => AdversarialDirector.applyDisturbance(current, instruction));
+                addLog(`CHAOS: ${instruction.action} (${instruction.reasoning})`, 'chaos');
+                setParams(current => ChaosMode.applyDisturbance(current, instruction));
              }
          } catch (e) {
-             console.error("Director cycle failed", e);
-             addLog(`DIRECTOR ERROR: ${(e as Error).message}`, 'error');
+             console.error("Chaos cycle failed", e);
+             addLog(`CHAOS ERROR: ${(e as Error).message}`, 'error');
          } finally {
              isProcessing = false;
          }
       };
 
-      directorIntervalRef.current = window.setInterval(runDirectorCycle, 6000) as unknown as number;
+      chaosIntervalRef.current = window.setInterval(runChaosCycle, 6000) as unknown as number;
     } else {
-      if (directorIntervalRef.current !== null) {
-        window.clearInterval(directorIntervalRef.current);
-        directorIntervalRef.current = null;
-        addLog('Adversarial Director: Offline', 'info');
+      if (chaosIntervalRef.current !== null) {
+        window.clearInterval(chaosIntervalRef.current);
+        chaosIntervalRef.current = null;
+        addLog('Chaos Mode: Inactive', 'info');
       }
     }
 
     return () => {
-      if (directorIntervalRef.current !== null) window.clearInterval(directorIntervalRef.current);
+      if (chaosIntervalRef.current !== null) window.clearInterval(chaosIntervalRef.current);
     };
-  }, [isDirectorActive, addLog, isPaused]);
+  }, [isChaosActive, addLog, isPaused]);
 
   return (
     <div ref={canvasRef} className="relative h-screen w-screen bg-slate-900 text-white overflow-hidden">
@@ -618,8 +619,8 @@ const App: React.FC = () => {
         isSnapping={isSnapping}
         isGeneratingVideo={isGeneratingVideo}
         resetCamera={handleResetCamera}
-        isDirectorActive={isDirectorActive}
-        toggleDirector={() => setIsDirectorActive(!isDirectorActive)}
+        isChaosActive={isChaosActive}
+        toggleChaos={() => setIsChaosActive(!isChaosActive)}
         viewMode={viewMode}
         setViewMode={setViewMode}
         isAutoSpawn={isAutoSpawn}
@@ -676,6 +677,14 @@ const App: React.FC = () => {
       <SnappyAssistant
         isEnabled={isSnappyEnabled}
         onClose={() => setIsSnappyEnabled(false)}
+      />
+
+      {/* Floating Characters */}
+      <FloatingCharacters
+        isChaosActive={isChaosActive}
+        onChaosClick={() => setIsChaosActive(!isChaosActive)}
+        onLazarusClick={handleRunDiagnostics}
+        onSnappyClick={() => setIsSnappyEnabled(true)}
       />
 
       {/* Guided Tour */}

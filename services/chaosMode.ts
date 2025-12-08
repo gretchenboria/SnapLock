@@ -3,12 +3,12 @@ import { PhysicsParams, DisturbanceType, AdversarialAction, MovementBehavior, Sh
 import { CHAOS_INVENTORY } from './chaosInventory';
 
 /**
- * ADVERSARIAL DIRECTOR SERVICE
- * 
- * Adapts the Supervisor logic to run natively in the browser.
- * Now integrated with Poly Haven asset inventory for dynamic fetching.
+ * CHAOS MODE SERVICE
+ *
+ * Introduces controlled randomness and disturbances to create diverse training scenarios.
+ * Integrated with asset inventory for dynamic environment variations.
  */
-export class AdversarialDirector {
+export class ChaosMode {
     
     static applyDisturbance(currentParams: PhysicsParams, instruction: AdversarialAction): PhysicsParams {
         if (instruction.action === DisturbanceType.NONE) {

@@ -13,11 +13,17 @@ import { MLExportService } from './services/mlExportService';
 import { X } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
 import { SnappyAssistant } from './components/SnappyAssistant';
+import { GuidedTour } from './components/GuidedTour';
 
 const App: React.FC = () => {
   // State
   const [prompt, setPrompt] = useState('');
   const [params, setParams] = useState<PhysicsParams>(DEFAULT_PHYSICS);
+
+  // Guided Tour State
+  const [showGuidedTour, setShowGuidedTour] = useState(() => {
+    return !localStorage.getItem('snaplock_tour_completed');
+  });
   const [isPaused, setIsPaused] = useState(false);
   const [shouldReset, setShouldReset] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -671,6 +677,11 @@ const App: React.FC = () => {
         isEnabled={isSnappyEnabled}
         onClose={() => setIsSnappyEnabled(false)}
       />
+
+      {/* Guided Tour */}
+      {showGuidedTour && (
+        <GuidedTour onComplete={() => setShowGuidedTour(false)} />
+      )}
     </div>
   );
 };

@@ -23,10 +23,13 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   }, [isOpen]);
 
   const handleSave = () => {
+    console.log('[ApiKeyModal] Save clicked', { activeTab, apiKey: apiKey.substring(0, 10) + '...', backendUrl });
+
     if (activeTab === 'direct') {
       if (apiKey.trim()) {
         localStorage.setItem('snaplock_api_key', apiKey.trim());
         localStorage.removeItem('snaplock_backend_url');
+        console.log('[ApiKeyModal] Saved API key to localStorage');
       } else {
         localStorage.removeItem('snaplock_api_key');
       }
@@ -34,11 +37,13 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
       if (backendUrl.trim()) {
         localStorage.setItem('snaplock_backend_url', backendUrl.trim());
         localStorage.removeItem('snaplock_api_key');
+        console.log('[ApiKeyModal] Saved backend URL to localStorage');
       } else {
         localStorage.removeItem('snaplock_backend_url');
       }
     }
     setSaved(true);
+    console.log('[ApiKeyModal] Reloading page in 1 second...');
     setTimeout(() => {
       window.location.reload();
     }, 1000);
@@ -67,7 +72,7 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
               <p className="text-xs text-gray-400 mt-1">Configure Gemini API access for AI features</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors pointer-events-auto">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -76,7 +81,7 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
         <div className="flex border-b border-white/10">
           <button
             onClick={() => setActiveTab('direct')}
-            className={`flex-1 px-6 py-3 text-sm font-bold tracking-wider transition-colors border-b-2 ${
+            className={`flex-1 px-6 py-3 text-sm font-bold tracking-wider transition-colors border-b-2 pointer-events-auto ${
               activeTab === 'direct'
                 ? 'border-scifi-cyan-light text-white bg-white/5'
                 : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5'
@@ -86,7 +91,7 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
           </button>
           <button
             onClick={() => setActiveTab('backend')}
-            className={`flex-1 px-6 py-3 text-sm font-bold tracking-wider transition-colors border-b-2 ${
+            className={`flex-1 px-6 py-3 text-sm font-bold tracking-wider transition-colors border-b-2 pointer-events-auto ${
               activeTab === 'backend'
                 ? 'border-scifi-cyan-light text-white bg-white/5'
                 : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5'
@@ -107,9 +112,12 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
                 <input
                   type="password"
                   value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  onChange={(e) => {
+                    console.log('[ApiKeyModal] API key changed:', e.target.value.substring(0, 10) + '...');
+                    setApiKey(e.target.value);
+                  }}
                   placeholder="Enter your Gemini API key..."
-                  className="w-full bg-black/40 border border-white/20 rounded px-4 py-3 text-white font-mono text-sm focus:border-scifi-cyan-light focus:outline-none transition-colors"
+                  className="w-full bg-black/40 border border-white/20 rounded px-4 py-3 text-white font-mono text-sm focus:border-scifi-cyan-light focus:outline-none transition-colors pointer-events-auto"
                 />
               </div>
 
@@ -146,7 +154,7 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
                   value={backendUrl}
                   onChange={(e) => setBackendUrl(e.target.value)}
                   placeholder="https://your-backend.com"
-                  className="w-full bg-black/40 border border-white/20 rounded px-4 py-3 text-white font-mono text-sm focus:border-scifi-cyan-light focus:outline-none transition-colors"
+                  className="w-full bg-black/40 border border-white/20 rounded px-4 py-3 text-white font-mono text-sm focus:border-scifi-cyan-light focus:outline-none transition-colors pointer-events-auto"
                 />
               </div>
 
@@ -179,21 +187,24 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
         <div className="flex items-center justify-between p-6 border-t border-white/10 bg-black/20">
           <button
             onClick={handleClear}
-            className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"
+            className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white transition-colors pointer-events-auto"
           >
             CLEAR
           </button>
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-2 text-sm font-bold text-gray-300 hover:text-white bg-black/40 border border-white/20 rounded transition-colors"
+              className="px-6 py-2 text-sm font-bold text-gray-300 hover:text-white bg-black/40 border border-white/20 rounded transition-colors pointer-events-auto"
             >
               CANCEL
             </button>
             <button
-              onClick={handleSave}
+              onClick={() => {
+                console.log('[ApiKeyModal] Save button clicked!');
+                handleSave();
+              }}
               disabled={activeTab === 'direct' ? !apiKey.trim() : !backendUrl.trim()}
-              className="px-6 py-2 text-sm font-bold text-black bg-scifi-cyan-light hover:bg-scifi-cyan-bright rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 text-sm font-bold text-black bg-scifi-cyan-light hover:bg-scifi-cyan-bright rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto"
             >
               SAVE & RELOAD
             </button>

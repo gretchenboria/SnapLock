@@ -48,6 +48,37 @@ VITE_GEMINI_API_KEY=your_gemini_api_key_here
 
 ⚠️ **Note**: Without API configuration, Auto-Spawn and AI features won't work. You'll see helpful error messages in the log panel guiding you to configure the API.
 
+## Getting Started Workflow
+
+### First-Time Users
+
+SnapLock includes a **Guided Tour** that appears automatically on first visit. The tour explains:
+
+1. **API Configuration** - How to set up your Gemini API key
+2. **Workflow Options** - Auto-Spawn vs Manual mode
+3. **Auto-Spawn Mode** - AI-generated scenarios
+4. **Manual Mode** - Custom prompts and parameters
+5. **Data Export** - COCO and YOLO format export
+
+To restart the tour: Delete `snaplock_tour_completed` from localStorage in browser dev tools.
+
+### Workflow Overview
+
+**Option A: Auto-Spawn Mode (Recommended for Beginners)**
+1. Configure API key (click API button, top right)
+2. Toggle AUTO SPAWN on
+3. Watch AI generate creative physics scenarios every 15 seconds
+4. Each scenario is different: debris fields, collision tests, zero-g simulations
+5. Export frames anytime from DATASET tab
+
+**Option B: Manual Mode (Advanced Users)**
+1. Configure API key (click API button, top right)
+2. Toggle AUTO SPAWN off
+3. Type custom prompts like "falling cubes" or "zero-g collision"
+4. Press Enter or click RUN
+5. Fine-tune physics using left panel controls
+6. Export frames from DATASET tab
+
 ## Features Overview
 
 ### User Profile & Settings
@@ -148,6 +179,15 @@ Sign in to sync your settings across devices:
 ## Bug Fixes (Latest Version)
 
 ### Critical Fixes - December 8, 2025
+
+**Latest Fixes (Evening)**
+- **FIXED: API modal save button** - Added pointer-events-auto to all interactive elements (inputs, buttons, tabs)
+- **ADDED: Guided Tour** - Comprehensive 6-step onboarding tutorial for first-time users
+- **ADDED: Workflow Documentation** - Clear explanation of Auto-Spawn vs Manual mode
+- Added console logging to API modal for debugging save functionality
+- Improved button click handling across all modal elements
+
+**Morning Fixes**
 - **FIXED: Auto-spawn not working** - Added missing dependencies (addLog, executeAnalysis) to auto-spawn useEffect
 - **FIXED: API modal unclickable** - Added pointer-events-auto to ApiKeyModal to override parent pointer-events-none
 - **FIXED: Blank screen on load** - Made ClerkProvider conditional when VITE_CLERK_PUBLISHABLE_KEY not configured

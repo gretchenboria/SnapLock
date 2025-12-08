@@ -679,13 +679,7 @@ const App: React.FC = () => {
         onClose={() => setIsSnappyEnabled(false)}
       />
 
-      {/* Floating Characters */}
-      <FloatingCharacters
-        isChaosActive={isChaosActive}
-        onChaosClick={() => setIsChaosActive(!isChaosActive)}
-        onLazarusClick={handleRunDiagnostics}
-        onSnappyClick={() => setIsSnappyEnabled(true)}
-      />
+      {/* Floating Characters - REMOVED: Moving to 3D scene */}
 
       {/* Guided Tour */}
       {showGuidedTour && (

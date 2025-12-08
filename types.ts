@@ -62,12 +62,15 @@ export interface AssetGroup {
   color: string;
   spawnMode: SpawnMode;
   scale: number;
-  
+
   // Physics Material
   restitution: number;
   friction: number;
   mass: number;
   drag: number;
+
+  // Visibility (non-destructive layer toggle)
+  visible?: boolean; // Defaults to true if not specified
 }
 
 export interface PhysicsParams {

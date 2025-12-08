@@ -375,7 +375,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between z-50 font-sans text-xs select-none">
+    <div className="absolute inset-0 flex flex-col justify-between z-50 font-sans text-xs select-none pointer-events-none">
       
       {/* --- TOP HEADER --- */}
       <div className="w-full bg-scifi-900 border-b border-white/10 p-2 pointer-events-auto flex items-center gap-3 shadow-xl z-50 h-12 relative">
@@ -419,7 +419,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     setShowSuggestions(true);
                   }
                 }}
-                className="w-full h-10 bg-transparent border-none pl-12 pr-32 text-sm font-mono text-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-600"
+                className="w-full h-10 bg-transparent border-none pl-12 pr-48 text-sm font-mono text-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-600 pointer-events-auto"
                 placeholder="Type simulation command or Ctrl+Space for suggestions..."
               />
 
@@ -462,7 +462,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     }
                   }}
                   disabled={isAnalyzing || !prompt.trim()}
-                  className={`h-7 px-3 rounded flex items-center gap-1.5 transition-all border font-bold text-[9px] tracking-wider ${
+                  className={`h-7 px-3 rounded flex items-center gap-1.5 transition-all border font-bold text-[9px] tracking-wider pointer-events-auto ${
                     isAnalyzing
                       ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
                       : prompt.trim()

@@ -3,6 +3,30 @@ import { SignInButton, SignOutButton, SignUpButton, useUser, useClerk } from '@c
 import { LogIn, LogOut, User as UserIcon, Mail, Shield } from 'lucide-react';
 
 export function AuthSection() {
+  // Check if Clerk is configured
+  const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+  // If Clerk not configured, show setup message
+  if (!clerkKey) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-gray-900/40 border border-gray-700/30 rounded p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield className="w-5 h-5 text-gray-500" />
+            <span className="text-sm font-bold text-gray-400">Authentication Not Configured</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            Sign-in with OAuth providers (GitHub, Google, Microsoft) is optional.
+          </p>
+          <p className="text-xs text-gray-500">
+            To enable: Add VITE_CLERK_PUBLISHABLE_KEY to your .env file.
+            See CLERK_SETUP.md for instructions.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const { isSignedIn, user } = useUser();
   const { openSignIn } = useClerk();
 

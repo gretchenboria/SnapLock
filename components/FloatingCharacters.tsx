@@ -100,7 +100,7 @@ export function FloatingCharacters({
         </div>
       </button>
 
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{__html: `
         @keyframes float {
           0%, 100% {
             transform: translateY(0px) translateX(0px);
@@ -115,7 +115,7 @@ export function FloatingCharacters({
             transform: translateY(-10px) translateX(3px);
           }
         }
-      `}</style>
+      `}} />
     </div>
   );
 }

@@ -95,6 +95,57 @@ const FALLBACK_PROMPTS = [
 ];
 
 /**
+ * Generate fallback scene when API quota exceeded
+ * Creates a reasonable default scene based on prompt keywords
+ */
+function generateFallbackScene(prompt: string): AnalysisResponse {
+  const lowerPrompt = prompt.toLowerCase();
+
+  // Detect zero-g/orbital
+  const isZeroG = lowerPrompt.includes('zero') || lowerPrompt.includes('orbit') || lowerPrompt.includes('space') || lowerPrompt.includes('float');
+
+  // Detect object types
+  const hasSphere = lowerPrompt.includes('sphere') || lowerPrompt.includes('ball');
+  const hasCube = lowerPrompt.includes('cube') || lowerPrompt.includes('box');
+  const hasCylinder = lowerPrompt.includes('cylinder') || lowerPrompt.includes('tube');
+
+  return {
+    movementBehavior: isZeroG ? MovementBehavior.ORBITAL : MovementBehavior.PHYSICS_GRAVITY,
+    gravity: isZeroG ? { x: 0, y: 0, z: 0 } : { x: 0, y: -9.81, z: 0 },
+    wind: { x: 0, y: 0, z: 0 },
+    assetGroups: [
+      {
+        id: 'subject',
+        name: 'Primary Object',
+        count: hasSphere || hasCylinder ? 1 : 5,
+        shape: hasSphere ? ShapeType.SPHERE : hasCylinder ? ShapeType.CYLINDER : ShapeType.ICOSAHEDRON,
+        color: '#f59e0b',
+        spawnMode: isZeroG ? SpawnMode.FLOAT : SpawnMode.GRID,
+        scale: 2.0,
+        mass: 10.0,
+        restitution: 0.3,
+        friction: 0.6,
+        drag: 0.05
+      },
+      {
+        id: 'environment',
+        name: 'Environment Objects',
+        count: 100,
+        shape: hasCube ? ShapeType.CUBE : ShapeType.SPHERE,
+        color: '#22d3ee',
+        spawnMode: SpawnMode.PILE,
+        scale: 0.8,
+        mass: 1.0,
+        restitution: 0.5,
+        friction: 0.5,
+        drag: 0.05
+      }
+    ],
+    explanation: 'Fallback scene generated (API quota exceeded)'
+  };
+}
+
+/**
  * Executes a function with exponential backoff retries for transient errors (503, 500, Empty Response).
  */
 async function withRetry<T>(operation: () => Promise<T>, retries = 3, baseDelay = 2000): Promise<T> {
@@ -141,12 +192,27 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(`Backend API error: ${error.error || response.statusText}`);
+        const errorMsg = error.error || response.statusText;
+
+        // Check if quota exceeded
+        if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
+          console.warn('[GeminiService] API quota exceeded, using fallback scene generation');
+          return generateFallbackScene(userPrompt);
+        }
+
+        throw new Error(`Backend API error: ${errorMsg}`);
       }
 
       return await response.json();
     } catch (error: any) {
       console.error('[GeminiService] Backend API failed:', error);
+
+      // Use fallback for quota/network errors
+      if (error.message.includes('quota') || error.message.includes('429') || error.message.includes('fetch')) {
+        console.warn('[GeminiService] Using fallback scene generation');
+        return generateFallbackScene(userPrompt);
+      }
+
       throw error;
     }
   }
@@ -159,7 +225,7 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
         const response = await ai.models.generateContent({
         model: getModelForTask('reasoning'),
         contents: `You are a Physics Configuration Engine for Robotics & AR Simulation.
-        
+
         INPUT: "${userPrompt}"
 
         TASK: Analyze the user's description and generate a Synthetic Data Simulation Configuration.
@@ -169,7 +235,7 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
         1. GRAVITY:
             - 'ORBITAL', 'SWARM_FLOCK' -> Zero G (x:0, y:0, z:0).
             - 'PHYSICS_GRAVITY' -> Standard Earth (y:-9.81).
-        
+
         2. SPAWN MODES:
             - PILE: Debris/Clutter (Good for environment).
             - BLAST: Explosions/Fracture.
@@ -224,23 +290,30 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
         });
 
         const jsonText = response.text;
-        
+
         if (!jsonText) {
             // Check for valid finish reasons before declaring a block
             const candidate = response.candidates?.[0];
             const finishReason = candidate?.finishReason;
-            
+
             // STOP is a natural finish. If text is missing but reason is STOP, it's a transient glitch (empty output), not a safety block.
             if (finishReason && finishReason !== 'STOP') {
                 throw new Error(`AI response blocked. Reason: ${finishReason}`);
             }
             throw new Error("Empty response from AI model.");
         }
-        
+
         return JSON.parse(jsonText) as AnalysisResponse;
     });
   } catch (error: any) {
       console.error("[GeminiService] Analysis Error:", error);
+
+      // Use fallback for quota errors
+      if (error.message && (error.message.includes('quota') || error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED'))) {
+        console.warn('[GeminiService] API quota exceeded, using fallback scene generation');
+        return generateFallbackScene(userPrompt);
+      }
+
       throw error;
   }
 };

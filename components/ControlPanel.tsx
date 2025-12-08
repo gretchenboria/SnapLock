@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LogEntry, PhysicsParams, ShapeType, MovementBehavior, AssetGroup, SpawnMode, ViewMode, TelemetryData, MaterialPreset } from '../types';
 import { DEFAULT_MATERIAL_PRESETS, SAMPLE_PROMPTS } from '../constants';
-import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug } from 'lucide-react';
+import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug, Smile, PlayCircle, StopCircle, Package } from 'lucide-react';
 
 interface ControlPanelProps {
   prompt: string;
@@ -30,6 +30,16 @@ interface ControlPanelProps {
   onGenerateReport: () => void;
   isGeneratingReport: boolean;
   onRunDiagnostics: () => void;
+  isSnappyEnabled: boolean;
+  toggleSnappy: () => void;
+  // ML Ground Truth Export
+  onCaptureMLFrame?: () => void;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
+  onExportCOCO?: () => void;
+  onExportYOLO?: () => void;
+  isRecording?: boolean;
+  recordedFrameCount?: number;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -58,7 +68,17 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onDownloadCSV,
   onGenerateReport,
   isGeneratingReport,
-  onRunDiagnostics
+  onRunDiagnostics,
+  isSnappyEnabled,
+  toggleSnappy,
+  // ML Export props
+  onCaptureMLFrame,
+  onStartRecording,
+  onStopRecording,
+  onExportCOCO,
+  onExportYOLO,
+  isRecording = false,
+  recordedFrameCount = 0
 }) => {
   const [activeTab, setActiveTab] = useState<'ASSETS' | 'PHYSICS' | 'ENV' | 'DATA'>('ASSETS');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -599,6 +619,44 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                    </div>
                 </div>
              </button>
+
+             {/* SNAPPY ASSISTANT - TOGGLE BUTTON */}
+             <button
+                onClick={toggleSnappy}
+                title={isSnappyEnabled ? "Hide Snappy Assistant" : "Show Snappy Assistant"}
+                className={`h-14 px-4 rounded-lg border-2 transition-all duration-300 ${
+                  isSnappyEnabled
+                    ? 'bg-cyan-950/40 border-cyan-500/50 shadow-[0_0_20px_rgba(34,211,238,0.4)]'
+                    : 'bg-black/40 border-cyan-900/30 hover:border-cyan-500/50 hover:bg-cyan-950/20 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]'
+                }`}
+             >
+                <div className="flex flex-col items-center justify-center gap-0.5 group">
+                   {/* Icon */}
+                   <Smile size={20} className={`transition-colors ${
+                     isSnappyEnabled
+                       ? 'text-cyan-400'
+                       : 'text-cyan-800 group-hover:text-cyan-500'
+                   }`} strokeWidth={2.5} />
+
+                   {/* Labels */}
+                   <div className="flex flex-col items-center gap-0">
+                       <span className={`font-bold text-[9px] tracking-widest transition-colors ${
+                         isSnappyEnabled
+                           ? 'text-cyan-400'
+                           : 'text-cyan-800 group-hover:text-cyan-500'
+                       }`}>
+                           SNAPPY
+                       </span>
+                       <span className={`text-[8px] tracking-wider transition-colors ${
+                         isSnappyEnabled
+                           ? 'text-cyan-500/80'
+                           : 'text-cyan-900/60 group-hover:text-cyan-600/80'
+                       }`}>
+                           ASSISTANT
+                       </span>
+                   </div>
+                </div>
+             </button>
         </div>
 
         {/* DIRECTOR TOAST NOTIFICATION - More Dramatic */}
@@ -843,27 +901,107 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
               {activeTab === 'DATA' && (
                   <>
-                     <Section title="SYNTHETIC DATA WORKFLOW">
+                     {/* ML GROUND TRUTH EXPORT - V2 */}
+                     <Section title="ML GROUND TRUTH EXPORT">
                         <div className="space-y-3">
                             <p className="text-[10px] text-gray-400 leading-relaxed">
-                                Capture raw physics data from the current simulation frame for offline training or download a technical report.
+                                Export production-ready training data with camera matrices, bounding boxes, and labels in COCO or YOLO format.
                             </p>
-                            
-                            <button 
+
+                            {/* Recording Controls */}
+                            <div className="bg-black/30 border border-white/10 rounded p-3 space-y-2">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[10px] font-bold text-gray-300">SEQUENCE RECORDING</span>
+                                    {isRecording && (
+                                        <span className="text-[9px] px-2 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded animate-pulse">
+                                            ● REC {recordedFrameCount} frames
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-2">
+                                    {!isRecording ? (
+                                        <button
+                                            onClick={onStartRecording}
+                                            disabled={!onStartRecording}
+                                            className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 py-2 rounded text-[10px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            <PlayCircle size={14} />
+                                            START RECORDING
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={onStopRecording}
+                                            className="flex-1 flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 py-2 rounded text-[10px] font-bold transition-all animate-pulse"
+                                        >
+                                            <StopCircle size={14} />
+                                            STOP RECORDING
+                                        </button>
+                                    )}
+
+                                    <button
+                                        onClick={onCaptureMLFrame}
+                                        disabled={!onCaptureMLFrame || isRecording}
+                                        className="flex-1 flex items-center justify-center gap-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500/50 text-cyan-400 py-2 rounded text-[10px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                    >
+                                        <Camera size={14} />
+                                        CAPTURE FRAME
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Export Formats */}
+                            <div className="space-y-2">
+                                <button
+                                    onClick={onExportCOCO}
+                                    disabled={!onExportCOCO || recordedFrameCount === 0}
+                                    className="w-full flex items-center justify-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 hover:border-blue-500/50 text-blue-400 py-3 rounded text-[10px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    <Package size={14} />
+                                    EXPORT COCO DATASET ({recordedFrameCount} frames)
+                                </button>
+
+                                <button
+                                    onClick={onExportYOLO}
+                                    disabled={!onExportYOLO || recordedFrameCount === 0}
+                                    className="w-full flex items-center justify-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 hover:border-purple-500/50 text-purple-400 py-3 rounded text-[10px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    <Package size={14} />
+                                    EXPORT YOLO DATASET ({recordedFrameCount} frames)
+                                </button>
+                            </div>
+
+                            <p className="text-[9px] text-gray-500 italic">
+                                {recordedFrameCount === 0
+                                    ? "Record frames or capture single frame to enable export."
+                                    : `${recordedFrameCount} frame(s) ready for export with full ground truth data.`
+                                }
+                            </p>
+                        </div>
+                     </Section>
+
+                     {/* LEGACY DATA EXPORT */}
+                     <Section title="LEGACY DATA EXPORT">
+                        <div className="space-y-3">
+                            <p className="text-[10px] text-gray-400 leading-relaxed">
+                                Basic CSV export and technical reports (deprecated - use ML Ground Truth Export above).
+                            </p>
+
+                            <button
                                 onClick={onDownloadCSV}
                                 className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-scifi-cyan/20 border border-white/10 hover:border-scifi-cyan/50 text-white py-3 rounded text-[10px] font-bold transition-all"
                             >
                                 <FileSpreadsheet size={14} className="text-scifi-cyan" />
-                                DOWNLOAD DATASET (CSV)
+                                DOWNLOAD CSV (LEGACY)
                             </button>
 
-                            <button 
+                            <button
                                 onClick={onGenerateReport}
                                 disabled={isGeneratingReport}
                                 className={`w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-scifi-accent/20 border border-white/10 hover:border-scifi-accent/50 text-white py-3 rounded text-[10px] font-bold transition-all ${isGeneratingReport ? 'opacity-50 cursor-wait' : ''}`}
                             >
                                 {isGeneratingReport ? <Loader2 size={14} className="animate-spin text-scifi-accent" /> : <FileText size={14} className="text-scifi-accent" />}
-                                {isGeneratingReport ? 'COMPILING REPORT...' : 'GENERATE AUDIT REPORT (PDF)'}
+                                {isGeneratingReport ? 'COMPILING REPORT...' : 'AUDIT REPORT (PDF)'}
                             </button>
                         </div>
                      </Section>

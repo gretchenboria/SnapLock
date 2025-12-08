@@ -86,7 +86,9 @@ export interface TelemetryData {
   maxVelocity: number;
   stabilityScore: number; // Standard Deviation of Velocity (Lower is more stable)
   simTime: number;
-  isWarmup: boolean;
+  isWarmup: boolean; // DEPRECATED - will be removed
+  activeCollisions: number; // Number of collision pairs
+  physicsSteps: number; // Actual physics steps taken
 }
 
 export interface LogEntry {
@@ -136,10 +138,81 @@ export interface ParticleSnapshot {
   position: Vector3Data;
   velocity: Vector3Data;
   rotation: Vector3Data;
+  angularVelocity?: Vector3Data;
+  boundingBox?: BoundingBox3D;
+}
+
+// --- ML GROUND TRUTH TYPES ---
+
+export interface BoundingBox2D {
+  xMin: number;
+  yMin: number;
+  xMax: number;
+  yMax: number;
+  confidence: number;
+}
+
+export interface BoundingBox3D {
+  center: Vector3Data;
+  size: Vector3Data; // width, height, depth
+  rotation: Vector3Data; // euler angles
+}
+
+export interface CameraIntrinsics {
+  focalLength: number; // in pixels
+  principalPoint: { x: number; y: number }; // in pixels
+  aspectRatio: number;
+  fov: number; // field of view in degrees
+  resolution: { width: number; height: number };
+}
+
+export interface CameraExtrinsics {
+  position: Vector3Data;
+  rotation: Vector3Data; // euler angles
+  quaternion: { x: number; y: number; z: number; w: number };
+  lookAt: Vector3Data;
+}
+
+export interface MLGroundTruthFrame {
+  timestamp: number;
+  frameNumber: number;
+  camera: {
+    intrinsics: CameraIntrinsics;
+    extrinsics: CameraExtrinsics;
+  };
+  objects: Array<{
+    id: number;
+    groupId: string;
+    class: string; // shape type
+    pose3D: {
+      position: Vector3Data;
+      rotation: Vector3Data;
+      quaternion: { x: number; y: number; z: number; w: number };
+    };
+    boundingBox2D: BoundingBox2D;
+    boundingBox3D: BoundingBox3D;
+    velocity: Vector3Data;
+    angularVelocity: Vector3Data;
+    inFrustum: boolean;
+    occlusionLevel: number; // 0.0 (fully visible) to 1.0 (fully occluded)
+    distanceFromCamera: number;
+  }>;
+  physics: {
+    gravity: Vector3Data;
+    wind: Vector3Data;
+    activeCollisions: number;
+    systemEnergy: number;
+  };
+  metadata: {
+    simulationId: string;
+    configHash: string;
+    engineVersion: string;
+  };
 }
 
 export interface SimulationLayerHandle {
   captureSnapshot: () => ParticleSnapshot[];
+  captureMLGroundTruth: () => MLGroundTruthFrame;
 }
 
 // --- TESTING INTERFACES ---

@@ -26,3 +26,13 @@ dist-ssr
 # Screenshots and local assets
 Screenshot*.png
 *.screenshot.png
+
+# Reference images (should not be committed)
+IMG_*.jpeg
+IMG_*.jpg
+IMG_*.png
+
+# Environment variables
+.env
+.env.local
+.env.production

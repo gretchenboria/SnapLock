@@ -55,8 +55,8 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-scifi-900 border border-scifi-cyan-light/30 rounded-lg shadow-[0_0_50px_rgba(34,211,238,0.3)] max-w-2xl w-full animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 pointer-events-auto">
+      <div className="bg-scifi-900 border border-scifi-cyan-light/30 rounded-lg shadow-[0_0_50px_rgba(34,211,238,0.3)] max-w-2xl w-full animate-in slide-in-from-bottom-4 duration-300 pointer-events-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">

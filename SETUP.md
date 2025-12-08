@@ -147,7 +147,10 @@ Sign in to sync your settings across devices:
 
 ## Bug Fixes (Latest Version)
 
-### Critical Fixes
+### Critical Fixes - December 8, 2025
+- **FIXED: Auto-spawn not working** - Added missing dependencies (addLog, executeAnalysis) to auto-spawn useEffect
+- **FIXED: API modal unclickable** - Added pointer-events-auto to ApiKeyModal to override parent pointer-events-none
+- **FIXED: Blank screen on load** - Made ClerkProvider conditional when VITE_CLERK_PUBLISHABLE_KEY not configured
 - Fixed geminiService API key handling with window.aistudio undefined references
 - Fixed inconsistent API key retrieval across image and video generation functions
 - Fixed React useEffect dependency warnings causing stale closures in auto-spawn loop

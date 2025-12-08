@@ -518,28 +518,33 @@ const App: React.FC = () => {
   }, []);
 
   // --- AUTO SPAWN LOOP ---
+  // Auto-spawn generates scene variations from the SAME prompt for synthetic dataset generation
+  // It does NOT change the prompt - that stays fixed until user changes it manually
   useEffect(() => {
     if (isAutoSpawn) {
         if (!autoSpawnTimerRef.current) {
-            addLog("Auto Spawn: Active (15s Cycle)", "info");
+            addLog("Auto Spawn: Active - generating scene variations for dataset", "info");
         }
-        
+
         const spawnCycle = async () => {
             if (!isAutoSpawnRef.current) return;
             if (isAnalyzingRef.current) return;
 
-            const creativePrompt = await generateCreativePrompt();
-
-            // Check again before executing
-            if (!isAutoSpawnRef.current) return;
-
-            setPrompt(creativePrompt);
-            await executeAnalysis(creativePrompt, 'AUTO');
+            // If no prompt set, generate initial creative prompt
+            if (!prompt.trim()) {
+                const creativePrompt = await generateCreativePrompt();
+                if (!isAutoSpawnRef.current) return;
+                setPrompt(creativePrompt);
+                await executeAnalysis(creativePrompt, 'AUTO');
+            } else {
+                // Use existing prompt - generate scene variation for dataset
+                await executeAnalysis(prompt, 'AUTO');
+            }
         };
 
         // Initial run if not already running
         if (!autoSpawnTimerRef.current) {
-             spawnCycle(); 
+             spawnCycle();
         }
 
         autoSpawnTimerRef.current = window.setInterval(spawnCycle, 15000) as unknown as number;
@@ -553,7 +558,7 @@ const App: React.FC = () => {
     return () => {
         if (autoSpawnTimerRef.current) window.clearInterval(autoSpawnTimerRef.current);
     }
-  }, [isAutoSpawn, addLog, executeAnalysis]); 
+  }, [isAutoSpawn, prompt, addLog, executeAnalysis]); 
 
   // --- CHAOS MODE LOOP ---
   useEffect(() => {

@@ -618,40 +618,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 </div>
              </button>
 
-             {/* SNAPPY ASSISTANT - TOGGLE BUTTON */}
-             <button
-                onClick={toggleSnappy}
-                title={isSnappyEnabled ? "Hide Snappy Assistant" : "Show Snappy Assistant"}
-                className={`h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group relative ${
-                  isSnappyEnabled
-                    ? 'bg-cyan-950/40 border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.4)]'
-                    : 'bg-black/40 border-cyan-900/30 hover:border-cyan-500/50 hover:bg-cyan-950/20'
-                }`}
-             >
-                {/* Snappy Character Icon - Two Eyes */}
-                <div className="relative flex items-center gap-0.5">
-                   <div className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                     isSnappyEnabled ? 'bg-cyan-300 shadow-[0_0_4px_rgba(34,211,238,0.8)]' : 'bg-cyan-700'
-                   }`} />
-                   <div className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                     isSnappyEnabled ? 'bg-cyan-300 shadow-[0_0_4px_rgba(34,211,238,0.8)]' : 'bg-cyan-700'
-                   }`} />
-                </div>
-
-                <div className="flex flex-col items-start">
-                    <span className={`font-bold text-[10px] tracking-wider transition-colors ${
-                      isSnappyEnabled
-                        ? 'text-cyan-300'
-                        : 'text-cyan-700 group-hover:text-cyan-400'
-                    }`}>
-                        SNAPPY
-                    </span>
-                </div>
-
-                {isSnappyEnabled && (
-                    <Sparkles size={10} className="text-cyan-400 animate-pulse absolute -top-1 -right-1" />
-                )}
-             </button>
+             {/* Snappy button removed - will be in 3D scene */}
 
              {/* API SETTINGS BUTTON */}
              <button
@@ -668,23 +635,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
              </button>
         </div>
 
-        {/* CHAOS TOAST NOTIFICATION - More Dramatic */}
-        {latestChaosLog && (
-            <div className="absolute top-[72px] left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-950/95 via-red-900/95 to-red-950/95 backdrop-blur-md border-2 border-red-500 text-red-100 px-8 py-4 rounded-lg shadow-[0_0_40px_rgba(239,68,68,0.6)] flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none min-w-[400px] z-50">
-                {/* Warning Header */}
-                <div className="flex items-center gap-3 mb-2">
-                    <AlertTriangle className="w-5 h-5 animate-pulse text-red-400" strokeWidth={2.5} />
-                    <span className="font-bold tracking-widest text-red-400 text-xs">CHAOS INTERVENTION</span>
-                    <AlertTriangle className="w-5 h-5 animate-pulse text-red-400" strokeWidth={2.5} />
-                </div>
-
-                {/* Message */}
-                <span className="font-mono text-sm text-center">{latestChaosLog.message}</span>
-
-                {/* Bottom Warning Strip */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent" />
-            </div>
-        )}
+        {/* CHAOS notification removed - will show in 3D scene with floating skull */}
       </div>
 
       {/* --- MAIN WORKSPACE --- */}

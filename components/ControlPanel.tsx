@@ -228,55 +228,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 relative max-w-5xl flex items-center gap-3">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Command className="w-4 h-4 text-scifi-cyan/50" />
-            </div>
-            <input
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={(e) => {
-                    e.target.select();
-                    if(isAutoSpawn) toggleAutoSpawn();
-                }}
-                className="w-full h-10 bg-black/40 border border-white/10 rounded pl-11 pr-4 text-base font-mono text-white placeholder-gray-500 focus:outline-none focus:border-scifi-cyan focus:ring-2 focus:ring-scifi-cyan/50 transition-all"
-                placeholder="Enter simulation prompt: e.g. 'LIDAR scan of warehouse debris'"
-            />
-          </div>
-
-          <button
-            onClick={onAnalyze}
-            disabled={isAnalyzing}
-            className={`h-10 px-6 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 ${
-                isAnalyzing
-                ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-500 cursor-wait'
-                : 'bg-scifi-cyan/10 border-scifi-cyan/50 text-scifi-cyan hover:bg-scifi-cyan hover:text-black'
-            }`}
-          >
-            {isAnalyzing ? <Activity className="w-4 h-4 animate-spin"/> : <Database className="w-4 h-4"/>}
-            {isAnalyzing ? 'SIMULATING...' : 'EXECUTE'}
-          </button>
-
-          {/* AUTO SPAWN TOGGLE */}
-          <button
-             onClick={toggleAutoSpawn}
-             className={`relative overflow-hidden h-8 px-3 flex items-center justify-center gap-2 rounded-sm transition-all border font-bold text-[10px] tracking-wider ${
-                 isAutoSpawn 
-                 ? 'bg-purple-600/20 border-purple-500 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]'
-                 : 'bg-black/40 border-white/10 text-gray-500 hover:text-purple-400 hover:border-purple-500/50'
-             }`}
-             title={isAutoSpawn ? "Auto Spawn Active (Pauses on edit)" : "Enable Auto Spawn Mode"}
-          >
-             {isAutoSpawn && (
-                <div className="absolute bottom-0 left-0 h-0.5 bg-purple-500/50 w-full animate-[progress_15s_linear_infinite]" />
-             )}
-             <Wand2 size={12} className={isAutoSpawn ? "animate-pulse" : ""} />
-             <span>AUTO SPAWN</span>
-          </button>
-
-        </div>
+        {/* AUTO SPAWN TOGGLE */}
+        <button
+           onClick={toggleAutoSpawn}
+           className={`relative overflow-hidden h-8 px-3 flex items-center justify-center gap-2 rounded-sm transition-all border font-bold text-[10px] tracking-wider ${
+               isAutoSpawn
+               ? 'bg-purple-600/20 border-purple-500 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]'
+               : 'bg-black/40 border-white/10 text-gray-500 hover:text-purple-400 hover:border-purple-500/50'
+           }`}
+           title={isAutoSpawn ? "Auto Spawn Active (Pauses on edit)" : "Enable Auto Spawn Mode"}
+        >
+           {isAutoSpawn && (
+              <div className="absolute bottom-0 left-0 h-0.5 bg-purple-500/50 w-full animate-[progress_15s_linear_infinite]" />
+           )}
+           <Wand2 size={12} className={isAutoSpawn ? "animate-pulse" : ""} />
+           <span>AUTO SPAWN</span>
+        </button>
 
         <div className="flex-1"></div>
 
@@ -694,6 +661,83 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
 
       </div>
+
+      {/* --- BOTTOM CONTROL BAR --- */}
+      <div className="w-full bg-scifi-900/98 backdrop-blur-md border-t border-white/10 pointer-events-auto shadow-xl">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-3">
+
+          {/* Prompt Input */}
+          <div className="relative flex-1 max-w-3xl">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Command className="w-4 h-4 text-scifi-cyan/50" />
+            </div>
+            <input
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={(e) => {
+                e.target.select();
+                if(isAutoSpawn) toggleAutoSpawn();
+              }}
+              className="w-full h-10 bg-black/40 border border-white/10 rounded pl-10 pr-4 text-sm font-mono text-white placeholder-gray-500 focus:outline-none focus:border-scifi-cyan focus:ring-2 focus:ring-scifi-cyan/50 transition-all"
+              placeholder="Enter simulation prompt..."
+            />
+          </div>
+
+          {/* Execute Button */}
+          <button
+            onClick={onAnalyze}
+            disabled={isAnalyzing}
+            className={`h-10 px-5 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 ${
+              isAnalyzing
+                ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-500 cursor-wait'
+                : 'bg-scifi-cyan/10 border-scifi-cyan/50 text-scifi-cyan hover:bg-scifi-cyan hover:text-black'
+            }`}
+            title="Execute Prompt"
+          >
+            {isAnalyzing ? <Activity className="w-3.5 h-3.5 animate-spin"/> : <Database className="w-3.5 h-3.5"/>}
+            {isAnalyzing ? 'RUNNING' : 'RUN'}
+          </button>
+
+          {/* Separator */}
+          <div className="w-px h-8 bg-white/10"></div>
+
+          {/* Playback Controls */}
+          <div className="flex items-center bg-black/40 rounded border border-white/10">
+            <IconButton onClick={togglePause} icon={isPaused ? <Play size={16}/> : <Pause size={16}/>} active={!isPaused} title={isPaused ? "Play" : "Pause"} />
+            <IconButton onClick={onReset} icon={<RefreshCw size={16}/>} title="Reset" />
+            <IconButton onClick={resetCamera} icon={<Camera size={16}/>} title="Reset Camera" />
+          </div>
+
+          {/* Separator */}
+          <div className="w-px h-8 bg-white/10"></div>
+
+          {/* Capture Controls */}
+          <div className="flex gap-2">
+            <button
+              onClick={onSnap}
+              disabled={isSnapping}
+              className="h-10 bg-white text-black px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition-all border border-white disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Capture Image"
+            >
+              <Aperture size={14} className={isSnapping ? 'animate-spin' : ''}/>
+              IMAGE
+            </button>
+
+            <button
+              onClick={onGenerateVideo}
+              disabled={isGeneratingVideo}
+              className="h-10 bg-white/10 border border-white/20 text-white px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Generate Video"
+            >
+              {isGeneratingVideo ? <Loader2 className="animate-spin" size={14} /> : <Video size={14}/>}
+              VIDEO
+            </button>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   );
 };

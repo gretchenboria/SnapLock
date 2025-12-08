@@ -15,6 +15,7 @@ import { TestDashboard } from './components/TestDashboard';
 import { GuidedTour } from './components/GuidedTour';
 import { FloatingCharacters } from './components/FloatingCharacters';
 import { SnappyChatbot } from './components/SnappyChatbot';
+import { ChaosActivityPanel } from './components/ChaosActivityPanel';
 
 const App: React.FC = () => {
   // State
@@ -804,6 +805,12 @@ const App: React.FC = () => {
       <SnappyChatbot
         isOpen={isSnappyEnabled}
         onClose={() => setIsSnappyEnabled(false)}
+      />
+
+      {/* Chaos Activity Panel - Shows what Chaos mode is doing */}
+      <ChaosActivityPanel
+        isActive={isChaosActive}
+        currentActivity={chaosActivity}
       />
 
       {/* Floating Characters: Chaos, Lazarus, Snappy (Free-floating gently around UI) */}

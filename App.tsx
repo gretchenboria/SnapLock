@@ -12,11 +12,9 @@ import { LazarusDebugger } from './services/lazarusDebugger';
 import { MLExportService } from './services/mlExportService';
 import { X } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
-import { SnappyAssistant } from './components/SnappyAssistant';
 import { GuidedTour } from './components/GuidedTour';
-import { Characters } from './components/Characters';
 import { FloatingCharacters } from './components/FloatingCharacters';
-import { askSnappy } from './services/snappyChatbot';
+import { SnappyChatbot } from './components/SnappyChatbot';
 
 const App: React.FC = () => {
   // State
@@ -802,9 +800,9 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Snappy Assistant */}
-      <SnappyAssistant
-        isEnabled={isSnappyEnabled}
+      {/* Snappy AI Chatbot */}
+      <SnappyChatbot
+        isOpen={isSnappyEnabled}
         onClose={() => setIsSnappyEnabled(false)}
       />
 

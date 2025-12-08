@@ -240,15 +240,7 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
         return JSON.parse(jsonText) as AnalysisResponse;
     });
   } catch (error: any) {
-      // Gracefully handle Quota Exceeded by falling back to Mock Data
-      if (error?.status === 429 || error?.code === 429 || error?.message?.includes('429') || error?.message?.includes('Quota')) {
-           console.warn("[GeminiService] Quota Exceeded. Switching to Offline Fallback.");
-           return {
-               ...MOCK_ANALYSIS_RESPONSE,
-               explanation: "⚠️ API Quota Limit Reached. Simulation running in Offline Demonstration Mode."
-           };
-      }
-      console.error("Analysis Error:", error);
+      console.error("[GeminiService] Analysis Error:", error);
       throw error;
   }
 };

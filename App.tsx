@@ -14,7 +14,8 @@ import { X } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
 import { SnappyAssistant } from './components/SnappyAssistant';
 import { GuidedTour } from './components/GuidedTour';
-import { FloatingCharacters } from './components/FloatingCharacters';
+import { Characters } from './components/Characters';
+import { askSnappy } from './services/snappyChatbot';
 
 const App: React.FC = () => {
   // State
@@ -45,7 +46,12 @@ const App: React.FC = () => {
   
   // Chaos Mode State
   const [isChaosActive, setIsChaosActive] = useState(false);
+  const [chaosActivity, setChaosActivity] = useState<string>('');
   const chaosIntervalRef = useRef<number | null>(null);
+
+  // Lazarus Diagnostics State
+  const [lazarusStatus, setLazarusStatus] = useState<'HEALTHY' | 'WARNING' | 'CRITICAL' | 'ERROR'>('HEALTHY');
+  const [lazarusSummary, setLazarusSummary] = useState<string>('All systems operational');
 
   // Snappy Assistant State
   const [isSnappyEnabled, setIsSnappyEnabled] = useState(false);
@@ -137,7 +143,11 @@ const App: React.FC = () => {
     addLog(`Configuring simulation for: "${inputPrompt}"...`);
 
     try {
+      addLog('Analyzing prompt with AI...', 'info');
       const result = await analyzePhysicsPrompt(inputPrompt);
+
+      console.log('[SPAWN DEBUG] AI Result:', result);
+      addLog(`AI extracted ${result.assetGroups.length} object groups`, 'info');
 
       // DOUBLE CHECK: Re-verify state after the async operation returns
       if (source === 'AUTO' && !isAutoSpawnRef.current) {
@@ -152,8 +162,12 @@ const App: React.FC = () => {
         assetGroups: result.assetGroups
       };
 
+      console.log('[SPAWN DEBUG] New Params:', newParams);
+
       // VALIDATION & SANITIZATION - Ensure data integrity
       const validatedParams = validateAndSanitize(newParams);
+
+      console.log('[SPAWN DEBUG] Validated Params:', validatedParams);
 
       // Update Physics State with validated params
       setParams(validatedParams);
@@ -162,18 +176,22 @@ const App: React.FC = () => {
       setShouldReset(true);
       setIsPaused(false);
 
-      addLog(`Simulation Configured: ${result.explanation}`, 'success');
+      addLog(`✓ Spawned ${validatedParams.assetGroups.length} groups - ${result.explanation}`, 'success');
 
     } catch (error) {
       const errorMsg = (error as Error).message;
+      console.error('[SPAWN ERROR]', error);
 
       // Provide helpful error messages for common issues
       if (errorMsg.includes('API') || errorMsg.includes('key') || errorMsg.includes('401') || errorMsg.includes('403')) {
-        addLog(`Configuration Failed: Missing API key. Please configure VITE_GEMINI_API_KEY in your .env file or set up VITE_BACKEND_URL`, 'error');
+        addLog(`❌ SPAWN FAILED: Missing API key`, 'error');
+        addLog(`Click API button (top-right) to configure your Gemini API key`, 'warning');
       } else if (errorMsg.includes('backend') || errorMsg.includes('network') || errorMsg.includes('fetch')) {
-        addLog(`Configuration Failed: Backend unavailable. Check VITE_BACKEND_URL in .env or configure direct API access`, 'error');
+        addLog(`❌ SPAWN FAILED: Backend unavailable`, 'error');
+        addLog(`Check network connection or configure API key directly`, 'warning');
       } else {
-        addLog(`Configuration Failed: ${errorMsg}`, 'error');
+        addLog(`❌ SPAWN FAILED: ${errorMsg}`, 'error');
+        console.error('[SPAWN ERROR DETAILS]', error);
       }
     } finally {
       setIsAnalyzing(false);
@@ -555,14 +573,18 @@ const App: React.FC = () => {
          
          try {
              const instruction = await analyzeSceneStability(dataUrl);
-             
+
              if (instruction.action !== 'NONE') {
                 addLog(`CHAOS: ${instruction.action} (${instruction.reasoning})`, 'chaos');
+                setChaosActivity(`${instruction.action}: ${instruction.reasoning}`);
                 setParams(current => ChaosMode.applyDisturbance(current, instruction));
+             } else {
+                setChaosActivity('Monitoring scene...');
              }
          } catch (e) {
              console.error("Chaos cycle failed", e);
              addLog(`CHAOS ERROR: ${(e as Error).message}`, 'error');
+             setChaosActivity('Error analyzing scene');
          } finally {
              isProcessing = false;
          }
@@ -573,6 +595,7 @@ const App: React.FC = () => {
       if (chaosIntervalRef.current !== null) {
         window.clearInterval(chaosIntervalRef.current);
         chaosIntervalRef.current = null;
+        setChaosActivity('');
         addLog('Chaos Mode: Inactive', 'info');
       }
     }
@@ -581,6 +604,50 @@ const App: React.FC = () => {
       if (chaosIntervalRef.current !== null) window.clearInterval(chaosIntervalRef.current);
     };
   }, [isChaosActive, addLog, isPaused]);
+
+  // --- LAZARUS DIAGNOSTICS LOOP ---
+  useEffect(() => {
+    const runDiagnostics = async () => {
+      try {
+        const report = await LazarusDebugger.runDiagnostics(
+          params,
+          telemetryRef.current,
+          logs,
+          {
+            prompt,
+            isAutoSpawn,
+            isPaused,
+            isAnalyzing,
+            isChaosActive
+          }
+        );
+
+        setLazarusStatus(report.overallStatus);
+        setLazarusSummary(report.summary);
+      } catch (error) {
+        console.error('[Lazarus] Diagnostics failed:', error);
+        setLazarusStatus('ERROR');
+        setLazarusSummary('Diagnostics error');
+      }
+    };
+
+    // Run diagnostics every 10 seconds
+    const interval = window.setInterval(runDiagnostics, 10000);
+    runDiagnostics(); // Run immediately
+
+    return () => window.clearInterval(interval);
+  }, [params, logs, prompt, isAutoSpawn, isPaused, isAnalyzing, isChaosActive]);
+
+  // --- SNAPPY CHATBOT HANDLER ---
+  const handleSnappyMessage = useCallback(async (message: string): Promise<string> => {
+    try {
+      const response = await askSnappy(message, []);
+      return response;
+    } catch (error) {
+      console.error('[Snappy] Chat error:', error);
+      throw error;
+    }
+  }, []);
 
   return (
     <div ref={canvasRef} className="relative h-screen w-screen bg-slate-900 text-white overflow-hidden">
@@ -679,7 +746,16 @@ const App: React.FC = () => {
         onClose={() => setIsSnappyEnabled(false)}
       />
 
-      {/* Floating Characters - REMOVED: Moving to 3D scene */}
+      {/* Characters: Chaos, Lazarus, Snappy */}
+      <Characters
+        isChaosActive={isChaosActive}
+        chaosActivity={chaosActivity}
+        onChaosClick={() => setIsChaosActive(!isChaosActive)}
+        lazarusStatus={lazarusStatus}
+        lazarusSummary={lazarusSummary}
+        onLazarusClick={() => console.log('[Lazarus] Diagnostics:', lazarusSummary)}
+        onSnappyMessage={handleSnappyMessage}
+      />
 
       {/* Guided Tour */}
       {showGuidedTour && (

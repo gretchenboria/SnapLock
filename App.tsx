@@ -31,6 +31,7 @@ const App: React.FC = () => {
   const [isAutoSpawn, setIsAutoSpawn] = useState(true);
   const isAutoSpawnRef = useRef(true); // Ref to track state inside async closures
   const autoSpawnTimerRef = useRef<number | null>(null);
+  const isAnalyzingRef = useRef(false); // Ref to avoid stale closure in intervals
   
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
@@ -67,10 +68,14 @@ const App: React.FC = () => {
      physicsSteps: 0
   });
 
-  // Sync ref with state
+  // Sync refs with state
   useEffect(() => {
     isAutoSpawnRef.current = isAutoSpawn;
   }, [isAutoSpawn]);
+
+  useEffect(() => {
+    isAnalyzingRef.current = isAnalyzing;
+  }, [isAnalyzing]);
   
   // Initialize Test Mode & Hooks
   useEffect(() => {
@@ -79,30 +84,10 @@ const App: React.FC = () => {
 
       if (isTesting) {
           // Disable Auto Spawn in Test Mode to prevent interference
-          console.log('[TEST MODE] Auto-spawn disabled for testing');
           setIsAutoSpawn(false);
           isAutoSpawnRef.current = false;
-      } else {
-          // Production mode - auto-spawn enabled by default for blank slate workflow
-          console.log('[PRODUCTION MODE] Auto-spawn enabled by default');
       }
   }, []);
-
-  // Update Test Hooks continuously as state changes
-  useEffect(() => {
-      if (isTestMode) {
-          window.snaplock = {
-              sceneRef,
-              telemetryRef,
-              setParams: (p) => setParams(p),
-              getParams: () => params,
-              resetSim: () => setShouldReset(true),
-              togglePause: () => setIsPaused(prev => !prev),
-              setPrompt: (s) => setPrompt(s),
-              clickAnalyze: () => handleAnalyze()
-          };
-      }
-  }, [isTestMode, params, isPaused, prompt]); // Re-bind when crucial state changes
 
   // Clean up Blob URLs to prevent memory leaks
   useEffect(() => {
@@ -132,7 +117,7 @@ const App: React.FC = () => {
     }
   };
 
-  const executeAnalysis = async (inputPrompt: string, source: 'MANUAL' | 'AUTO' = 'MANUAL') => {
+  const executeAnalysis = useCallback(async (inputPrompt: string, source: 'MANUAL' | 'AUTO' = 'MANUAL') => {
     if (!inputPrompt.trim()) return;
 
     // SAFETY CHECK: If this is an auto-spawn request, but the user has turned off auto-spawn
@@ -149,7 +134,6 @@ const App: React.FC = () => {
 
       // DOUBLE CHECK: Re-verify state after the async operation returns
       if (source === 'AUTO' && !isAutoSpawnRef.current) {
-          console.log("Auto-spawn aborted due to user interruption.");
           return;
       }
 
@@ -187,9 +171,25 @@ const App: React.FC = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [addLog]);
 
-  const handleAnalyze = () => executeAnalysis(prompt, 'MANUAL');
+  const handleAnalyze = useCallback(() => executeAnalysis(prompt, 'MANUAL'), [prompt, executeAnalysis]);
+
+  // Update Test Hooks continuously as state changes
+  useEffect(() => {
+      if (isTestMode) {
+          window.snaplock = {
+              sceneRef,
+              telemetryRef,
+              setParams: (p) => setParams(p),
+              getParams: () => params,
+              resetSim: () => setShouldReset(true),
+              togglePause: () => setIsPaused(prev => !prev),
+              setPrompt: (s) => setPrompt(s),
+              clickAnalyze: () => handleAnalyze()
+          };
+      }
+  }, [isTestMode, params, isPaused, prompt, handleAnalyze]);
 
   const handleSnap = async () => {
     // Explicit Cast for TypeScript Build
@@ -500,13 +500,13 @@ const App: React.FC = () => {
         
         const spawnCycle = async () => {
             if (!isAutoSpawnRef.current) return;
-            if (isAnalyzing) return;
-            
+            if (isAnalyzingRef.current) return;
+
             const creativePrompt = await generateCreativePrompt();
-            
+
             // Check again before executing
-            if (!isAutoSpawnRef.current) return; 
-            
+            if (!isAutoSpawnRef.current) return;
+
             setPrompt(creativePrompt);
             await executeAnalysis(creativePrompt, 'AUTO');
         };

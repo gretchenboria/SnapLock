@@ -38,8 +38,6 @@ export class PhysicsEngine {
     this.world.integrationParameters.dt = this.fixedTimeStep;
     this.world.integrationParameters.numSolverIterations = 8; // Higher accuracy
     this.world.integrationParameters.numInternalPgsIterations = 1;
-
-    console.log('[PhysicsEngine] Rapier initialized with fixed timestep:', this.fixedTimeStep);
   }
 
   /**
@@ -124,7 +122,6 @@ export class PhysicsEngine {
     });
 
     this.frameCount = 0;
-    console.log(`[PhysicsEngine] Created ${this.bodies.size} rigid bodies`);
   }
 
   /**

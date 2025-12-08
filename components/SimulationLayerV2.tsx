@@ -92,7 +92,6 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
         physicsEngineRef.current = new PhysicsEngine();
         await physicsEngineRef.current.initialize();
         setPhysicsReady(true);
-        console.log('[SimulationLayerV2] Physics engine ready');
       }
     };
 

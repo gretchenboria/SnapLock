@@ -36,12 +36,6 @@ const getApiKey = (): string => {
 const BACKEND_URL = getBackendUrl();
 const USE_BACKEND = Boolean(BACKEND_URL);
 
-if (USE_BACKEND) {
-  console.log('[GeminiService] Using backend API proxy:', BACKEND_URL);
-} else {
-  console.warn('[GeminiService] No backend URL configured. Using direct Gemini API calls (INSECURE in production)');
-}
-
 // Lazy Initialization of AI Client to prevent 'process is not defined' crashes on module load
 let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
@@ -62,7 +56,6 @@ const getModelForTask = (task: 'reasoning' | 'vision' | 'creative' | 'image' | '
   const apiKeyAvailable = hasApiKey();
 
   if (!apiKeyAvailable) {
-    console.warn('[GeminiService] No API key detected, falling back to gemini-2.5-flash');
     return 'gemini-2.5-flash';
   }
 
@@ -133,7 +126,6 @@ async function withRetry<T>(operation: () => Promise<T>, retries = 3, baseDelay 
 
 export const analyzePhysicsPrompt = async (userPrompt: string): Promise<AnalysisResponse> => {
   if (isTestMode()) {
-      console.log("[GeminiService] Test Mode: Returning Mock Analysis");
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate latency
       return MOCK_ANALYSIS_RESPONSE;
   }
@@ -318,16 +310,9 @@ export const generateRealityImage = async (base64Image: string, prompt: string):
      return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
   }
 
-  // Mandatory API Key Selection for High-Quality Image Generation (Gemini 3 Pro Image)
-  if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
-     await window.aistudio.openSelectKey();
-  }
-
   return withRetry(async () => {
     try {
-        // Ensure we use the latest key selected by the user
-        const key = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
-        const ai = new GoogleGenAI({ apiKey: key });
+        const ai = getAI();
 
         const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
 
@@ -386,19 +371,10 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
   }
 
   try {
-    // 1. Check/Request API Key
-    if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
-       await window.aistudio.openSelectKey();
-    }
-
-    // 2. Instantiate fresh client with selected key for Veo
-    // Ensure we use the process.env which might be populated by the selection flow
-    const veoAi = new GoogleGenAI({ apiKey: (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '' });
-    
+    const veoAi = getAI();
     const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
 
-    // 3. Initiate Generation (Using High Fidelity Video Model)
-    // We retry the initiation call in case of 503
+    // Initiate Generation (Using High Fidelity Video Model)
     let operation = await withRetry(async () => {
         return await veoAi.models.generateVideos({
             model: 'veo-3.1-generate-preview',
@@ -426,7 +402,7 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
     if (!downloadLink) throw new Error("Video generation failed: No video URI returned");
 
     // 6. Fetch Bytes
-    const key = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+    const key = getApiKey();
     const videoResponse = await fetch(`${downloadLink}&key=${key}`);
     const blob = await videoResponse.blob();
     return URL.createObjectURL(blob);

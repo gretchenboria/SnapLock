@@ -18,8 +18,6 @@ export class AdversarialDirector {
         const newParams: PhysicsParams = JSON.parse(JSON.stringify(currentParams));
         const intensity = Math.max(0.1, Math.min(instruction.intensity, 1.0));
 
-        console.log(`[Adversarial Director] Executing: ${instruction.action} @ ${(intensity * 100).toFixed(0)}%`);
-
         switch (instruction.action) {
             case DisturbanceType.GRAVITY_SHIFT:
                 newParams.movementBehavior = MovementBehavior.PHYSICS_GRAVITY;

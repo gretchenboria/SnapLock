@@ -144,3 +144,22 @@ Sign in to sync your settings across devices:
 ## Character Reference
 
 **Snappy** is your friendly assistant represented by two glowing cyan eyes (not a plain smiley face). Click the SNAPPY button in the top right to get helpful tips and guidance about using SnapLock.
+
+## Bug Fixes (Latest Version)
+
+### Critical Fixes
+- Fixed geminiService API key handling with window.aistudio undefined references
+- Fixed inconsistent API key retrieval across image and video generation functions
+- Fixed React useEffect dependency warnings causing stale closures in auto-spawn loop
+- Fixed TypeScript build error with handleAnalyze forward reference in test hooks
+- Removed all debug console.log statements from production code
+
+### Performance Improvements
+- Added isAnalyzingRef to prevent stale closure bugs in auto-spawn interval
+- Converted executeAnalysis to useCallback for proper memoization
+- Fixed useEffect hook ordering to prevent undefined variable errors
+
+### Code Quality
+- Cleaned up 15+ console.log debug statements across services and components
+- Removed redundant environment logging that cluttered console
+- Simplified API client initialization logic in geminiService

@@ -76,7 +76,6 @@ export class MLExportService {
    */
   static addFrame(frame: MLGroundTruthFrame): void {
     this.frameSequence.push(frame);
-    console.log(`[MLExport] Frame ${frame.frameNumber} buffered (${this.frameSequence.length} total)`);
   }
 
   /**
@@ -86,7 +85,6 @@ export class MLExportService {
     this.frameSequence = [];
     this.cocoDataset = null;
     this.annotationIdCounter = 0;
-    console.log('[MLExport] Buffer cleared');
   }
 
   /**
@@ -220,8 +218,6 @@ export class MLExportService {
       dataset.annotations.push(...annotations);
     });
 
-    console.log(`[MLExport] COCO dataset created: ${dataset.images.length} images, ${dataset.annotations.length} annotations`);
-
     return dataset;
   }
 
@@ -260,8 +256,6 @@ nc: ${categories.length}
 names: [${categories.map(c => `'${c.name}'`).join(', ')}]
 `;
     files.set('data.yaml', yamlContent.trim());
-
-    console.log(`[MLExport] YOLO dataset created: ${files.size} files`);
 
     return files;
   }
@@ -320,8 +314,6 @@ names: [${categories.map(c => `'${c.name}'`).join(', ')}]
   static async downloadZip(files: Map<string, string>, zipName: string): Promise<void> {
     // Note: Would need JSZip library for actual zip creation
     // For now, download individual files
-    console.log(`[MLExport] Downloading ${files.size} files (ZIP support requires JSZip library)`);
-
     files.forEach((content, filename) => {
       this.downloadFile(filename, content);
     });

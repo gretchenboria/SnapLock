@@ -1243,7 +1243,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           <div className="w-px h-8 bg-white/10"></div>
 
           {/* Playback Controls */}
-          <div className="flex items-center gap-1 bg-black/40 rounded border border-white/10 p-1">
+          <div className="flex items-center gap-1 bg-black/40 rounded border border-white/10 p-1 pointer-events-auto">
             <IconButton onClick={togglePause} icon={isPaused ? <Play size={16}/> : <Pause size={16}/>} active={!isPaused} title={isPaused ? "Play" : "Pause"} />
             <IconButton onClick={onReset} icon={<RefreshCw size={16}/>} title="Reset" />
             <IconButton onClick={resetCamera} icon={<RotateCcw size={16}/>} title="Reset Camera" />
@@ -1253,7 +1253,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           <div className="w-px h-8 bg-white/10"></div>
 
           {/* Capture Controls */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 pointer-events-auto">
             <button
               onClick={onSnap}
               disabled={isSnapping}

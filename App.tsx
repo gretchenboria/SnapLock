@@ -416,6 +416,19 @@ const App: React.FC = () => {
 
   const handleExportCOCO = useCallback(() => {
       try {
+          // Validate before export
+          const validation = MLExportService.validateCurrentBuffer();
+
+          if (!validation.coco.valid) {
+              addLog(`COCO validation failed: ${validation.coco.errors.join(', ')}`, 'error');
+              console.error('[COCO Validation]', validation.coco);
+              return;
+          }
+
+          if (validation.coco.warnings.length > 0) {
+              addLog(`COCO warnings: ${validation.coco.warnings.join(', ')}`, 'warning');
+          }
+
           const dataset = MLExportService.exportSequenceCOCO();
           const json = JSON.stringify(dataset, null, 2);
           MLExportService.downloadFile(
@@ -423,14 +436,27 @@ const App: React.FC = () => {
               json,
               'application/json'
           );
-          addLog(`COCO dataset exported (${dataset.images.length} images, ${dataset.annotations.length} annotations)`, 'success');
+          addLog(`COCO dataset exported (${dataset.images.length} images, ${dataset.annotations.length} annotations) - VALIDATED`, 'success');
       } catch (error) {
           addLog(`COCO export failed: ${(error as Error).message}`, 'error');
       }
-  }, []);
+  }, [addLog]);
 
   const handleExportYOLO = useCallback(() => {
       try {
+          // Validate before export
+          const validation = MLExportService.validateCurrentBuffer();
+
+          if (!validation.yolo.valid) {
+              addLog(`YOLO validation failed: ${validation.yolo.errors.join(', ')}`, 'error');
+              console.error('[YOLO Validation]', validation.yolo);
+              return;
+          }
+
+          if (validation.yolo.warnings.length > 0) {
+              addLog(`YOLO warnings: ${validation.yolo.warnings.join(', ')}`, 'warning');
+          }
+
           const files = MLExportService.exportSequenceYOLO();
           addLog(`Exporting ${files.size} YOLO files...`, 'info');
 
@@ -439,11 +465,11 @@ const App: React.FC = () => {
               MLExportService.downloadFile(filename, content, 'text/plain');
           });
 
-          addLog(`YOLO dataset exported (${files.size} files)`, 'success');
+          addLog(`YOLO dataset exported (${files.size} files) - VALIDATED`, 'success');
       } catch (error) {
           addLog(`YOLO export failed: ${(error as Error).message}`, 'error');
       }
-  }, []);
+  }, [addLog]);
 
   // Cleanup recording on unmount
   useEffect(() => {

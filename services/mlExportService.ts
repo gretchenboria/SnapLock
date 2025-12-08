@@ -60,6 +60,12 @@ export interface YOLOAnnotation {
   confidence: number;
 }
 
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
 export class MLExportService {
   private static frameSequence: MLGroundTruthFrame[] = [];
   private static cocoDataset: COCODataset | null = null;
@@ -379,5 +385,172 @@ names: [${categories.map(c => `'${c.name}'`).join(', ')}]
         engineVersion: this.frameSequence[0]?.metadata.engineVersion || 'unknown'
       }
     };
+  }
+
+  /**
+   * Validate COCO dataset format
+   */
+  static validateCOCO(dataset: COCODataset): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Validate required top-level fields
+    if (!dataset.info || !dataset.images || !dataset.annotations || !dataset.categories) {
+      errors.push('Missing required COCO fields (info, images, annotations, categories)');
+      return { valid: false, errors, warnings };
+    }
+
+    // Validate images
+    const imageIds = new Set<number>();
+    dataset.images.forEach((img, idx) => {
+      if (typeof img.id !== 'number') errors.push(`Image ${idx}: Invalid ID type`);
+      if (imageIds.has(img.id)) errors.push(`Image ${idx}: Duplicate ID ${img.id}`);
+      imageIds.add(img.id);
+
+      if (typeof img.width !== 'number' || img.width <= 0) {
+        errors.push(`Image ${img.id}: Invalid width`);
+      }
+      if (typeof img.height !== 'number' || img.height <= 0) {
+        errors.push(`Image ${img.id}: Invalid height`);
+      }
+      if (!img.file_name) errors.push(`Image ${img.id}: Missing file_name`);
+    });
+
+    // Validate annotations
+    const annotationIds = new Set<number>();
+    const categoryIds = new Set(dataset.categories.map(c => c.id));
+
+    dataset.annotations.forEach((ann, idx) => {
+      if (typeof ann.id !== 'number') errors.push(`Annotation ${idx}: Invalid ID type`);
+      if (annotationIds.has(ann.id)) errors.push(`Annotation ${idx}: Duplicate ID ${ann.id}`);
+      annotationIds.add(ann.id);
+
+      if (!imageIds.has(ann.image_id)) {
+        errors.push(`Annotation ${ann.id}: References non-existent image ${ann.image_id}`);
+      }
+      if (!categoryIds.has(ann.category_id)) {
+        errors.push(`Annotation ${ann.id}: References non-existent category ${ann.category_id}`);
+      }
+
+      // Validate bbox format [x, y, width, height]
+      if (!Array.isArray(ann.bbox) || ann.bbox.length !== 4) {
+        errors.push(`Annotation ${ann.id}: Invalid bbox format (expected [x,y,w,h])`);
+      } else {
+        const [x, y, w, h] = ann.bbox;
+        if (w < 0 || h < 0) errors.push(`Annotation ${ann.id}: Negative bbox dimensions`);
+        if (w === 0 || h === 0) warnings.push(`Annotation ${ann.id}: Zero-area bbox`);
+      }
+
+      if (typeof ann.area !== 'number' || ann.area < 0) {
+        errors.push(`Annotation ${ann.id}: Invalid area`);
+      }
+
+      // Check for empty segmentation (documented limitation)
+      if (Array.isArray(ann.segmentation) && ann.segmentation.length === 0) {
+        if (warnings.length < 1) { // Only warn once
+          warnings.push('Segmentation masks are empty (not implemented)');
+        }
+      }
+    });
+
+    // Validate categories
+    const categoryNames = new Set<string>();
+    dataset.categories.forEach((cat, idx) => {
+      if (typeof cat.id !== 'number') errors.push(`Category ${idx}: Invalid ID type`);
+      if (!cat.name) errors.push(`Category ${idx}: Missing name`);
+      if (categoryNames.has(cat.name)) warnings.push(`Category ${cat.name}: Duplicate name`);
+      categoryNames.add(cat.name);
+    });
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
+   * Validate YOLO annotation format
+   */
+  static validateYOLO(annotations: YOLOAnnotation[], numClasses: number): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    annotations.forEach((ann, idx) => {
+      // Validate class ID
+      if (typeof ann.classId !== 'number' || !Number.isInteger(ann.classId)) {
+        errors.push(`Annotation ${idx}: Class ID must be integer`);
+      }
+      if (ann.classId < 0 || ann.classId >= numClasses) {
+        errors.push(`Annotation ${idx}: Class ID ${ann.classId} out of range [0, ${numClasses - 1}]`);
+      }
+
+      // Validate normalized coordinates (0-1 range)
+      const coords = [
+        { name: 'x_center', value: ann.x_center },
+        { name: 'y_center', value: ann.y_center },
+        { name: 'width', value: ann.width },
+        { name: 'height', value: ann.height }
+      ];
+
+      coords.forEach(({ name, value }) => {
+        if (typeof value !== 'number') {
+          errors.push(`Annotation ${idx}: ${name} must be number`);
+        } else if (value < 0 || value > 1) {
+          errors.push(`Annotation ${idx}: ${name} must be in range [0, 1], got ${value}`);
+        } else if (value === 0 && (name === 'width' || name === 'height')) {
+          warnings.push(`Annotation ${idx}: Zero ${name}`);
+        }
+      });
+
+      // Validate confidence (optional)
+      if (ann.confidence !== undefined) {
+        if (typeof ann.confidence !== 'number' || ann.confidence < 0 || ann.confidence > 1) {
+          warnings.push(`Annotation ${idx}: Invalid confidence value ${ann.confidence}`);
+        }
+      }
+    });
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
+   * Get validation summary for current buffer
+   */
+  static validateCurrentBuffer(): {
+    coco: ValidationResult;
+    yolo: ValidationResult;
+    summary: string;
+  } {
+    if (this.frameSequence.length === 0) {
+      return {
+        coco: { valid: false, errors: ['No frames in buffer'], warnings: [] },
+        yolo: { valid: false, errors: ['No frames in buffer'], warnings: [] },
+        summary: 'No data to validate'
+      };
+    }
+
+    // Validate COCO
+    const cocoDataset = this.exportSequenceCOCO();
+    const cocoValidation = this.validateCOCO(cocoDataset);
+
+    // Validate YOLO (sample first frame)
+    const yoloAnnotations = this.exportFrameYOLO(this.frameSequence[0]);
+    const numClasses = this.getCategories().length;
+    const yoloValidation = this.validateYOLO(yoloAnnotations, numClasses);
+
+    const summary = [
+      `Frames: ${this.frameSequence.length}`,
+      `COCO: ${cocoValidation.valid ? 'VALID' : 'INVALID'}`,
+      `YOLO: ${yoloValidation.valid ? 'VALID' : 'INVALID'}`,
+      `Errors: ${cocoValidation.errors.length + yoloValidation.errors.length}`,
+      `Warnings: ${cocoValidation.warnings.length + yoloValidation.warnings.length}`
+    ].join(' | ');
+
+    return { coco: cocoValidation, yolo: yoloValidation, summary };
   }
 }

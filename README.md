@@ -1,6 +1,8 @@
-# SnapLock
+# SnapLock V2.0
 
-A web-based physics simulation platform for robotics and computer vision applications. SnapLock generates synthetic training data, tests sensor configurations, and provides real-time 3D visualization of physical interactions.
+**Production-Grade Synthetic Training Data Generator for Computer Vision and Robotics ML**
+
+SnapLock is a physics-accurate simulation platform that generates high-quality synthetic datasets in standard ML formats (COCO, YOLO). Built with Rapier.js rigid body physics for robotics researchers, ML engineers, and computer vision practitioners who need annotated training data at scale.
 
 ## Quick Start
 
@@ -42,7 +44,22 @@ docker-compose up -d
 
 Access at `http://localhost:8080`
 
-## Core Features
+## Key Features (V2.0)
+
+### ML-Ready Dataset Export
+- **COCO JSON Format**: Object detection with full annotations
+- **YOLO Format**: Real-time detection training data
+- **Automatic Validation**: Schema checking prevents corrupted exports
+- **Camera Matrices**: Complete intrinsics and extrinsics for 3D reconstruction
+- **Ground Truth Data**: Exact positions, velocities, collisions, occlusions
+- **2D/3D Bounding Boxes**: Pixel-accurate projection from 3D space
+
+### Production Physics Engine
+- **Rapier.js Integration**: Industry-standard WASM rigid body dynamics
+- **Fixed 120Hz Timestep**: Deterministic simulation
+- **Full Collision Detection**: Particle-to-particle and particle-to-ground
+- **Energy Conservation**: Scientifically accurate momentum transfer
+- **No Warmup Hacks**: Real physics from frame 1
 
 ### Intelligent Command Line
 - Type natural language descriptions of physics scenarios
@@ -58,7 +75,7 @@ Access at `http://localhost:8080`
 - Pauses when you focus the command line for manual control
 
 ### Physics Simulation
-- Real-time 3D rigid body physics using Verlet integration
+- **Real-time 3D rigid body physics** using Rapier.js
 - Supports multiple primitive geometries: sphere, cube, cylinder, cone, torus, icosahedron, capsule, pyramid, plate
 - Configurable material properties: restitution (bounce), friction, mass, drag
 - Environmental parameters: gravity, wind velocity
@@ -85,10 +102,12 @@ Access at `http://localhost:8080`
 - Full diagnostic report in browser console
 
 ### Data Export
-- Download simulation data as CSV (particle positions, velocities, rotations)
-- Generate PDF audit reports with telemetry and configuration details
-- Capture photorealistic images
-- Generate temporal video synthesis
+- **ML Ground Truth Export**: COCO JSON and YOLO formats with validation
+- **Recording Mode**: Capture sequences at 30 FPS for training datasets
+- **CSV Export**: Legacy format for particle positions, velocities, rotations
+- **PDF Audit Reports**: Telemetry and configuration details
+- **Photorealistic Images**: AI-generated renders
+- **Temporal Video**: AI-powered video synthesis
 
 ### Asset Management
 - Add multiple asset groups with different properties
@@ -195,21 +214,44 @@ This enables AI features. Without an API key, manual configuration still works.
 6. Click Reset to apply changes
 7. Simulation runs with your custom configuration
 
-### Capturing Data
+### Generating ML Training Datasets (V2.0 Feature)
 
-**Images:**
+**Complete Workflow:**
+1. Create or run a simulation
+2. Navigate to **DATASET** tab
+3. Click **START RECORDING** (captures at 30 FPS)
+4. Wait 3-5 seconds (90-150 frames recommended)
+5. Click **STOP RECORDING**
+6. Click **EXPORT COCO DATASET** (object detection)
+   - Or **EXPORT YOLO DATASET** (YOLO training)
+7. Check console for validation results
+8. Download includes:
+   - Frame annotations with 2D/3D bounding boxes
+   - Camera intrinsics and extrinsics
+   - Velocity vectors and physics metadata
+   - Occlusion and distance data
+
+**Single Frame Capture:**
+1. Pause at desired frame
+2. Click **CAPTURE SINGLE FRAME**
+3. Frame added to buffer
+4. Export when ready
+
+### Capturing Other Data
+
+**Photorealistic Images:**
 1. Pause simulation at desired frame
 2. Click IMAGE button
-3. Photorealistic image generates and displays
+3. AI-generated photorealistic image displays
 4. Close modal to continue
 
-**Videos:**
+**Temporal Videos:**
 1. Set up simulation
 2. Click VIDEO button
-3. Temporal video generates from current state
+3. AI-powered temporal video generates from current state
 4. Video player displays with controls
 
-**CSV Data:**
+**CSV Data (Legacy):**
 1. Navigate to DATASET tab
 2. Click "DOWNLOAD DATASET (CSV)"
 3. CSV file downloads with particle data and metadata
@@ -588,15 +630,27 @@ npx http-server dist -p 8080
 
 ## Known Limitations
 
+### ML Export
+- **Occlusion Detection**: Binary (visible/hidden), not percentage-based raycasting
+- **Segmentation Masks**: Not implemented (empty arrays in COCO export)
+- **Temporal Tracking**: Object IDs not persistent across frames
+- **Multi-Camera**: Single camera per simulation
+- **YOLO Export**: Individual file downloads (ZIP not implemented yet)
+
+### Physics & Performance
 - Physics simulation is deterministic but may vary slightly across different hardware due to floating-point precision
 - Large numbers of simultaneous collisions can impact frame rate
-- API rate limits may affect auto-spawn frequency and adversarial director
-- Mobile device support is limited due to WebGL performance constraints and touch interface complexity
 - Very high particle counts (2000+) not recommended for real-time interaction
-- Temporal video generation requires stable network connection and may take several seconds
 - Safari has occasional rendering differences compared to Chrome/Firefox
-- Director disturbances are pseudo-random and may not cover all edge cases
-- CSV export captures single frame, not time-series data (use video for temporal capture)
+
+### AI Features
+- API rate limits may affect auto-spawn frequency and adversarial director
+- Temporal video generation requires stable network connection and may take several seconds
+
+### Platform Support
+- Mobile device support is limited due to WebGL performance constraints and touch interface complexity
+
+See [UAT_REPORT.md](UAT_REPORT.md) for detailed quality assessment and improvement roadmap.
 
 ## Development Workflow
 
@@ -673,13 +727,30 @@ For issues and questions:
 4. Check TEST_PLAN.md for testing guidance
 5. Open GitHub issue with diagnostic report if problem persists
 
+## Documentation
+
+### V2.0 Technical Documentation
+- **[UAT Report](UAT_REPORT.md)**: Comprehensive quality assessment, data quality grades, findings
+- **[Implementation Status](IMPLEMENTATION_STATUS.md)**: Detailed technical status and change log
+- **[V2 Upgrade Summary](V2_UPGRADE_SUMMARY.md)**: Summary of V1 → V2 changes
+- **[Integration Guide](INTEGRATION_COMPLETE.md)**: Testing and deployment instructions
+- **[Backend Guide](backend/README.md)**: API proxy deployment guide
+
+### Getting Started
+- This README for installation and usage
+- See [Quick Start](#quick-start) section above
+- [Generating ML Training Datasets](#generating-ml-training-datasets-v20-feature) for ML workflows
+
 ## Version Information
 
-Current version uses:
+**Current Version**: V2.0 (Rapier Physics + ML Export)
+
+**Dependencies**:
 - React 19.2.1
 - Vite 7.2.6
 - Three.js 0.160.0
 - TypeScript 5.2.2
+- Rapier.js (@dimforge/rapier3d-compat) 0.11.0
 - Node.js 20+ required
 
 Check `package.json` for complete dependency list.

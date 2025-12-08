@@ -13,6 +13,7 @@ export interface RigidBodyData {
   handle: number;
   groupIndex: number;
   localIndex: number;
+  globalIndex: number;  // Global buffer index
   groupId: string;
   shape: ShapeType;
   mass: number;
@@ -110,11 +111,12 @@ export class PhysicsEngine {
           this.world.createCollider(colliderDesc, body);
         }
 
-        // Store body data
+        // Store body data with global index
         this.bodies.set(body.handle, {
           handle: body.handle,
           groupIndex: structure.index,
           localIndex: i - structure.start,
+          globalIndex: i,  // Store global index from groupStructure
           groupId: group.id,
           shape: group.shape,
           mass: group.mass
@@ -338,9 +340,8 @@ export class PhysicsEngine {
    * Calculate global buffer index from body data
    */
   private calculateGlobalIndex(bodyData: RigidBodyData): number {
-    // This needs to match the groupStructure logic
-    // For now, simplified - will need proper mapping
-    return bodyData.localIndex;
+    // Return stored global index (calculated at creation time)
+    return bodyData.globalIndex;
   }
 
   /**

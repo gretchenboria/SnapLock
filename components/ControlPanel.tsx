@@ -241,7 +241,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     e.target.select();
                     if(isAutoSpawn) toggleAutoSpawn();
                 }}
-                className="w-full bg-black/40 border border-white/10 rounded pl-11 pr-4 py-3 text-base font-mono text-white placeholder-gray-500 focus:outline-none focus:border-scifi-cyan focus:ring-2 focus:ring-scifi-cyan/50 transition-all"
+                className="w-full h-10 bg-black/40 border border-white/10 rounded pl-11 pr-4 text-base font-mono text-white placeholder-gray-500 focus:outline-none focus:border-scifi-cyan focus:ring-2 focus:ring-scifi-cyan/50 transition-all"
                 placeholder="Enter simulation prompt: e.g. 'LIDAR scan of warehouse debris'"
             />
           </div>
@@ -249,7 +249,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           <button
             onClick={onAnalyze}
             disabled={isAnalyzing}
-            className={`h-11 px-6 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 ${
+            className={`h-10 px-6 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 ${
                 isAnalyzing
                 ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-500 cursor-wait'
                 : 'bg-scifi-cyan/10 border-scifi-cyan/50 text-scifi-cyan hover:bg-scifi-cyan hover:text-black'

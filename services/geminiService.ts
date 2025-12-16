@@ -437,7 +437,31 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
            - Semantic meaning (robots=cyan, hazards=red/yellow, environment=earth tones)
            - Avoid pure black (#000) or pure white (#FFF) - use slight variations
 
-        8. SYNTHETIC DATA GENERATION CONTEXT
+        8. VR TRAINING DATA REQUIREMENTS (Critical for XR/VR Scenarios)
+           For VR training scenarios, add affordance and interaction properties:
+
+           OBJECT AFFORDANCES (Add when prompt mentions VR, grasping, manipulation, interaction):
+           - graspable: true for small/medium objects that can be picked up (cups, tools, boxes)
+           - manipulable: true if object can be moved after grasping (not fixed furniture)
+           - interactive: true for objects with mechanisms (doors, drawers, buttons)
+           - interactionType: 'door'/'drawer'/'button'/'lever' for interactive objects, 'static' for fixed
+
+           SPATIAL CONSTRAINTS (Add for structured scenes):
+           - type: 'on_surface' for objects on tables/floors, 'attached_to' for connected parts, 'none' for floating
+           - parentGroupId: ID of surface/parent object (e.g., cup ON table -> parent is table's ID)
+           - maintainOrientation: true to keep objects upright on surfaces
+
+           SEMANTIC LABELING (Add for VR):
+           - semanticLabel: Specific category name (e.g., "coffee_mug", "office_desk", "sliding_door")
+           - vrRole: 'target' for main interaction objects, 'tool' for instruments, 'furniture' for surfaces, 'environment' for walls/floors
+
+           VR SCENE STRUCTURE:
+           - Always create foundation objects FIRST (floors, tables, walls) with vrRole='furniture'/'environment'
+           - Then place interactive objects ON surfaces using spatialConstraint
+           - Mark graspable objects with affordances
+           - Use semantic labels for all objects in VR scenarios
+
+        9. SYNTHETIC DATA GENERATION CONTEXT
            Consider how scene will be used for training:
            - Object variety: Include multiple object types for dataset diversity
            - Pose variation: Use different spawn modes for varied orientations
@@ -468,6 +492,30 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
            -> metal_shelves (CUBE, gray, scale:4, mass:200, friction:0.4, count:3, GRID/structured)
            -> storage_boxes (CUBE, brown, scale:0.8, mass:5, friction:0.7, count:30, PILE on shelves)
            -> Earth gravity, gentle breeze {x:2, y:0, z:0}
+
+        E) "VR training: Pick up coffee mug from office desk" (VR-SPECIFIC EXAMPLE)
+           -> office_desk (PLATE, wood brown, scale:4, mass:50, friction:0.6, count:1, GRID,
+               vrRole:'furniture', semanticLabel:'office_desk',
+               affordances:{graspable:false, manipulable:false, interactive:false, interactionType:'static'})
+           -> coffee_mug (CYLINDER, white, scale:0.3, mass:0.5, friction:0.5, restitution:0.3, count:1, FLOAT,
+               vrRole:'target', semanticLabel:'coffee_mug',
+               affordances:{graspable:true, manipulable:true, interactive:false, graspPoints:[{x:0.1, y:0, z:0}]},
+               spatialConstraint:{type:'on_surface', parentGroupId:'office_desk', offset:{x:0, y:0.15, z:0}, maintainOrientation:true})
+           -> Earth gravity, no wind
+
+        F) "VR training: Open drawer and retrieve tool" (VR-SPECIFIC WITH INTERACTIVE)
+           -> workbench (PLATE, wood, scale:4, mass:100, friction:0.7, count:1, GRID,
+               vrRole:'furniture', semanticLabel:'workbench',
+               affordances:{graspable:false, manipulable:false, interactive:false, interactionType:'static'})
+           -> drawer (CUBE, wood, scale:0.8, mass:5, friction:0.6, count:1, GRID,
+               vrRole:'tool', semanticLabel:'storage_drawer',
+               affordances:{graspable:true, manipulable:true, interactive:true, interactionType:'drawer'},
+               spatialConstraint:{type:'attached_to', parentGroupId:'workbench', offset:{x:0, y:-0.5, z:0}})
+           -> screwdriver (CYLINDER, metal, scale:0.4, mass:0.3, count:1, PILE,
+               vrRole:'tool', semanticLabel:'screwdriver',
+               affordances:{graspable:true, manipulable:true, interactive:false},
+               spatialConstraint:{type:'inside', parentGroupId:'drawer'})
+           -> Earth gravity, no wind
 
         CRITICAL RULES:
         - Extract EVERY object mentioned - no random additions, no omissions

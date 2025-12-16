@@ -15,7 +15,7 @@ export function FloatingCharacters({
   onSnappyClick
 }: FloatingCharactersProps) {
   return (
-    <div className="fixed inset-0 pointer-events-none z-[100]">
+    <div className="fixed inset-0 pointer-events-none z-[99]">
 
       {/* Chaos Skull - Top Right (moved inward to not block API button) */}
       {isChaosActive && (

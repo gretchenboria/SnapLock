@@ -36,3 +36,6 @@ IMG_*.png
 .env
 .env.local
 .env.production
+
+# Context files
+Claude.md

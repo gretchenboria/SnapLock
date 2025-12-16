@@ -10,6 +10,7 @@ import { ChaosMode } from './services/chaosMode';
 import { validateAndSanitize, ValidationOntology } from './services/validationService';
 import { LazarusDebugger } from './services/lazarusDebugger';
 import { MLExportService } from './services/mlExportService';
+import { askSnappy } from './services/snappyChatbot';
 import { X } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
 import { GuidedTour } from './components/GuidedTour';

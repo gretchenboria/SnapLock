@@ -427,8 +427,18 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
             pos[i3] = x; pos[i3+1] = y; pos[i3+2] = z;
             init[i3] = x; init[i3+1] = y; init[i3+2] = z;
 
-            // Initial velocity
-            if (params.movementBehavior === MovementBehavior.RADIAL_EXPLOSION) {
+            // Initial velocity based on movement behavior and spawn mode
+            // Kinematic behaviors (ORBITAL, SWARM_FLOCK, SINUSOIDAL_WAVE, LINEAR_FLOW) don't use velocity
+            // They're driven by position updates, so set minimal velocity
+            if (params.movementBehavior === MovementBehavior.ORBITAL ||
+                params.movementBehavior === MovementBehavior.SINUSOIDAL_WAVE ||
+                params.movementBehavior === MovementBehavior.LINEAR_FLOW) {
+                // Zero velocity for kinematic-driven behaviors
+                vel[i3] = 0;
+                vel[i3+1] = 0;
+                vel[i3+2] = 0;
+            } else if (params.movementBehavior === MovementBehavior.RADIAL_EXPLOSION) {
+                // Radial explosion: blast outward from origin
                 const dir = new THREE.Vector3(x, y, z).normalize();
                 dir.x += (Math.random() - 0.5) * 0.5;
                 dir.y += (Math.random() - 0.5) * 0.5;
@@ -439,13 +449,36 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
                 vel[i3+1] = Math.abs(dir.y * force) + 5;
                 vel[i3+2] = dir.z * force;
             } else if (group.spawnMode === SpawnMode.JET) {
+                // Jet: shoot upward with force
                 vel[i3] = (Math.random() - 0.5) * 2;
                 vel[i3+1] = 20 + Math.random() * 10;
                 vel[i3+2] = (Math.random() - 0.5) * 2;
+            } else if (group.spawnMode === SpawnMode.FLOAT) {
+                // Float: gentle upward drift to counter gravity
+                vel[i3] = (Math.random() - 0.5) * 0.5;
+                vel[i3+1] = 2 + Math.random() * 3; // Upward velocity to float
+                vel[i3+2] = (Math.random() - 0.5) * 0.5;
+            } else if (group.spawnMode === SpawnMode.BLAST) {
+                // Blast: random explosion-like velocities
+                const blastDir = new THREE.Vector3(
+                    (Math.random() - 0.5) * 2,
+                    Math.random(), // Bias upward
+                    (Math.random() - 0.5) * 2
+                ).normalize();
+                const blastForce = 5 + Math.random() * 10;
+                vel[i3] = blastDir.x * blastForce;
+                vel[i3+1] = Math.abs(blastDir.y * blastForce) + 2;
+                vel[i3+2] = blastDir.z * blastForce;
+            } else if (group.spawnMode === SpawnMode.GRID) {
+                // Grid: minimal velocity (stay in formation)
+                vel[i3] = (Math.random() - 0.5) * 0.1;
+                vel[i3+1] = (Math.random() - 0.5) * 0.1;
+                vel[i3+2] = (Math.random() - 0.5) * 0.1;
             } else {
-                vel[i3] = (Math.random() - 0.5);
-                vel[i3+1] = (Math.random() - 0.5);
-                vel[i3+2] = (Math.random() - 0.5);
+                // PILE or default: small random velocities
+                vel[i3] = (Math.random() - 0.5) * 2;
+                vel[i3+1] = (Math.random() - 0.5) * 2;
+                vel[i3+2] = (Math.random() - 0.5) * 2;
             }
 
             // Rotation

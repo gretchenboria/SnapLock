@@ -612,16 +612,37 @@ export const generateRealityImage = async (base64Image: string, prompt: string):
         const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
 
         const aiPrompt = `
-        Context: Robotics Synthetic Data Generation.
-        User Prompt: "${prompt}"
+        MISSION: Generate SCIENTIFIC GROUND TRUTH image for ML training dataset.
 
-        TASK:
-        Render a high-fidelity Ground Truth image based on the provided wireframe/viewport buffer.
-        
-        REQUIREMENTS:
-        1. STRICT GEOMETRY MATCH: Respect the positions in the input image.
-        2. PHOTOREALISM: Industrial lighting, metallic surfaces, scuffed textures for training data realism.
-        3. ASPECT RATIO: Maintain input aspect ratio.
+        Scene Description: "${prompt}"
+
+        CRITICAL REQUIREMENTS:
+
+        1. EXACT GEOMETRIC FIDELITY
+           - Preserve EXACT positions, orientations, and scales from input wireframe
+           - Do NOT alter object placement, count, or spatial relationships
+           - Maintain precise depth relationships and occlusions
+
+        2. REALISTIC PHYSICS SIMULATION APPEARANCE
+           - Objects must appear as real physical entities, not artistic interpretations
+           - Materials should show realistic properties (metal=reflective, wood=matte, rubber=soft sheen)
+           - No fantasy elements, stylization, or artistic embellishments
+           - Natural physics-based lighting (no dramatic or theatrical lighting)
+
+        3. COMPUTER VISION TRAINING DATA QUALITY
+           - High contrast edges for object detection algorithms
+           - Realistic shadows for depth estimation training
+           - Natural color variation and texture detail
+           - Suitable for: object detection, pose estimation, depth prediction, semantic segmentation
+
+        4. TECHNICAL SPECIFICATIONS
+           - Natural ambient lighting with single light source (no multi-colored lights)
+           - Physically-based rendering (PBR) materials only
+           - Neutral background (concrete, industrial floor, lab environment)
+           - No motion blur, lens flare, or camera effects
+           - Crisp focus throughout entire frame
+
+        OUTPUT: Photorealistic render suitable as ML training ground truth with pixel-perfect geometry matching input.
         `;
 
         // High Fidelity Image Generation Model
@@ -673,7 +694,7 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
     let operation = await withRetry(async () => {
         return await veoAi.models.generateVideos({
             model: 'veo-3.1-generate-preview',
-            prompt: `Robotics simulation, 8k industrial render, high contrast: ${prompt}`,
+            prompt: `SCIENTIFIC PHYSICS SIMULATION: ${prompt}. Requirements: (1) Realistic object motion following Newtonian mechanics, (2) Natural lighting, no artistic effects, (3) Stable camera view suitable for computer vision training data, (4) Objects maintain physical properties (rigid bodies, collision dynamics, gravity effects), (5) Photorealistic materials (metal, wood, rubber appear as real), (6) No stylization or fantasy elements, (7) Ground truth quality for ML dataset generation. Technical specifications: Physics-based animation, neutral industrial environment, high contrast for object detection, steady camera.`,
             image: {
                 imageBytes: cleanBase64,
                 mimeType: 'image/png',
@@ -681,7 +702,7 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
             config: {
                 numberOfVideos: 1,
                 resolution: '720p',
-                aspectRatio: '16:9' 
+                aspectRatio: '16:9'
             }
         });
     });

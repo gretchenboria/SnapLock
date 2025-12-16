@@ -253,7 +253,7 @@ export class PhysicsEngine {
       if (!body || body.bodyType() !== RAPIER.RigidBodyType.KinematicPositionBased) return;
 
       const group = params.assetGroups[bodyData.groupIndex];
-      const globalIndex = bodyData.localIndex; // Simplified for now
+      const globalIndex = bodyData.globalIndex;
       const i3 = globalIndex * 3;
 
       let x = initialPositions[i3];

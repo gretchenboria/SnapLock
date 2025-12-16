@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAction, DisturbanceType, PhysicsParams, TelemetryData } from "../types";
+import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAction, DisturbanceType, PhysicsParams, TelemetryData, AssetGroup, Vector3Data } from "../types";
 import { MOCK_ANALYSIS_RESPONSE, MOCK_ADVERSARIAL_ACTION, MOCK_CREATIVE_PROMPT, MOCK_HTML_REPORT } from "./mockData";
 
 // BACKEND API CONFIGURATION
@@ -96,52 +96,152 @@ const FALLBACK_PROMPTS = [
 
 /**
  * Generate fallback scene when API quota exceeded
- * Creates a reasonable default scene based on prompt keywords
+ * Creates a reasonable default scene based on prompt keyword parsing
  */
 function generateFallbackScene(prompt: string): AnalysisResponse {
   const lowerPrompt = prompt.toLowerCase();
+  const assetGroups: AssetGroup[] = [];
 
-  // Detect zero-g/orbital
-  const isZeroG = lowerPrompt.includes('zero') || lowerPrompt.includes('orbit') || lowerPrompt.includes('space') || lowerPrompt.includes('float');
+  // Detect gravity environment
+  const isZeroG = lowerPrompt.includes('zero') || lowerPrompt.includes('orbit') || lowerPrompt.includes('space') || lowerPrompt.includes('weightless');
+  const isLowG = lowerPrompt.includes('moon') || lowerPrompt.includes('low gravity');
+  const isHighG = lowerPrompt.includes('high gravity') || lowerPrompt.includes('heavy');
 
-  // Detect object types
-  const hasSphere = lowerPrompt.includes('sphere') || lowerPrompt.includes('ball');
-  const hasCube = lowerPrompt.includes('cube') || lowerPrompt.includes('box');
-  const hasCylinder = lowerPrompt.includes('cylinder') || lowerPrompt.includes('tube');
+  let gravity: Vector3Data;
+  let movementBehavior: MovementBehavior;
 
-  return {
-    movementBehavior: isZeroG ? MovementBehavior.ORBITAL : MovementBehavior.PHYSICS_GRAVITY,
-    gravity: isZeroG ? { x: 0, y: 0, z: 0 } : { x: 0, y: -9.81, z: 0 },
-    wind: { x: 0, y: 0, z: 0 },
-    assetGroups: [
+  if (isZeroG) {
+    gravity = { x: 0, y: 0, z: 0 };
+    movementBehavior = MovementBehavior.ORBITAL;
+  } else if (isLowG) {
+    gravity = { x: 0, y: -1.62, z: 0 };
+    movementBehavior = MovementBehavior.PHYSICS_GRAVITY;
+  } else if (isHighG) {
+    gravity = { x: 0, y: -15, z: 0 };
+    movementBehavior = MovementBehavior.PHYSICS_GRAVITY;
+  } else {
+    gravity = { x: 0, y: -9.81, z: 0 };
+    movementBehavior = MovementBehavior.PHYSICS_GRAVITY;
+  }
+
+  // Detect wind
+  const isWindy = lowerPrompt.includes('wind') || lowerPrompt.includes('breeze') || lowerPrompt.includes('gust');
+  const wind: Vector3Data = isWindy ? { x: 8, y: 0, z: 0 } : { x: 0, y: 0, z: 0 };
+
+  // Parse object mentions
+  const objectKeywords = {
+    table: { shape: ShapeType.PLATE, scale: 3, mass: 10, count: 1, color: '#8B4513', friction: 0.6, restitution: 0.3 },
+    floor: { shape: ShapeType.PLATE, scale: 5, mass: 100, count: 1, color: '#696969', friction: 0.7, restitution: 0.2 },
+    platform: { shape: ShapeType.PLATE, scale: 4, mass: 50, count: 1, color: '#A9A9A9', friction: 0.6, restitution: 0.3 },
+    cup: { shape: ShapeType.CYLINDER, scale: 0.5, mass: 2, count: 1, color: '#C0C0C0', friction: 0.4, restitution: 0.5 },
+    cylinder: { shape: ShapeType.CYLINDER, scale: 1, mass: 5, count: 3, color: '#4682B4', friction: 0.5, restitution: 0.5 },
+    can: { shape: ShapeType.CYLINDER, scale: 0.4, mass: 1, count: 5, color: '#DC143C', friction: 0.4, restitution: 0.6 },
+    ball: { shape: ShapeType.SPHERE, scale: 0.5, mass: 2, count: 3, color: '#FF4500', friction: 0.5, restitution: 0.8 },
+    sphere: { shape: ShapeType.SPHERE, scale: 1, mass: 5, count: 5, color: '#1E90FF', friction: 0.3, restitution: 0.7 },
+    box: { shape: ShapeType.CUBE, scale: 1, mass: 5, count: 5, color: '#D2691E', friction: 0.7, restitution: 0.4 },
+    cube: { shape: ShapeType.CUBE, scale: 1, mass: 5, count: 5, color: '#FFA500', friction: 0.5, restitution: 0.5 },
+    crate: { shape: ShapeType.CUBE, scale: 1.5, mass: 8, count: 3, color: '#8B4513', friction: 0.8, restitution: 0.3 },
+    robot: { shape: ShapeType.CAPSULE, scale: 2, mass: 50, count: 1, color: '#00CED1', friction: 0.5, restitution: 0.4 },
+    capsule: { shape: ShapeType.CAPSULE, scale: 1.5, mass: 10, count: 2, color: '#FF69B4', friction: 0.5, restitution: 0.5 },
+    cone: { shape: ShapeType.CONE, scale: 1, mass: 3, count: 5, color: '#FF8C00', friction: 0.6, restitution: 0.4 },
+    pyramid: { shape: ShapeType.PYRAMID, scale: 1.2, mass: 6, count: 3, color: '#FFD700', friction: 0.6, restitution: 0.4 },
+    torus: { shape: ShapeType.TORUS, scale: 1, mass: 4, count: 2, color: '#9370DB', friction: 0.5, restitution: 0.6 },
+    ring: { shape: ShapeType.TORUS, scale: 0.8, mass: 3, count: 3, color: '#DA70D6', friction: 0.5, restitution: 0.6 }
+  };
+
+  // Check for each object type
+  for (const [keyword, config] of Object.entries(objectKeywords)) {
+    if (lowerPrompt.includes(keyword)) {
+      assetGroups.push({
+        id: `${keyword}_group`,
+        name: keyword.charAt(0).toUpperCase() + keyword.slice(1),
+        count: config.count,
+        shape: config.shape,
+        color: config.color,
+        spawnMode: isZeroG ? SpawnMode.FLOAT : (keyword === 'table' || keyword === 'floor' || keyword === 'platform') ? SpawnMode.GRID : SpawnMode.PILE,
+        scale: config.scale,
+        mass: config.mass,
+        restitution: config.restitution,
+        friction: config.friction,
+        drag: 0.05
+      });
+    }
+  }
+
+  // Material overrides
+  if (lowerPrompt.includes('wood') || lowerPrompt.includes('wooden')) {
+    assetGroups.forEach(g => {
+      if (!lowerPrompt.includes('metal')) {
+        g.color = '#8B4513';
+        g.friction = 0.6;
+        g.restitution = 0.3;
+        g.mass *= 1.0;
+      }
+    });
+  }
+  if (lowerPrompt.includes('metal') || lowerPrompt.includes('steel')) {
+    assetGroups.forEach(g => {
+      g.color = '#C0C0C0';
+      g.friction = 0.4;
+      g.restitution = 0.5;
+      g.mass *= 2.0;
+    });
+  }
+  if (lowerPrompt.includes('rubber') || lowerPrompt.includes('bouncy')) {
+    assetGroups.forEach(g => {
+      g.color = '#2F4F4F';
+      g.friction = 0.9;
+      g.restitution = 0.85;
+      g.mass *= 0.6;
+    });
+  }
+  if (lowerPrompt.includes('glass') || lowerPrompt.includes('crystal')) {
+    assetGroups.forEach(g => {
+      g.color = '#00CED1';
+      g.friction = 0.1;
+      g.restitution = 0.7;
+      g.mass *= 1.6;
+    });
+  }
+
+  // If no objects detected, create a default scene
+  if (assetGroups.length === 0) {
+    assetGroups.push(
       {
-        id: 'subject',
+        id: 'default_subject',
         name: 'Primary Object',
-        count: hasSphere || hasCylinder ? 1 : 5,
-        shape: hasSphere ? ShapeType.SPHERE : hasCylinder ? ShapeType.CYLINDER : ShapeType.ICOSAHEDRON,
+        count: 5,
+        shape: ShapeType.ICOSAHEDRON,
         color: '#f59e0b',
         spawnMode: isZeroG ? SpawnMode.FLOAT : SpawnMode.GRID,
-        scale: 2.0,
-        mass: 10.0,
-        restitution: 0.3,
-        friction: 0.6,
-        drag: 0.05
-      },
-      {
-        id: 'environment',
-        name: 'Environment Objects',
-        count: 100,
-        shape: hasCube ? ShapeType.CUBE : ShapeType.SPHERE,
-        color: '#22d3ee',
-        spawnMode: SpawnMode.PILE,
-        scale: 0.8,
-        mass: 1.0,
+        scale: 1.5,
+        mass: 8.0,
         restitution: 0.5,
         friction: 0.5,
         drag: 0.05
+      },
+      {
+        id: 'default_environment',
+        name: 'Environment',
+        count: 50,
+        shape: ShapeType.SPHERE,
+        color: '#22d3ee',
+        spawnMode: SpawnMode.PILE,
+        scale: 0.6,
+        mass: 2.0,
+        restitution: 0.6,
+        friction: 0.5,
+        drag: 0.05
       }
-    ],
-    explanation: 'Fallback scene generated (API quota exceeded)'
+    );
+  }
+
+  return {
+    movementBehavior,
+    gravity,
+    wind,
+    assetGroups,
+    explanation: `Fallback scene generated from keyword parsing (API quota exceeded). Detected: ${assetGroups.map(g => g.name).join(', ')}`
   };
 }
 
@@ -224,30 +324,160 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
         // Use best reasoning model for physics configuration (Gemini 3 Pro when available)
         const response = await ai.models.generateContent({
         model: getModelForTask('reasoning'),
-        contents: `You are a Physics Configuration Engine for Robotics & AR Simulation.
+        contents: `You are a Physics-Aware Scene Generation Engine for Synthetic Training Data, AR/VR Simulation, Digital Twin Creation, and Robotics Training.
 
-        INPUT: "${userPrompt}"
+        USER PROMPT: "${userPrompt}"
 
-        TASK: Analyze the user's description and generate a Synthetic Data Simulation Configuration.
-        The goal is to create test environments for computer vision and robotic physics.
+        MISSION: Parse natural language to generate PHYSICALLY ACCURATE simulation scenes for ML training data synthesis. Extract objects, infer realistic physics properties, and create scientifically valid environments.
 
-        RULES:
-        1. GRAVITY:
-            - 'ORBITAL', 'SWARM_FLOCK' -> Zero G (x:0, y:0, z:0).
-            - 'PHYSICS_GRAVITY' -> Standard Earth (y:-9.81).
+        PHYSICS-FIRST REQUIREMENTS:
 
-        2. SPAWN MODES:
-            - PILE: Debris/Clutter (Good for environment).
-            - BLAST: Explosions/Fracture.
-            - GRID: Structured calibration targets (Good for Hero/Sensor objects).
+        1. OBJECT EXTRACTION & SHAPE MAPPING
+           Parse every physical entity and map to realistic 3D primitives:
+           - FLAT SURFACES (tables, floors, platforms, walls, ramps) -> PLATE
+           - CONTAINERS (cups, cans, bottles, tubes, pipes) -> CYLINDER
+           - RIGID BOXES (crates, packages, cabinets, blocks) -> CUBE
+           - ROLLING OBJECTS (balls, marbles, spheres, planets) -> SPHERE
+           - POINTED OBJECTS (traffic cones, pyramids) -> CONE or PYRAMID
+           - ARTICULATED BODIES (robots, humanoids, vehicles) -> CAPSULE
+           - ORGANIC/COMPLEX (rocks, debris, irregular objects) -> ICOSAHEDRON
+           - CIRCULAR STRUCTURES (rings, tires, donuts, hoops) -> TORUS
 
-        3. ASSET GROUPS (MULTI-LAYERED):
-            - Always attempt to generate at least 2 distinct groups to create depth.
-            - Group 1: "The Subject" (Robot, Sensor, Vehicle, Artifact) -> Low count (1-5), High Mass, CAPSULE/ICOSAHEDRON/CYLINDER.
-            - Group 2: "The Environment" (Debris, Obstacles, Dust) -> High count, Low Mass, CUBE/SPHERE.
-            - Use contrasting colors (e.g., Cyan vs Pink, Orange vs Slate).
+        2. MATERIAL PHYSICS (Critical for Real Simulation)
+           Infer realistic material properties from descriptions:
 
-        Return strictly valid JSON.`,
+           WOOD (oak, pine, lumber, wooden):
+           - friction: 0.6, restitution: 0.3, mass: 5 kg/m³, drag: 0.05
+           - color: #8B4513 (saddle brown)
+           - density: 600-900 kg/m³, rigid body
+
+           METAL (steel, iron, aluminum, brass, copper):
+           - friction: 0.4, restitution: 0.5, mass: 15 kg/m³, drag: 0.02
+           - color: #C0C0C0 (silver/gray)
+           - density: 2700-7800 kg/m³, very rigid, high inertia
+
+           RUBBER (elastic, bouncy, tire, foam):
+           - friction: 0.9, restitution: 0.85, mass: 3 kg/m³, drag: 0.1
+           - color: #2F4F4F (dark slate)
+           - density: 900-1200 kg/m³, deformable, high energy return
+
+           GLASS (crystal, transparent, brittle):
+           - friction: 0.1, restitution: 0.7, mass: 8 kg/m³, drag: 0.01
+           - color: #00CED1 (cyan/transparent)
+           - density: 2500 kg/m³, rigid, slippery surface
+
+           PLASTIC (polymer, synthetic):
+           - friction: 0.5, restitution: 0.6, mass: 2 kg/m³, drag: 0.06
+           - color: vibrant (red, blue, yellow)
+           - density: 900-1400 kg/m³, semi-rigid
+
+           STONE/CONCRETE (rock, granite, cement):
+           - friction: 0.8, restitution: 0.2, mass: 20 kg/m³, drag: 0.03
+           - color: #696969 (dim gray)
+           - density: 2300-2700 kg/m³, very rigid, low bounce
+
+           CARDBOARD/PAPER:
+           - friction: 0.7, restitution: 0.25, mass: 1 kg/m³, drag: 0.15
+           - color: #D2691E (tan/brown)
+           - density: 200-700 kg/m³, lightweight, compressible
+
+           FABRIC/CLOTH:
+           - friction: 0.8, restitution: 0.1, mass: 0.5 kg/m³, drag: 0.25
+           - color: varied
+           - density: 100-500 kg/m³, very flexible, high drag
+
+        3. REALISTIC DRAG COEFFICIENTS (Critical for Accurate Motion)
+           Air resistance based on object properties:
+           - Streamlined (capsule, sphere) -> drag: 0.02-0.05
+           - Compact rigid (cube, cylinder) -> drag: 0.05-0.1
+           - Irregular/porous (debris, cloth) -> drag: 0.1-0.25
+           - Lightweight flat (paper, leaves) -> drag: 0.3-0.5
+           - Scale drag with surface area to volume ratio
+
+        4. SPATIAL LAYOUT & SPAWN LOGIC
+           Understand 3D spatial relationships and interaction patterns:
+           - "on X" / "above X" -> Foundation object spawns first (GRID/fixed position), dependent object spawns in contact zone
+           - "floating" / "suspended" / "hovering" -> FLOAT spawn, reduce gravity or orbital motion
+           - "falling" / "dropping" / "thrown" -> JET or BLAST spawn with initial velocity
+           - "scattered" / "pile of" / "messy" -> PILE spawn, random positions
+           - "organized" / "arranged" / "grid" -> GRID spawn, structured layout
+           - "explosion" / "burst" / "shatter" -> BLAST spawn, radial velocity
+           - "rolling" / "sliding" -> Low friction surface + sphere/cylinder + initial angular velocity
+
+        5. GRAVITY & ENVIRONMENT (Mission-Critical for Robotics Training)
+           Parse environmental physics from context:
+
+           GRAVITY MODES:
+           - "Earth" / standard / default -> {x:0, y:-9.81, z:0} m/s², PHYSICS_GRAVITY
+           - "Moon" / "lunar" / "low gravity" -> {x:0, y:-1.62, z:0} m/s², PHYSICS_GRAVITY
+           - "Mars" -> {x:0, y:-3.71, z:0} m/s²
+           - "Zero-G" / "space" / "ISS" / "orbital" -> {x:0, y:0, z:0} m/s², ORBITAL behavior
+           - "High gravity" / "Jupiter" / "heavy" -> {x:0, y:-15 to -25, z:0} m/s²
+           - "Underwater" -> {x:0, y:-2, z:0} m/s² (buoyancy approximation)
+
+           WIND/AIRFLOW:
+           - "Calm" / indoor / default -> {x:0, y:0, z:0} m/s
+           - "Breeze" / "gentle wind" -> {x:3-5, y:0, z:0} m/s
+           - "Windy" / "moderate wind" -> {x:8-12, y:0, z:0} m/s
+           - "Storm" / "gust" / "hurricane" -> {x:20-30, y:0, z:-5} m/s (includes vertical)
+           - "Updraft" / "thermal" -> {x:0, y:10-20, z:0} m/s (vertical wind)
+
+        6. SCALE, COUNT & DENSITY (Data Synthesis Realism)
+           Base on real-world proportions:
+           - LARGE STATIC (tables, floors, walls): scale 2-5, count 1-3, mass 20-100 kg
+           - MEDIUM OBJECTS (boxes, robots, furniture): scale 0.5-2, count 1-15, mass 2-50 kg
+           - SMALL ITEMS (cups, tools, balls): scale 0.2-0.8, count 1-20, mass 0.1-5 kg
+           - PARTICLES (marbles, debris, grains): scale 0.05-0.2, count 20-200, mass 0.01-0.5 kg
+           - Mass should scale with volume (scale³) and material density
+
+        7. COLOR FOR COMPUTER VISION TRAINING
+           Assign colors based on:
+           - Material realism (wood=brown, metal=gray, glass=cyan/clear)
+           - High contrast for CV detection (bright vs dark, complementary colors)
+           - Semantic meaning (robots=cyan, hazards=red/yellow, environment=earth tones)
+           - Avoid pure black (#000) or pure white (#FFF) - use slight variations
+
+        8. SYNTHETIC DATA GENERATION CONTEXT
+           Consider how scene will be used for training:
+           - Object variety: Include multiple object types for dataset diversity
+           - Pose variation: Use different spawn modes for varied orientations
+           - Occlusion scenarios: Dense pile spawns for partial occlusion training
+           - Scale variation: Range of sizes for scale-invariant detection
+           - Physics diversity: Different material combinations for interaction learning
+
+        EXAMPLE SCENARIOS:
+
+        A) "Robot arm picking up cardboard boxes from a wooden pallet"
+           -> wooden_pallet (PLATE, brown, scale:3, mass:15, friction:0.6, count:1, GRID)
+           -> cardboard_boxes (CUBE, tan, scale:0.8, mass:2, friction:0.7, restitution:0.25, count:12, PILE on pallet)
+           -> robot_arm (CAPSULE, cyan, scale:2, mass:50, friction:0.5, count:1, GRID)
+           -> Earth gravity, no wind
+
+        B) "Ball rolling down a metal ramp in low gravity with wind"
+           -> rubber_ball (SPHERE, red, scale:0.5, mass:1.5, restitution:0.85, friction:0.9, count:1, FLOAT)
+           -> metal_ramp (PLATE, silver, scale:4, mass:80, friction:0.4, angle:30°, count:1, GRID)
+           -> Moon gravity {x:0, y:-1.62, z:0}, wind {x:5, y:0, z:0}
+
+        C) "Glass bottles falling into a pile of plastic cubes"
+           -> glass_bottles (CYLINDER, cyan, scale:0.4, mass:2, restitution:0.7, friction:0.1, count:8, JET/falling)
+           -> plastic_cubes (CUBE, multi-color, scale:0.3, mass:0.5, restitution:0.6, friction:0.5, count:50, PILE)
+           -> Earth gravity, indoor (no wind)
+
+        D) "Drone navigating through warehouse with metal shelves and boxes"
+           -> drone (CAPSULE, black, scale:0.6, mass:2, friction:0.5, count:1, FLOAT, drag:0.08)
+           -> metal_shelves (CUBE, gray, scale:4, mass:200, friction:0.4, count:3, GRID/structured)
+           -> storage_boxes (CUBE, brown, scale:0.8, mass:5, friction:0.7, count:30, PILE on shelves)
+           -> Earth gravity, gentle breeze {x:2, y:0, z:0}
+
+        CRITICAL RULES:
+        - Extract EVERY object mentioned - no random additions, no omissions
+        - Use REALISTIC physics values based on actual material science
+        - Scale mass with object size (mass ∝ scale³ for same material)
+        - Drag increases for irregular shapes and decreases for streamlined objects
+        - Foundation objects (floors, tables) must spawn before dependent objects
+        - Provide detailed "explanation" of physics reasoning
+
+        Return strictly valid JSON matching the schema.`,
         config: {
             responseMimeType: "application/json",
             responseSchema: {

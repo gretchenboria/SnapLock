@@ -71,6 +71,27 @@ export interface AssetGroup {
 
   // Visibility (non-destructive layer toggle)
   visible?: boolean; // Defaults to true if not specified
+
+  // VR Training Data: Object Affordances & Interaction Properties
+  affordances?: {
+    graspable: boolean;           // Can be picked up by VR hand
+    manipulable: boolean;         // Can be moved/rotated after grasping
+    interactive: boolean;         // Has interactive components (buttons, levers)
+    graspPoints?: Vector3Data[];  // Optimal grasp positions in local space
+    interactionType?: 'static' | 'door' | 'drawer' | 'button' | 'lever' | 'articulated';
+  };
+
+  // Spatial Relationships for Structured Scenes
+  spatialConstraint?: {
+    type: 'on_surface' | 'attached_to' | 'inside' | 'none';
+    parentGroupId?: string;       // Which object this is constrained to
+    offset?: Vector3Data;         // Position offset from parent
+    maintainOrientation?: boolean; // Keep upright relative to parent
+  };
+
+  // Semantic Properties for VR Training
+  semanticLabel?: string;         // Human-readable category (e.g., "coffee_mug", "door", "table")
+  vrRole?: 'target' | 'obstacle' | 'tool' | 'furniture' | 'environment';
 }
 
 export interface PhysicsParams {

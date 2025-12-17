@@ -59,9 +59,9 @@ export class ProceduralSceneGenerator {
 
   private static getRoomDimensions(size: string): { width: number; depth: number; height: number } {
     const dimensions: Record<string, { width: number; depth: number; height: number }> = {
-      small: { width: 8, depth: 8, height: 4 },
-      medium: { width: 12, depth: 12, height: 5 },
-      large: { width: 20, depth: 20, height: 6 }
+      small: { width: 4, depth: 4, height: 3 },
+      medium: { width: 6, depth: 6, height: 3.5 },
+      large: { width: 10, depth: 10, height: 4 }
     };
 
     return dimensions[size] || dimensions.medium;
@@ -281,7 +281,7 @@ export class ProceduralSceneGenerator {
       shape: ShapeType.PLATE,
       color: secondaryColor,
       spawnMode: SpawnMode.GRID,
-      scale: 4.0,
+      scale: 2.5,
       restitution: 0.4,
       friction: 0.6,
       mass: 100,
@@ -560,7 +560,7 @@ export class ProceduralSceneGenerator {
       shape: ShapeType.PLATE,
       color: '#228B22',
       spawnMode: SpawnMode.GRID,
-      scale: dim.width * 2,
+      scale: dim.width * 1.5,
       restitution: 0.3,
       friction: 0.7,
       mass: 2000,

@@ -39,3 +39,9 @@ IMG_*.png
 
 # Context files
 Claude.md
+
+# Large files and external projects
+bawa/
+*.mov
+*.mp4
+ScreenRecord.*

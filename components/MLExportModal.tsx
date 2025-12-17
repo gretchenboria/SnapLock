@@ -97,7 +97,7 @@ export const MLExportModal: React.FC<MLExportModalProps> = ({
           {/* VR Hand Poses */}
           <ExportCard
             icon={<Hand className="w-6 h-6" />}
-            title="VR Hand Poses (EgoDex)"
+            title="VR Hand Poses"
             description="68-joint skeletal hand poses with grasp annotations and interaction labels"
             useCase="Training: Hand tracking, grasp detection, manipulation prediction"
             format="HDF5"
@@ -121,7 +121,7 @@ export const MLExportModal: React.FC<MLExportModalProps> = ({
         {/* Footer Note */}
         <div className="mt-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
           <p className="text-sm text-blue-200 mb-2">
-            <strong>For Google XR Auto-Spatialization:</strong>
+            <strong>XR Auto-Spatialization Use Cases:</strong>
           </p>
           <ul className="text-xs text-blue-300 space-y-1 ml-4">
             <li>• <strong>Object Detection:</strong> COCO/YOLO formats for furniture & object localization</li>

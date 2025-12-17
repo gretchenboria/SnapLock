@@ -332,7 +332,20 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
         USER PROMPT: "${userPrompt}"
 
-        MISSION: Parse natural language to generate physically accurate simulation scenes. Extract objects, infer realistic physics properties.
+        MISSION: Identify the scene context and generate a COMPLETE 3D environment with the user's requested objects.
+
+        STEP 1: Identify the SCENE TYPE from the prompt
+        STEP 2: Generate the BASE ENVIRONMENT (floor, walls, furniture for that scene type)
+        STEP 3: Add the USER'S MENTIONED OBJECTS with proper placement
+
+        SCENE TYPES:
+        - "meeting room" / "conference room" / "office" -> MEETING_ROOM (floor, table, chairs)
+        - "lounge" / "living room" / "hangout" -> LOUNGE (floor, couches, coffee table)
+        - "gaming room" / "arcade" / "game space" -> GAMING_ROOM (floor, arcade cabinets, gaming chairs)
+        - "studio" / "art room" / "workshop" -> CREATIVE_STUDIO (floor, work tables, storage)
+        - "outdoor" / "nature" / "forest" / "field" -> OPEN_WORLD (grass floor, trees, rocks)
+
+        If no scene type mentioned, use LOUNGE as default.
 
         REQUIREMENTS:
 
@@ -418,18 +431,33 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
            Rules: Parent object before child, joint ID: "{parent}_to_{child}_joint"
 
-        EXAMPLE:
-        "Lounge with floating orbs on a table"
-        -> table (PLATE, wood, scale:3, mass:30, friction:0.6, count:1, GRID)
-        -> orbs (SPHERE, colors, scale:0.4, mass:1, restitution:0.7, count:8, PILE on table)
-        -> Earth gravity, no wind
+        EXAMPLE 1:
+        "conference room with laptops and notebooks"
+        BASE SCENE (MEETING_ROOM):
+        -> floor (PLATE, concrete, scale:6, mass:100, static, GRID, y:0)
+        -> conference_table (PLATE, wood, scale:2.5x0.05x1.2, mass:30, GRID, y:0.4)
+        -> chair (CUBE, plastic, scale:0.4x0.5x0.4, mass:8, count:4, GRID around table)
+        USER OBJECTS:
+        -> laptop (CUBE, metal, scale:0.3x0.02x0.2, mass:2, count:3, GRID on table, y:0.45)
+        -> notebook (CUBE, cardboard, scale:0.2x0.01x0.15, mass:0.3, count:3, GRID on table, y:0.45)
+
+        EXAMPLE 2:
+        "lounge with colorful balls"
+        BASE SCENE (LOUNGE):
+        -> floor (PLATE, wood, scale:6, mass:100, static, GRID, y:0)
+        -> couch (CUBE, fabric, scale:1.5x0.6x0.8, mass:25, count:2, GRID)
+        -> coffee_table (PLATE, wood, scale:1x0.05x0.6, mass:15, GRID, y:0.25)
+        USER OBJECTS:
+        -> ball (SPHERE, rubber, scale:0.15, mass:0.5, restitution:0.85, count:10, PILE on floor)
 
         CRITICAL RULES:
-        - Extract EVERY mentioned object - no additions, no omissions
+        - ALWAYS generate complete scene: BASE ENVIRONMENT + USER OBJECTS
+        - BASE ENVIRONMENT includes floor, walls (optional), furniture appropriate to scene type
+        - USER OBJECTS are placed WITH spatial context (on table, on floor, on shelf - NOT floating in void)
+        - Use "on_surface" spatial constraints to place objects on surfaces (y position = surface top)
+        - Foundation objects (floors, tables) must have y:0 or appropriate elevation
         - Use realistic physics values from material science
-        - Foundation objects (floors, tables) spawn before dependent objects
         - Only create joints array when interactive objects present
-        - Provide brief explanation of physics reasoning
 
         Return strictly valid JSON matching the schema.`,
         config: {

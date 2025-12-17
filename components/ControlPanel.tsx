@@ -10,8 +10,6 @@ interface ControlPanelProps {
   prompt: string;
   setPrompt: (s: string) => void;
   onAnalyze: () => void;
-  onSnap: () => void;
-  onGenerateVideo?: () => void;
   params: PhysicsParams;
   setParams: (p: PhysicsParams) => void;
   isPaused: boolean;
@@ -19,8 +17,6 @@ interface ControlPanelProps {
   onReset: () => void;
   logs: LogEntry[];
   isAnalyzing: boolean;
-  isSnapping: boolean;
-  isGeneratingVideo?: boolean;
   resetCamera: () => void;
   isChaosActive?: boolean;
   toggleChaos?: () => void;
@@ -49,8 +45,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   prompt,
   setPrompt,
   onAnalyze,
-  onSnap,
-  onGenerateVideo,
   params,
   setParams,
   isPaused,
@@ -58,8 +52,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onReset,
   logs,
   isAnalyzing,
-  isSnapping,
-  isGeneratingVideo,
   resetCamera,
   isChaosActive,
   toggleChaos,
@@ -1273,26 +1265,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           {/* Separator */}
           <div className="w-px h-8 bg-white/10"></div>
 
-          {/* Capture Controls */}
+          {/* ML Export Controls */}
           <div className="flex gap-2 pointer-events-auto">
             <button
-              onClick={onSnap}
-              disabled={isSnapping}
-              className="h-8 bg-white text-black px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition-all border border-white disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto"
-              title="Capture Image"
+              onClick={onExportCOCO}
+              className="h-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:from-blue-500 hover:to-purple-500 transition-all border border-white/20 pointer-events-auto"
+              title="Export Training Dataset (COCO/Depth/Segmentation/VR Poses)"
             >
-              <Aperture size={14} className={isSnapping ? 'animate-spin' : ''}/>
-              IMAGE
-            </button>
-
-            <button
-              onClick={onGenerateVideo}
-              disabled={isGeneratingVideo}
-              className="h-8 bg-white/10 border border-white/20 text-white px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto"
-              title="Generate Video"
-            >
-              {isGeneratingVideo ? <Loader2 className="animate-spin" size={14} /> : <Video size={14}/>}
-              VIDEO
+              <Database size={14} />
+              EXPORT DATASET
             </button>
           </div>
 

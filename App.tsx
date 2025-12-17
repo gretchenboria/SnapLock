@@ -5,7 +5,7 @@ import { DEFAULT_PHYSICS } from './constants';
 import { PhysicsParams, LogEntry, ViewMode, TelemetryData, VRHand } from './types';
 import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
-import { analyzePhysicsPrompt, generateRealityImage, analyzeSceneStability, generateSimulationVideo, generateCreativePrompt, generateSimulationReport } from './services/geminiService';
+import { analyzePhysicsPrompt, analyzeSceneStability, generateCreativePrompt, generateSimulationReport } from './services/geminiService';
 import { ChaosMode } from './services/chaosMode';
 import { validateAndSanitize, ValidationOntology } from './services/validationService';
 import { LazarusDebugger } from './services/lazarusDebugger';
@@ -32,8 +32,6 @@ const App: React.FC = () => {
   const [shouldReset, setShouldReset] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isSnapping, setIsSnapping] = useState(false);
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.RGB);
   
@@ -42,10 +40,7 @@ const App: React.FC = () => {
   const isAutoSpawnRef = useRef(true); // Ref to track state inside async closures
   const autoSpawnTimerRef = useRef<number | null>(null);
   const isAnalyzingRef = useRef(false); // Ref to avoid stale closure in intervals
-  
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
-  
+
   // Chaos Mode State
   const [isChaosActive, setIsChaosActive] = useState(false);
   const [chaosActivity, setChaosActivity] = useState<string>('');
@@ -113,13 +108,6 @@ const App: React.FC = () => {
           isAutoSpawnRef.current = false;
       }
   }, []);
-
-  // Clean up Blob URLs to prevent memory leaks
-  useEffect(() => {
-      return () => {
-          if (generatedVideo) URL.revokeObjectURL(generatedVideo);
-      };
-  }, [generatedVideo]);
 
   // Helpers
   const addLog = useCallback((message: string, type: LogEntry['type'] = 'info') => {
@@ -233,69 +221,6 @@ const App: React.FC = () => {
           };
       }
   }, [isTestMode, params, isPaused, prompt, handleAnalyze]);
-
-  const handleSnap = async () => {
-    // Explicit Cast for TypeScript Build
-    const canvas = document.querySelector('canvas') as HTMLCanvasElement;
-    if (!canvas) {
-      addLog('Canvas reference missing. Cannot capture.', 'error');
-      return;
-    }
-    
-    setIsSnapping(true);
-    const wasPaused = isPaused;
-    setIsPaused(true); // Pause for stable capture
-
-    try {
-      addLog('Capturing Geometric Ground Truth...', 'info');
-      
-      // Get Data URL from Canvas
-      const dataUrl = canvas.toDataURL('image/png');
-      
-      addLog('Generating Photorealistic Skin...', 'info');
-      const resultImage = await generateRealityImage(dataUrl, prompt);
-      
-      setGeneratedImage(resultImage);
-      if (generatedVideo) {
-          URL.revokeObjectURL(generatedVideo);
-          setGeneratedVideo(null); 
-      }
-      addLog('Reality Snapped Successfully.', 'success');
-
-    } catch (error) {
-      addLog(`Generation Failed: ${(error as Error).message}`, 'error');
-    } finally {
-      setIsSnapping(false);
-      if (!wasPaused) setIsPaused(false);
-    }
-  };
-
-  const handleGenerateVideo = async () => {
-    const canvas = document.querySelector('canvas') as HTMLCanvasElement;
-    if (!canvas) return;
-    
-    setIsGeneratingVideo(true);
-    const wasPaused = isPaused;
-    setIsPaused(true); 
-    addLog('Initializing Temporal Video Engine...', 'info');
-
-    try {
-        const dataUrl = canvas.toDataURL('image/png');
-        addLog('Video Engine: Generating stream from simulation state...', 'info');
-        
-        const videoUrl = await generateSimulationVideo(dataUrl, prompt);
-        
-        if (generatedVideo) URL.revokeObjectURL(generatedVideo); // Cleanup old
-        setGeneratedVideo(videoUrl);
-        setGeneratedImage(null); 
-        addLog('Video Engine: Render Complete.', 'success');
-    } catch (error) {
-        addLog(`Video Engine Error: ${(error as Error).message}`, 'error');
-    } finally {
-        setIsGeneratingVideo(false);
-        if (!wasPaused) setIsPaused(false);
-    }
-  };
 
   const handleDownloadCSV = useCallback(() => {
     if (!sceneRef.current) return;
@@ -875,12 +800,10 @@ const App: React.FC = () => {
       </div>
 
       {/* UI Overlay Layer */}
-      <ControlPanel 
+      <ControlPanel
         prompt={prompt}
         setPrompt={setPrompt}
         onAnalyze={handleAnalyze}
-        onSnap={handleSnap}
-        onGenerateVideo={handleGenerateVideo}
         params={params}
         setParams={setParams}
         isPaused={isPaused}
@@ -888,8 +811,6 @@ const App: React.FC = () => {
         onReset={handleReset}
         logs={logs}
         isAnalyzing={isAnalyzing}
-        isSnapping={isSnapping}
-        isGeneratingVideo={isGeneratingVideo}
         resetCamera={handleResetCamera}
         isChaosActive={isChaosActive}
         toggleChaos={() => setIsChaosActive(!isChaosActive)}
@@ -913,37 +834,6 @@ const App: React.FC = () => {
         isRecording={isRecording}
         recordedFrameCount={recordedFrameCount}
       />
-
-      {/* Generated Result Modal */}
-      {(generatedImage || generatedVideo) && (
-        <div className="absolute inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-8 animate-in fade-in duration-300">
-           <div className="relative bg-scifi-900 border border-scifi-accent p-1 shadow-[0_0_100px_rgba(244,114,182,0.3)] max-w-6xl w-full h-[80vh] flex flex-col rounded-lg">
-              <div className="flex justify-between items-center p-4 bg-scifi-800/50 border-b border-scifi-700 mb-1">
-                 <div className="flex items-center gap-4">
-                     <h2 className="font-mono text-scifi-accent font-bold tracking-widest text-lg">RENDER OUTPUT</h2>
-                     <span className="text-xs bg-scifi-accent/20 text-scifi-accent px-2 py-1 rounded">
-                         {generatedVideo ? 'TEMPORAL SYNTHESIS (VEO 3.1)' : 'PHOTOREALISTIC GENERATION (GEMINI 3 PRO IMAGE)'}
-                     </span>
-                 </div>
-                 <button onClick={() => { setGeneratedImage(null); if (generatedVideo) { URL.revokeObjectURL(generatedVideo); setGeneratedVideo(null); } }} className="hover:text-white text-gray-400 transition-colors">
-                   <X className="w-8 h-8"/>
-                 </button>
-              </div>
-              <div className="relative flex-1 overflow-hidden bg-black flex items-center justify-center">
-                 {generatedVideo ? (
-                    <video src={generatedVideo} controls autoPlay loop className="max-w-full max-h-full object-contain shadow-2xl" />
-                 ) : (
-                    <img src={generatedImage!} alt="Generated Reality" className="max-w-full max-h-full object-contain shadow-2xl" />
-                 )}
-              </div>
-              <div className="p-4 bg-scifi-800 text-xs text-gray-400 font-mono border-t border-scifi-700 flex justify-between">
-                 <span>GEOMETRY: LOCKED</span>
-                 <span>PHYSICS: VERLET_INTEGRATION</span>
-                 <span>RENDER: {generatedVideo ? 'TEMPORAL_SYNTHESIS' : 'PHOTOREALISTIC'}</span>
-              </div>
-           </div>
-        </div>
-      )}
 
       {/* Snappy AI Chatbot */}
       <SnappyChatbot

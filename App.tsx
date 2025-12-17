@@ -113,6 +113,27 @@ const App: React.FC = () => {
       }
   }, []);
 
+  // Load Initial Scene on Mount (prevent blank canvas on startup)
+  useEffect(() => {
+      // Generate initial procedural scene so users see something immediately
+      const templates = Object.values(SceneTemplate);
+      const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+      const roomSizes: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
+      const densities: Array<'sparse' | 'medium' | 'dense'> = ['sparse', 'medium', 'dense'];
+      const themes: Array<'vibrant' | 'pastel' | 'neon' | 'natural'> = ['vibrant', 'pastel', 'neon', 'natural'];
+
+      const initialParams = ProceduralSceneGenerator.generateScene({
+          template: randomTemplate,
+          roomSize: roomSizes[Math.floor(Math.random() * roomSizes.length)],
+          objectDensity: densities[Math.floor(Math.random() * densities.length)],
+          colorTheme: themes[Math.floor(Math.random() * themes.length)]
+      });
+
+      setParams(initialParams);
+      setShouldReset(true);
+      console.log(`[SnapLock] Initial scene loaded: ${randomTemplate}`);
+  }, []); // Empty dependency array - run once on mount
+
   // Helpers
   const addLog = useCallback((message: string, type: LogEntry['type'] = 'info') => {
     const entry: LogEntry = {

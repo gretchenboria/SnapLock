@@ -516,35 +516,43 @@ const App: React.FC = () => {
         const spawnCycle = () => {
             if (!isAutoSpawnRef.current) return;
 
-            // Generate random procedural room instead of AI prompt
-            const templates = Object.values(SceneTemplate);
-            const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+            // If user has entered a prompt, use AI to generate objects from that prompt
+            // Otherwise, use random procedural generation
+            if (prompt.trim()) {
+                // AI generation from user's prompt
+                addLog(`Auto Spawn: Generating from prompt "${prompt}"`, 'info');
+                executeAnalysis(prompt, 'AUTO');
+            } else {
+                // Random procedural room generation
+                const templates = Object.values(SceneTemplate);
+                const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
 
-            const roomSizes: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
-            const densities: Array<'sparse' | 'medium' | 'dense'> = ['sparse', 'medium', 'dense'];
-            const themes: Array<'vibrant' | 'pastel' | 'neon' | 'natural'> = ['vibrant', 'pastel', 'neon', 'natural'];
+                const roomSizes: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
+                const densities: Array<'sparse' | 'medium' | 'dense'> = ['sparse', 'medium', 'dense'];
+                const themes: Array<'vibrant' | 'pastel' | 'neon' | 'natural'> = ['vibrant', 'pastel', 'neon', 'natural'];
 
-            const randomRoomSize = roomSizes[Math.floor(Math.random() * roomSizes.length)];
-            const randomDensity = densities[Math.floor(Math.random() * densities.length)];
-            const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+                const randomRoomSize = roomSizes[Math.floor(Math.random() * roomSizes.length)];
+                const randomDensity = densities[Math.floor(Math.random() * densities.length)];
+                const randomTheme = themes[Math.floor(Math.random() * themes.length)];
 
-            try {
-                const generatedParams = ProceduralSceneGenerator.generateScene({
-                    template: randomTemplate,
-                    roomSize: randomRoomSize,
-                    objectDensity: randomDensity,
-                    colorTheme: randomTheme
-                });
+                try {
+                    const generatedParams = ProceduralSceneGenerator.generateScene({
+                        template: randomTemplate,
+                        roomSize: randomRoomSize,
+                        objectDensity: randomDensity,
+                        colorTheme: randomTheme
+                    });
 
-                // Add VR hands if they exist
-                generatedParams.vrHands = vrHands.length > 0 ? vrHands : undefined;
+                    // Add VR hands if they exist
+                    generatedParams.vrHands = vrHands.length > 0 ? vrHands : undefined;
 
-                setParams(generatedParams);
-                setShouldReset(true);
+                    setParams(generatedParams);
+                    setShouldReset(true);
 
-                addLog(`Auto Spawn: ${randomTemplate} (${randomRoomSize}, ${randomDensity}, ${randomTheme})`, 'success');
-            } catch (error) {
-                addLog(`Auto Spawn failed: ${(error as Error).message}`, 'error');
+                    addLog(`Auto Spawn: ${randomTemplate} (${randomRoomSize}, ${randomDensity}, ${randomTheme})`, 'success');
+                } catch (error) {
+                    addLog(`Auto Spawn failed: ${(error as Error).message}`, 'error');
+                }
             }
         };
 
@@ -564,7 +572,7 @@ const App: React.FC = () => {
     return () => {
         if (autoSpawnTimerRef.current) window.clearInterval(autoSpawnTimerRef.current);
     }
-  }, [isAutoSpawn, vrHands, addLog]); 
+  }, [isAutoSpawn, vrHands, addLog, prompt, executeAnalysis]); 
 
   // --- CHAOS MODE LOOP ---
   useEffect(() => {

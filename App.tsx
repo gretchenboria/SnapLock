@@ -13,6 +13,7 @@ import { MLExportService } from './services/mlExportService';
 import { askSnappy } from './services/snappyChatbot';
 import { ProceduralSceneGenerator, SceneTemplate } from './services/proceduralSceneGenerator';
 import { X, Home, Users, Gamepad2, Palette, Globe } from 'lucide-react';
+import { MLExportModal } from './components/MLExportModal';
 import { TestDashboard } from './components/TestDashboard';
 import { GuidedTour } from './components/GuidedTour';
 import { FloatingCharacters } from './components/FloatingCharacters';
@@ -67,6 +68,9 @@ const App: React.FC = () => {
 
   // VR Hands State (keyboard-controlled for testing)
   const [vrHands, setVRHands] = useState<VRHand[]>([]);
+
+  // ML Export Modal State
+  const [showMLExportModal, setShowMLExportModal] = useState(false);
 
   // Refs
   const sceneRef = useRef<PhysicsSceneHandle>(null);
@@ -450,6 +454,26 @@ const App: React.FC = () => {
       }
   }, [addLog]);
 
+  const handleExportDepth = useCallback(() => {
+      addLog('Depth map export coming soon - will generate 16-bit PNG depth maps for spatial understanding', 'info');
+  }, [addLog]);
+
+  const handleExportSegmentation = useCallback(() => {
+      addLog('Segmentation mask export coming soon - will generate semantic masks (floor, walls, furniture, objects)', 'info');
+  }, [addLog]);
+
+  const handleExportVRPoses = useCallback(() => {
+      addLog('VR hand pose export coming soon - will export EgoDex-format hand poses with grasp annotations', 'info');
+  }, [addLog]);
+
+  const handleExportPhysics = useCallback(() => {
+      addLog('Physics ground truth export coming soon - will export complete physics state for validation', 'info');
+  }, [addLog]);
+
+  const handleOpenMLExportModal = useCallback(() => {
+      setShowMLExportModal(true);
+  }, []);
+
   // Cleanup recording on unmount
   useEffect(() => {
       return () => {
@@ -829,9 +853,22 @@ const App: React.FC = () => {
         onCaptureMLFrame={handleCaptureMLFrame}
         onStartRecording={handleStartRecording}
         onStopRecording={handleStopRecording}
-        onExportCOCO={handleExportCOCO}
+        onExportCOCO={handleOpenMLExportModal}
         onExportYOLO={handleExportYOLO}
         isRecording={isRecording}
+        recordedFrameCount={recordedFrameCount}
+      />
+
+      {/* ML Export Modal */}
+      <MLExportModal
+        isOpen={showMLExportModal}
+        onClose={() => setShowMLExportModal(false)}
+        onExportCOCO={handleExportCOCO}
+        onExportYOLO={handleExportYOLO}
+        onExportDepth={handleExportDepth}
+        onExportSegmentation={handleExportSegmentation}
+        onExportVRPoses={handleExportVRPoses}
+        onExportPhysics={handleExportPhysics}
         recordedFrameCount={recordedFrameCount}
       />
 

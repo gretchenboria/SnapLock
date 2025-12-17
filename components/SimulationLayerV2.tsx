@@ -503,6 +503,8 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
     // Initialize physics bodies
     if (physicsEngineRef.current) {
       physicsEngineRef.current.createBodies(params, groupStructure, pos, vel, rot);
+      // Create joints for VR interactive objects
+      physicsEngineRef.current.createJoints(params);
     }
 
     // Initial matrix update

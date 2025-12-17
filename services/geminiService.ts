@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAction, DisturbanceType, PhysicsParams, TelemetryData, AssetGroup, Vector3Data } from "../types";
 import { MOCK_ANALYSIS_RESPONSE, MOCK_ADVERSARIAL_ACTION, MOCK_CREATIVE_PROMPT, MOCK_HTML_REPORT } from "./mockData";
+import { AIValidationService } from "./aiValidationService";
 
 // BACKEND API CONFIGURATION
 // Priority order:
@@ -275,7 +276,10 @@ async function withRetry<T>(operation: () => Promise<T>, retries = 3, baseDelay 
   }
 }
 
-export const analyzePhysicsPrompt = async (userPrompt: string): Promise<AnalysisResponse> => {
+/**
+ * Internal function - performs AI analysis without validation
+ */
+const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<AnalysisResponse> => {
   if (isTestMode()) {
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate latency
       return MOCK_ANALYSIS_RESPONSE;
@@ -517,12 +521,56 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
                spatialConstraint:{type:'inside', parentGroupId:'drawer'})
            -> Earth gravity, no wind
 
+        10. VR JOINT SYSTEM (FOR INTERACTIVE OBJECTS)
+           When interactive objects are mentioned (doors, drawers, buttons, levers), create joints:
+
+           DOOR JOINT (Revolute - Hinge):
+           - type: 'REVOLUTE'
+           - axis: Hinge axis (e.g., {x:0, y:1, z:0} for vertical hinge)
+           - limits: {min:0, max:1.57} (0 to 90 degrees)
+           - parentGroupId: Wall/frame ID, childGroupId: Door ID
+           - parentAnchor: Hinge position on parent
+           - childAnchor: Hinge position on door edge
+
+           DRAWER JOINT (Prismatic - Sliding):
+           - type: 'PRISMATIC'
+           - axis: Slide direction (e.g., {x:1, y:0, z:0} for forward)
+           - limits: {min:0, max:0.5} (0 to 0.5 meters extension)
+           - parentGroupId: Cabinet ID, childGroupId: Drawer ID
+           - parentAnchor: {x:0, y:0, z:0}, childAnchor: {x:0, y:0, z:0}
+
+           BUTTON JOINT (Prismatic - Press):
+           - type: 'PRISMATIC'
+           - axis: Press direction (e.g., {x:0, y:-1, z:0} downward)
+           - limits: {min:0, max:0.02} (20mm press depth)
+           - parentGroupId: Panel ID, childGroupId: Button ID
+           - motor: {enabled:true, targetVelocity:0, maxForce:50} (spring back)
+
+           LEVER JOINT (Revolute - Rotation):
+           - type: 'REVOLUTE'
+           - axis: Rotation axis
+           - limits: {min:-0.78, max:0.78} (-45° to +45°)
+           - parentGroupId: Base ID, childGroupId: Lever ID
+
+           HANDLE ATTACHMENT (Fixed):
+           - type: 'FIXED'
+           - parentGroupId: Door/Drawer ID, childGroupId: Handle ID
+           - Rigidly attached, no movement
+
+           JOINT GENERATION RULES:
+           - Always create parent object BEFORE child in assetGroups
+           - Parent must be static or heavier than child
+           - Joint ID format: "{parent_id}_to_{child_id}_joint"
+           - Initial state: 0 (closed/neutral position)
+           - Add motors for buttons/springs that auto-return
+
         CRITICAL RULES:
         - Extract EVERY object mentioned - no random additions, no omissions
         - Use REALISTIC physics values based on actual material science
         - Scale mass with object size (mass ∝ scale³ for same material)
         - Drag increases for irregular shapes and decreases for streamlined objects
         - Foundation objects (floors, tables) must spawn before dependent objects
+        - Create joints array ONLY when interactive objects present
         - Provide detailed "explanation" of physics reasoning
 
         Return strictly valid JSON matching the schema.`,
@@ -560,6 +608,49 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
                     required: ["id", "name", "count", "shape", "color", "spawnMode", "scale", "mass", "restitution", "friction", "drag"]
                 }
                 },
+                joints: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                    id: { type: Type.STRING },
+                    type: { type: Type.STRING, enum: ['REVOLUTE', 'PRISMATIC', 'FIXED', 'SPHERICAL'] },
+                    parentGroupId: { type: Type.STRING },
+                    childGroupId: { type: Type.STRING },
+                    parentAnchor: {
+                        type: Type.OBJECT,
+                        properties: { x: { type: Type.NUMBER }, y: { type: Type.NUMBER }, z: { type: Type.NUMBER } },
+                    },
+                    childAnchor: {
+                        type: Type.OBJECT,
+                        properties: { x: { type: Type.NUMBER }, y: { type: Type.NUMBER }, z: { type: Type.NUMBER } },
+                    },
+                    axis: {
+                        type: Type.OBJECT,
+                        properties: { x: { type: Type.NUMBER }, y: { type: Type.NUMBER }, z: { type: Type.NUMBER } },
+                    },
+                    limits: {
+                        type: Type.OBJECT,
+                        properties: {
+                        min: { type: Type.NUMBER },
+                        max: { type: Type.NUMBER },
+                        stiffness: { type: Type.NUMBER },
+                        damping: { type: Type.NUMBER },
+                        },
+                    },
+                    motor: {
+                        type: Type.OBJECT,
+                        properties: {
+                        enabled: { type: Type.BOOLEAN },
+                        targetVelocity: { type: Type.NUMBER },
+                        maxForce: { type: Type.NUMBER },
+                        },
+                    },
+                    initialState: { type: Type.NUMBER },
+                    },
+                    required: ["id", "type", "parentGroupId", "childGroupId", "parentAnchor", "childAnchor", "axis"]
+                }
+                },
                 explanation: { type: Type.STRING },
             },
             required: ["movementBehavior", "gravity", "wind", "assetGroups", "explanation"],
@@ -594,6 +685,56 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
 
       throw error;
   }
+};
+
+/**
+ * Public API - Analyzes physics prompts with AI validation
+ * Validates AI response against user intent and retries if needed
+ */
+export const analyzePhysicsPrompt = async (userPrompt: string): Promise<AnalysisResponse> => {
+  const MAX_RETRIES = 2;
+  let attempt = 0;
+  let lastResponse: AnalysisResponse | null = null;
+
+  while (attempt < MAX_RETRIES) {
+    attempt++;
+
+    // Get AI response
+    const promptToUse = attempt === 1
+      ? userPrompt
+      : AIValidationService.generateEnhancedPrompt(userPrompt, AIValidationService.extractIntent(userPrompt));
+
+    const response = await analyzePhysicsPromptInternal(promptToUse);
+    lastResponse = response;
+
+    // Extract physics params for validation
+    const physicsParams: PhysicsParams = {
+      gravity: response.gravity,
+      wind: response.wind,
+      movementBehavior: response.movementBehavior,
+      assetGroups: response.assetGroups,
+    };
+
+    // Validate response
+    const validationResult = AIValidationService.validateAIResponse(userPrompt, physicsParams);
+
+    // Log validation results
+    AIValidationService.logValidationResults(validationResult, userPrompt);
+
+    // If valid or last attempt, return
+    if (validationResult.isValid || attempt >= MAX_RETRIES) {
+      if (!validationResult.isValid && attempt >= MAX_RETRIES) {
+        console.warn(`⚠️ AI validation failed after ${MAX_RETRIES} attempts. Using last response anyway.`);
+      }
+      return response;
+    }
+
+    // Log retry
+    console.log(`🔄 Validation failed (confidence: ${(validationResult.confidence * 100).toFixed(1)}%). Retrying with enhanced prompt (attempt ${attempt + 1}/${MAX_RETRIES})...`);
+  }
+
+  // Fallback (should never reach here)
+  return lastResponse!;
 };
 
 export const generateCreativePrompt = async (): Promise<string> => {

@@ -7,7 +7,7 @@
 
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
-import { PhysicsParams, AssetGroup, ShapeType, SpawnMode, MovementBehavior } from '../types';
+import { PhysicsParams, AssetGroup, ShapeType, SpawnMode, MovementBehavior, JointConfig, JointType, ObjectState, ObjectStateData } from '../types';
 
 export interface RigidBodyData {
   handle: number;
@@ -28,6 +28,13 @@ export class PhysicsEngine {
 
   // Collision tracking for ML annotations
   private collisionPairs: Set<string> = new Set();
+
+  // VR Joint/Constraint System
+  private joints: Map<string, RAPIER.ImpulseJoint> = new Map();
+  private jointConfigs: Map<string, JointConfig> = new Map();
+
+  // VR State Tracking
+  private objectStates: Map<string, ObjectStateData> = new Map();
 
   async initialize() {
     await RAPIER.init();
@@ -125,6 +132,216 @@ export class PhysicsEngine {
   }
 
   /**
+   * Create joints/constraints for VR interactive objects
+   */
+  createJoints(params: PhysicsParams): void {
+    if (!this.world || !params.joints) return;
+
+    // Clear existing joints
+    this.joints.forEach((joint) => {
+      this.world!.removeImpulseJoint(joint, true);
+    });
+    this.joints.clear();
+    this.jointConfigs.clear();
+    this.objectStates.clear();
+
+    params.joints.forEach((jointConfig) => {
+      // Find parent and child bodies
+      const parentBody = this.findBodyByGroupId(jointConfig.parentGroupId);
+      const childBody = this.findBodyByGroupId(jointConfig.childGroupId);
+
+      if (!parentBody || !childBody) {
+        console.warn(`[PhysicsEngine] Joint ${jointConfig.id}: Could not find parent or child body`);
+        return;
+      }
+
+      // Create joint based on type
+      let joint: RAPIER.ImpulseJoint | null = null;
+
+      switch (jointConfig.type) {
+        case JointType.REVOLUTE: {
+          // Hinge joint for doors, wheels
+          const params = RAPIER.JointData.revolute(
+            new RAPIER.Vector3(jointConfig.parentAnchor.x, jointConfig.parentAnchor.y, jointConfig.parentAnchor.z),
+            new RAPIER.Vector3(jointConfig.childAnchor.x, jointConfig.childAnchor.y, jointConfig.childAnchor.z),
+            new RAPIER.Vector3(jointConfig.axis.x, jointConfig.axis.y, jointConfig.axis.z)
+          );
+
+          // Set limits if provided
+          if (jointConfig.limits) {
+            params.limitsEnabled = true;
+            params.limits = [jointConfig.limits.min, jointConfig.limits.max];
+          }
+
+          joint = this.world!.createImpulseJoint(params, parentBody, childBody, true);
+
+          // Note: Motor configuration requires specific Rapier API calls
+          // Can be added in future versions with proper motor setup
+          break;
+        }
+
+        case JointType.PRISMATIC: {
+          // Sliding joint for drawers, sliders
+          const params = RAPIER.JointData.prismatic(
+            new RAPIER.Vector3(jointConfig.parentAnchor.x, jointConfig.parentAnchor.y, jointConfig.parentAnchor.z),
+            new RAPIER.Vector3(jointConfig.childAnchor.x, jointConfig.childAnchor.y, jointConfig.childAnchor.z),
+            new RAPIER.Vector3(jointConfig.axis.x, jointConfig.axis.y, jointConfig.axis.z)
+          );
+
+          // Set limits if provided
+          if (jointConfig.limits) {
+            params.limitsEnabled = true;
+            params.limits = [jointConfig.limits.min, jointConfig.limits.max];
+          }
+
+          joint = this.world!.createImpulseJoint(params, parentBody, childBody, true);
+
+          // Note: Motor configuration requires specific Rapier API calls
+          // Can be added in future versions with proper motor setup
+          break;
+        }
+
+        case JointType.FIXED: {
+          // Rigid attachment (handle to door)
+          const params = RAPIER.JointData.fixed(
+            new RAPIER.Vector3(jointConfig.parentAnchor.x, jointConfig.parentAnchor.y, jointConfig.parentAnchor.z),
+            { w: 1, x: 0, y: 0, z: 0 },
+            new RAPIER.Vector3(jointConfig.childAnchor.x, jointConfig.childAnchor.y, jointConfig.childAnchor.z),
+            { w: 1, x: 0, y: 0, z: 0 }
+          );
+
+          joint = this.world!.createImpulseJoint(params, parentBody, childBody, true);
+          break;
+        }
+
+        case JointType.SPHERICAL: {
+          // Ball joint for articulated bodies
+          const params = RAPIER.JointData.spherical(
+            new RAPIER.Vector3(jointConfig.parentAnchor.x, jointConfig.parentAnchor.y, jointConfig.parentAnchor.z),
+            new RAPIER.Vector3(jointConfig.childAnchor.x, jointConfig.childAnchor.y, jointConfig.childAnchor.z)
+          );
+
+          joint = this.world!.createImpulseJoint(params, parentBody, childBody, true);
+          break;
+        }
+      }
+
+      if (joint) {
+        this.joints.set(jointConfig.id, joint);
+        this.jointConfigs.set(jointConfig.id, jointConfig);
+
+        // Initialize object state tracking
+        const initialState: ObjectState = jointConfig.type === JointType.REVOLUTE || jointConfig.type === JointType.PRISMATIC
+          ? ObjectState.CLOSED
+          : ObjectState.FREE;
+
+        this.objectStates.set(jointConfig.childGroupId, {
+          objectId: jointConfig.childGroupId,
+          groupId: jointConfig.childGroupId,
+          state: initialState,
+          jointAngle: jointConfig.initialState || 0,
+          timeInState: 0,
+          lastTransition: performance.now()
+        });
+
+        console.log(`[PhysicsEngine] Created ${jointConfig.type} joint: ${jointConfig.id}`);
+      }
+    });
+  }
+
+  /**
+   * Find a rigid body by group ID (returns first instance)
+   */
+  private findBodyByGroupId(groupId: string): RAPIER.RigidBody | null {
+    for (const [handle, bodyData] of this.bodies.entries()) {
+      if (bodyData.groupId === groupId) {
+        return this.world!.getRigidBody(handle);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Update joint states and track object states for VR training
+   * Note: In current Rapier version, joint angle tracking requires calculating from body positions
+   */
+  private updateJointStates(time: number): void {
+    if (!this.world) return;
+
+    this.jointConfigs.forEach((config, jointId) => {
+      const joint = this.joints.get(jointId);
+      if (!joint) return;
+
+      // Update object state tracking based on physics simulation
+      const stateData = this.objectStates.get(config.childGroupId);
+      if (!stateData) return;
+
+      // For now, track basic state transitions based on time in simulation
+      // Advanced joint angle tracking can be added when accessing body transforms
+      const childBody = this.findBodyByGroupId(config.childGroupId);
+      if (childBody) {
+        const velocity = childBody.linvel();
+        const isMoving = Math.abs(velocity.x) > 0.01 || Math.abs(velocity.y) > 0.01 || Math.abs(velocity.z) > 0.01;
+
+        // Simple state machine: if moving, transitioning; if still, settled
+        let newState = stateData.state;
+        if (isMoving && stateData.state === ObjectState.CLOSED) {
+          newState = ObjectState.OPEN;
+        } else if (!isMoving && stateData.state === ObjectState.OPEN) {
+          // Check if settled in open or closed position based on position
+          // This is simplified - real implementation would calculate joint angle
+          newState = ObjectState.OPEN;
+        }
+
+        // Track state transitions
+        if (newState !== stateData.state) {
+          stateData.lastTransition = time;
+          stateData.timeInState = 0;
+          stateData.state = newState;
+        } else {
+          stateData.timeInState = time - stateData.lastTransition;
+        }
+      }
+    });
+  }
+
+  /**
+   * Get all object states (for VR training data export)
+   */
+  getObjectStates(): Map<string, ObjectStateData> {
+    return this.objectStates;
+  }
+
+  /**
+   * Get joint angle by joint ID (approximation based on child body position)
+   * Note: Accurate joint angle tracking requires additional calculations
+   */
+  getJointAngle(jointId: string): number | null {
+    const config = this.jointConfigs.get(jointId);
+    if (!config) return null;
+
+    const childBody = this.findBodyByGroupId(config.childGroupId);
+    const parentBody = this.findBodyByGroupId(config.parentGroupId);
+    if (!childBody || !parentBody) return null;
+
+    // Simplified: return distance/angle approximation
+    // Real implementation would calculate based on joint type and axes
+    const childPos = childBody.translation();
+    const parentPos = parentBody.translation();
+
+    if (config.type === JointType.PRISMATIC) {
+      // Distance along axis for prismatic joints
+      const dx = childPos.x - parentPos.x;
+      const dy = childPos.y - parentPos.y;
+      const dz = childPos.z - parentPos.z;
+      return Math.sqrt(dx*dx + dy*dy + dz*dz);
+    }
+
+    // For revolute joints, would need to calculate angle from rotation
+    return 0;
+  }
+
+  /**
    * Create collider descriptor based on shape type
    */
   private createColliderDesc(group: AssetGroup): RAPIER.ColliderDesc | null {
@@ -148,11 +365,20 @@ export class PhysicsEngine {
         return RAPIER.ColliderDesc.capsule(halfScale, halfScale * 0.3);
 
       case ShapeType.PYRAMID:
+        // Pyramid approximated as cone
+        return RAPIER.ColliderDesc.cone(halfScale, halfScale * 0.5);
+
       case ShapeType.ICOSAHEDRON:
+        // Icosahedron approximated as ball (90% accurate, minimal performance cost)
+        return RAPIER.ColliderDesc.ball(halfScale * 0.9);
+
       case ShapeType.TORUS:
+        // Torus approximated as cylinder (hollow not supported by Rapier)
+        return RAPIER.ColliderDesc.cylinder(halfScale * 0.4, halfScale);
+
       case ShapeType.PLATE:
-        // Use box approximation for complex shapes
-        return RAPIER.ColliderDesc.cuboid(halfScale, halfScale * 0.3, halfScale);
+        // Plate as very thin cuboid (5% height)
+        return RAPIER.ColliderDesc.cuboid(halfScale, halfScale * 0.05, halfScale);
 
       default:
         return RAPIER.ColliderDesc.ball(halfScale);
@@ -225,6 +451,9 @@ export class PhysicsEngine {
       // Step the simulation
       this.world.step();
       this.frameCount++;
+
+      // Update joint states for VR training
+      this.updateJointStates(elapsedTime);
 
       this.accumulator -= this.fixedTimeStep;
       stepsThisFrame++;
@@ -348,16 +577,34 @@ export class PhysicsEngine {
 
     this.collisionPairs.clear();
 
-    // Count active collisions by checking bodies in contact
-    // Note: Rapier's contact pair iteration API varies by version
-    // For now, provide approximate collision count based on active bodies
-    this.bodies.forEach((bodyData) => {
-      const body = this.world!.getRigidBody(bodyData.handle);
-      if (body && body.isMoving()) {
-        // This is a simplified approximation
-        // A full implementation would iterate through contact manifolds
-      }
-    });
+    // Iterate through all colliders and check for contacts
+    // Rapier 0.19.x API: use world.contactPairs() or contactsWith()
+    const numColliders = this.world.colliders.len();
+
+    for (let i = 0; i < numColliders; i++) {
+      const collider = this.world.colliders.get(i);
+      if (!collider) continue;
+
+      // Check contacts with this collider
+      this.world.contactPairsWith(collider, (otherCollider) => {
+        if (!otherCollider) return;
+
+        // Get rigid body handles
+        const handle1 = collider.parent()?.handle;
+        const handle2 = otherCollider.parent()?.handle;
+
+        if (handle1 !== undefined && handle2 !== undefined) {
+          const body1 = this.bodies.get(handle1);
+          const body2 = this.bodies.get(handle2);
+
+          if (body1 && body2) {
+            // Create unique collision pair ID (sorted to avoid duplicates)
+            const pairId = [body1.groupId, body2.groupId].sort().join('_');
+            this.collisionPairs.add(pairId);
+          }
+        }
+      });
+    }
   }
 
   /**

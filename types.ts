@@ -94,12 +94,124 @@ export interface AssetGroup {
   vrRole?: 'target' | 'obstacle' | 'tool' | 'furniture' | 'environment';
 }
 
+// --- VR JOINT & CONSTRAINT SYSTEM ---
+
+export enum JointType {
+  REVOLUTE = 'REVOLUTE',      // Hinge joint (doors, wheels)
+  PRISMATIC = 'PRISMATIC',    // Sliding joint (drawers, sliders)
+  FIXED = 'FIXED',            // Rigid attachment (handle to door)
+  SPHERICAL = 'SPHERICAL'     // Ball joint (shoulder, articulated)
+}
+
+export interface JointLimits {
+  min: number;                // Minimum angle/distance
+  max: number;                // Maximum angle/distance
+  stiffness?: number;         // Spring stiffness at limits
+  damping?: number;           // Damping at limits
+}
+
+export interface JointMotor {
+  enabled: boolean;
+  targetVelocity: number;     // Target velocity (rad/s or m/s)
+  maxForce: number;           // Maximum force/torque
+}
+
+export interface JointConfig {
+  id: string;
+  type: JointType;
+  parentGroupId: string;      // ID of parent object
+  childGroupId: string;       // ID of child object
+  parentAnchor: Vector3Data;  // Anchor point on parent (local space)
+  childAnchor: Vector3Data;   // Anchor point on child (local space)
+  axis: Vector3Data;          // Axis of rotation/translation
+  limits?: JointLimits;       // Joint limits (optional)
+  motor?: JointMotor;         // Motor control (optional)
+  initialState?: number;      // Initial angle/position
+}
+
+// --- VR STATE TRACKING ---
+
+export enum ObjectState {
+  CLOSED = 'CLOSED',
+  OPEN = 'OPEN',
+  PRESSED = 'PRESSED',
+  RELEASED = 'RELEASED',
+  GRASPED = 'GRASPED',
+  FREE = 'FREE'
+}
+
+export interface ObjectStateData {
+  objectId: string;
+  groupId: string;
+  state: ObjectState;
+  jointAngle?: number;        // For doors/drawers (radians or meters)
+  timeInState: number;        // How long in this state (seconds)
+  lastTransition: number;     // Timestamp of last state change
+}
+
+// --- VR HAND SIMULATION ---
+
+export interface VRHand {
+  id: string;
+  side: 'left' | 'right';
+  position: Vector3Data;
+  rotation: Vector3Data;
+  isGrasping: boolean;
+  graspedObjectId?: string;
+  fingerPositions?: number[]; // 0-1 values for each finger joint
+}
+
+export interface GraspEvent {
+  timestamp: number;
+  handId: string;
+  objectId: string;
+  graspPoint: Vector3Data;
+  graspForce: number;
+  success: boolean;
+}
+
+// --- INTERACTION SEQUENCE RECORDING ---
+
+export interface InteractionStep {
+  timestamp: number;
+  frameNumber: number;
+  actionType: 'grasp' | 'release' | 'move' | 'rotate' | 'activate';
+  handId?: string;
+  objectId: string;
+  objectState: ObjectState;
+  handPose?: {
+    position: Vector3Data;
+    rotation: Vector3Data;
+  };
+  objectPose: {
+    position: Vector3Data;
+    rotation: Vector3Data;
+  };
+  jointState?: number;        // Joint angle if applicable
+}
+
+export interface InteractionSequence {
+  sequenceId: string;
+  taskDescription: string;
+  startTime: number;
+  endTime: number;
+  steps: InteractionStep[];
+  success: boolean;
+  metadata: {
+    scenarioType: string;
+    difficulty: string;
+    environmentId: string;
+  };
+}
+
 export interface PhysicsParams {
   gravity: Vector3Data;
   wind: Vector3Data;
   movementBehavior: MovementBehavior;
   environmentUrl?: string; // Optional URL for HDRI
   assetGroups: AssetGroup[];
+  joints?: JointConfig[];     // VR: Joint constraints for interactive objects
+  vrHands?: VRHand[];         // VR: Virtual hand models
 }
 
 export interface TelemetryData {

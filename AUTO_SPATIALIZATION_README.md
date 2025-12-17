@@ -141,7 +141,7 @@ Production-grade export to industry-standard formats:
 - Critical for auto-spatialization spatial anchoring
 
 #### **🔜 VR Hand Poses** (Coming Soon)
-- EgoDex format: 68-joint skeletal poses with grasp annotations
+- Industry-standard format: 68-joint skeletal poses with grasp annotations
 - Use: Hand tracking, grasp prediction, manipulation detection
 - Critical for auto-spatialization interaction prediction
 
@@ -161,7 +161,7 @@ Production-grade export to industry-standard formats:
 | Object Detection | COCO/YOLO | Identify furniture, objects for spatial anchoring |
 | Depth Estimation | Depth Maps | Reconstruct 3D room geometry from 2D images |
 | Semantic Segmentation | Segmentation Masks | Classify floor/walls/objects for boundary detection |
-| Hand Tracking | VR Hand Poses (EgoDex) | Predict natural grasp points for interaction |
+| Hand Tracking | VR Hand Poses | Predict natural grasp points for interaction |
 | Collision Detection | Physics Ground Truth | Validate safe object placement in AR/VR |
 
 ### **Competitive Advantages**
@@ -325,7 +325,7 @@ Click "EXPORT DATASET" button → Select format:
 - **YOLO Format:** Normalized bounding boxes for YOLOv5/v8
 - **Depth Maps:** (Coming soon) 16-bit depth for spatial understanding
 - **Segmentation Masks:** (Coming soon) Semantic labels
-- **VR Hand Poses:** (Coming soon) EgoDex format hand tracking
+- **VR Hand Poses:** (Coming soon) Hand tracking with grasp annotations
 - **Physics Ground Truth:** (Coming soon) Complete physics state
 
 ---
@@ -354,7 +354,7 @@ Click "EXPORT DATASET" button → Select format:
 - Room boundary detection
 
 ### **Phase 3: Interaction Data** (🔜 Next)
-- VR hand pose export (EgoDex format)
+- VR hand pose export (industry-standard format)
 - Grasp annotation export
 - Interaction sequence recording
 
@@ -387,7 +387,7 @@ Click "EXPORT DATASET" button → Select format:
 - **Position Precision:** 64-bit float (nanometer accuracy)
 - **Object Count:** 1-200 objects per scene
 - **Room Templates:** 5 (LOUNGE, MEETING_ROOM, GAMING_ROOM, CREATIVE_STUDIO, OPEN_WORLD)
-- **Export Formats:** COCO, YOLO, Depth (16-bit), Segmentation, VR Poses (EgoDex), Physics CSV
+- **Export Formats:** COCO, YOLO, Depth (16-bit), Segmentation, VR Hand Poses, Physics CSV
 
 ---
 

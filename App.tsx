@@ -463,7 +463,7 @@ const App: React.FC = () => {
   }, [addLog]);
 
   const handleExportVRPoses = useCallback(() => {
-      addLog('VR hand pose export coming soon - will export EgoDex-format hand poses with grasp annotations', 'info');
+      addLog('VR hand pose export coming soon - will export industry-standard hand poses with grasp annotations', 'info');
   }, [addLog]);
 
   const handleExportPhysics = useCallback(() => {

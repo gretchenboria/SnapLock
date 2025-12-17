@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DEFAULT_PHYSICS } from './constants';
-import { PhysicsParams, LogEntry, ViewMode, TelemetryData } from './types';
+import { PhysicsParams, LogEntry, ViewMode, TelemetryData, VRHand } from './types';
 import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
 import { analyzePhysicsPrompt, generateRealityImage, analyzeSceneStability, generateSimulationVideo, generateCreativePrompt, generateSimulationReport } from './services/geminiService';
@@ -11,7 +11,8 @@ import { validateAndSanitize, ValidationOntology } from './services/validationSe
 import { LazarusDebugger } from './services/lazarusDebugger';
 import { MLExportService } from './services/mlExportService';
 import { askSnappy } from './services/snappyChatbot';
-import { X } from 'lucide-react';
+import { ProceduralSceneGenerator, SceneTemplate } from './services/proceduralSceneGenerator';
+import { X, Home, Users, Gamepad2, Palette, Globe } from 'lucide-react';
 import { TestDashboard } from './components/TestDashboard';
 import { GuidedTour } from './components/GuidedTour';
 import { FloatingCharacters } from './components/FloatingCharacters';
@@ -61,6 +62,16 @@ const App: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedFrameCount, setRecordedFrameCount] = useState(0);
   const recordingIntervalRef = useRef<number | null>(null);
+
+  // Procedural Scene Generator State
+  const [showRoomSelector, setShowRoomSelector] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<SceneTemplate>(SceneTemplate.LOUNGE);
+  const [roomSize, setRoomSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [objectDensity, setObjectDensity] = useState<'sparse' | 'medium' | 'dense'>('medium');
+  const [colorTheme, setColorTheme] = useState<'vibrant' | 'pastel' | 'neon' | 'natural'>('vibrant');
+
+  // VR Hands State (keyboard-controlled for testing)
+  const [vrHands, setVRHands] = useState<VRHand[]>([]);
 
   // Refs
   const sceneRef = useRef<PhysicsSceneHandle>(null);
@@ -717,6 +728,113 @@ const App: React.FC = () => {
     }
   }, [params, logs, prompt, isAutoSpawn, isPaused, isAnalyzing, isChaosActive, addLog, executeAnalysis]);
 
+  // --- PROCEDURAL ROOM GENERATION ---
+  const handleGenerateRoom = useCallback(() => {
+    try {
+      const generatedParams = ProceduralSceneGenerator.generateScene({
+        template: selectedTemplate,
+        roomSize,
+        objectDensity,
+        colorTheme
+      });
+
+      // Add VR hands to the generated params
+      generatedParams.vrHands = vrHands.length > 0 ? vrHands : undefined;
+
+      setParams(generatedParams);
+      setShouldReset(true);
+      setShowRoomSelector(false);
+
+      addLog(`Generated ${selectedTemplate} room (${roomSize}, ${objectDensity} density, ${colorTheme} theme)`, 'success');
+    } catch (error) {
+      addLog(`Failed to generate room: ${(error as Error).message}`, 'error');
+    }
+  }, [selectedTemplate, roomSize, objectDensity, colorTheme, vrHands, addLog]);
+
+  // --- VR HAND KEYBOARD CONTROLS ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only process if we have VR hands active
+      if (vrHands.length === 0) return;
+
+      const moveSpeed = 0.5;
+
+      switch (e.key.toLowerCase()) {
+        case 'w':
+          setVRHands(hands => hands.map(h => ({
+            ...h,
+            position: { ...h.position, z: h.position.z - moveSpeed }
+          })));
+          break;
+        case 's':
+          setVRHands(hands => hands.map(h => ({
+            ...h,
+            position: { ...h.position, z: h.position.z + moveSpeed }
+          })));
+          break;
+        case 'a':
+          setVRHands(hands => hands.map(h => ({
+            ...h,
+            position: { ...h.position, x: h.position.x - moveSpeed }
+          })));
+          break;
+        case 'd':
+          setVRHands(hands => hands.map(h => ({
+            ...h,
+            position: { ...h.position, x: h.position.x + moveSpeed }
+          })));
+          break;
+        case 'q':
+          setVRHands(hands => hands.map(h => ({
+            ...h,
+            position: { ...h.position, y: h.position.y - moveSpeed }
+          })));
+          break;
+        case 'e':
+          setVRHands(hands => hands.map(h => ({
+            ...h,
+            position: { ...h.position, y: h.position.y + moveSpeed }
+          })));
+          break;
+        case 'g':
+          setVRHands(hands => hands.map(h => ({ ...h, isGrasping: true })));
+          break;
+        case 'r':
+          setVRHands(hands => hands.map(h => ({ ...h, isGrasping: false })));
+          break;
+        case 'h':
+          // Toggle VR hands visibility
+          if (vrHands.length === 0) {
+            setVRHands([{
+              id: 'left_hand',
+              side: 'left',
+              position: { x: -1, y: 2, z: 0 },
+              rotation: { x: 0, y: 0, z: 0 },
+              isGrasping: false
+            }]);
+            addLog('VR Hand spawned! Controls: WASD=move, Q/E=up/down, G=grasp, R=release, H=toggle', 'info');
+          } else {
+            setVRHands([]);
+            addLog('VR Hand removed', 'info');
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [vrHands, addLog]);
+
+  // Update params when VR hands change
+  useEffect(() => {
+    if (vrHands.length > 0 || params.vrHands) {
+      setParams(prev => ({
+        ...prev,
+        vrHands: vrHands.length > 0 ? vrHands : undefined
+      }));
+    }
+  }, [vrHands]);
+
   return (
     <div ref={canvasRef} className="relative h-screen w-screen bg-slate-900 text-white overflow-hidden">
       
@@ -819,6 +937,137 @@ const App: React.FC = () => {
         isActive={isChaosActive}
         currentActivity={chaosActivity}
       />
+
+      {/* Room Selector Button - Floating bottom-right */}
+      <button
+        onClick={() => setShowRoomSelector(true)}
+        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+        title="Generate Procedural Room"
+      >
+        <Home className="w-6 h-6" />
+        <span className="font-semibold">Rooms</span>
+      </button>
+
+      {/* Room Selector Modal */}
+      {showRoomSelector && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 border-2 border-purple-500 rounded-xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Generate Procedural Room</h2>
+              <button
+                onClick={() => setShowRoomSelector(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Room Template Selection */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-white mb-3">Room Type</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  { template: SceneTemplate.LOUNGE, icon: Home, label: 'Lounge', desc: 'Casual hangout' },
+                  { template: SceneTemplate.MEETING_ROOM, icon: Users, label: 'Meeting', desc: 'Conference space' },
+                  { template: SceneTemplate.GAMING_ROOM, icon: Gamepad2, label: 'Gaming', desc: 'Arcade lounge' },
+                  { template: SceneTemplate.CREATIVE_STUDIO, icon: Palette, label: 'Creative', desc: 'Maker space' },
+                  { template: SceneTemplate.OPEN_WORLD, icon: Globe, label: 'Open World', desc: 'Minecraft-style' }
+                ].map(({ template, icon: Icon, label, desc }) => (
+                  <button
+                    key={template}
+                    onClick={() => setSelectedTemplate(template)}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      selectedTemplate === template
+                        ? 'border-purple-500 bg-purple-500/20 text-white'
+                        : 'border-gray-600 bg-slate-700 text-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <Icon className="w-8 h-8 mx-auto mb-2" />
+                    <div className="font-semibold">{label}</div>
+                    <div className="text-xs text-gray-400">{desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Room Size */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-white mb-3">Room Size</h3>
+              <div className="flex gap-3">
+                {(['small', 'medium', 'large'] as const).map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setRoomSize(size)}
+                    className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-all ${
+                      roomSize === size
+                        ? 'border-purple-500 bg-purple-500/20 text-white'
+                        : 'border-gray-600 bg-slate-700 text-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {size.charAt(0).toUpperCase() + size.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Object Density */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-white mb-3">Object Density</h3>
+              <div className="flex gap-3">
+                {(['sparse', 'medium', 'dense'] as const).map((density) => (
+                  <button
+                    key={density}
+                    onClick={() => setObjectDensity(density)}
+                    className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-all ${
+                      objectDensity === density
+                        ? 'border-purple-500 bg-purple-500/20 text-white'
+                        : 'border-gray-600 bg-slate-700 text-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {density.charAt(0).toUpperCase() + density.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Color Theme */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-white mb-3">Color Theme</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {(['vibrant', 'pastel', 'neon', 'natural'] as const).map((theme) => (
+                  <button
+                    key={theme}
+                    onClick={() => setColorTheme(theme)}
+                    className={`py-2 px-4 rounded-lg border-2 font-semibold transition-all ${
+                      colorTheme === theme
+                        ? 'border-purple-500 bg-purple-500/20 text-white'
+                        : 'border-gray-600 bg-slate-700 text-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Generate Button */}
+            <button
+              onClick={handleGenerateRoom}
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl"
+            >
+              Generate Room
+            </button>
+
+            {/* VR Hand Info */}
+            <div className="mt-4 p-3 bg-cyan-900/30 border border-cyan-500/50 rounded-lg">
+              <p className="text-sm text-cyan-200">
+                <strong>VR Hand Controls:</strong> Press <kbd className="px-2 py-1 bg-slate-700 rounded">H</kbd> to toggle VR hand.
+                Controls: WASD=move, Q/E=up/down, G=grasp, R=release
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Characters: Chaos, Lazarus, Snappy (Free-floating gently around UI) */}
       <FloatingCharacters

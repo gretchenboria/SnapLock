@@ -8,9 +8,10 @@
 import React, { useRef, useMemo, useEffect, useImperativeHandle, forwardRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { PhysicsParams, ShapeType, MovementBehavior, SpawnMode, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot, MLGroundTruthFrame, BoundingBox2D, BoundingBox3D, CameraIntrinsics, CameraExtrinsics, Vector3Data } from '../types';
+import { PhysicsParams, ShapeType, MovementBehavior, SpawnMode, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot, MLGroundTruthFrame, BoundingBox2D, BoundingBox3D, CameraIntrinsics, CameraExtrinsics, Vector3Data, VRHand } from '../types';
 import { AssetRenderer } from './AssetRenderer';
 import { PhysicsEngine } from '../services/physicsEngine';
+import { VRHandRenderer } from './VRHandRenderer';
 
 interface SimulationLayerProps {
   params: PhysicsParams;
@@ -38,6 +39,9 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
   // Physics engine instance
   const physicsEngineRef = useRef<PhysicsEngine | null>(null);
   const [physicsReady, setPhysicsReady] = useState(false);
+
+  // VR Hand state tracking
+  const [graspedObjects, setGraspedObjects] = useState<Map<string, string>>(new Map());
 
   // History buffer for stability calculation
   const velocityHistoryRef = useRef<number[]>([]);
@@ -505,6 +509,10 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
       physicsEngineRef.current.createBodies(params, groupStructure, pos, vel, rot);
       // Create joints for VR interactive objects
       physicsEngineRef.current.createJoints(params);
+      // Create VR hand bodies if present
+      if (params.vrHands && params.vrHands.length > 0) {
+        physicsEngineRef.current.createHandBodies(params.vrHands);
+      }
     }
 
     // Initial matrix update
@@ -552,6 +560,53 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 
     if (!isPaused) {
         frameCountRef.current += 1;
+
+        // Update VR hand positions before physics step
+        if (params.vrHands && params.vrHands.length > 0) {
+          physicsEngineRef.current.updateHandPositions(params.vrHands);
+
+          // Handle grasp/release for each hand
+          params.vrHands.forEach((hand) => {
+            const isCurrentlyGrasping = physicsEngineRef.current!.isHandGrasping(hand.id);
+
+            if (hand.isGrasping && !isCurrentlyGrasping) {
+              // Attempt to grasp nearby object
+              const nearbyObjects = physicsEngineRef.current!.detectHandObjectCollisions(
+                hand.id,
+                hand,
+                params,
+                pos
+              );
+
+              if (nearbyObjects.length > 0) {
+                const success = physicsEngineRef.current!.createGraspConstraint(
+                  hand.id,
+                  hand,
+                  nearbyObjects[0]
+                );
+
+                if (success) {
+                  setGraspedObjects(prev => {
+                    const newMap = new Map(prev);
+                    newMap.set(hand.id, nearbyObjects[0]);
+                    return newMap;
+                  });
+                }
+              }
+            } else if (!hand.isGrasping && isCurrentlyGrasping) {
+              // Release grasp
+              const released = physicsEngineRef.current!.releaseGraspConstraint(hand.id, hand);
+
+              if (released) {
+                setGraspedObjects(prev => {
+                  const newMap = new Map(prev);
+                  newMap.delete(hand.id);
+                  return newMap;
+                });
+              }
+            }
+          });
+        }
 
         // Step physics engine with fixed timestep
         physicsEngineRef.current.step(dt, params, pos, vel, rot, init, m, time);
@@ -654,6 +709,11 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
               />
           );
       })}
+
+      {/* VR Hand Rendering */}
+      {params.vrHands && params.vrHands.length > 0 && (
+        <VRHandRenderer hands={params.vrHands} graspedObjects={graspedObjects} />
+      )}
     </group>
   );
 });

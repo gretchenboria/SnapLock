@@ -7,7 +7,8 @@
 
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
-import { PhysicsParams, AssetGroup, ShapeType, SpawnMode, MovementBehavior, JointConfig, JointType, ObjectState, ObjectStateData } from '../types';
+import { PhysicsParams, AssetGroup, ShapeType, SpawnMode, MovementBehavior, JointConfig, JointType, ObjectState, ObjectStateData, VRHand } from '../types';
+import { VRHandPhysics } from './handPhysics';
 
 export interface RigidBodyData {
   handle: number;
@@ -36,6 +37,9 @@ export class PhysicsEngine {
   // VR State Tracking
   private objectStates: Map<string, ObjectStateData> = new Map();
 
+  // VR Hand Physics
+  private handPhysics: VRHandPhysics | null = null;
+
   async initialize() {
     await RAPIER.init();
     const gravity = new RAPIER.Vector3(0, -9.81, 0);
@@ -45,6 +49,9 @@ export class PhysicsEngine {
     this.world.integrationParameters.dt = this.fixedTimeStep;
     this.world.integrationParameters.numSolverIterations = 8; // Higher accuracy
     this.world.integrationParameters.numInternalPgsIterations = 1;
+
+    // Initialize VR hand physics
+    this.handPhysics = new VRHandPhysics(this.world);
   }
 
   /**
@@ -310,6 +317,128 @@ export class PhysicsEngine {
    */
   getObjectStates(): Map<string, ObjectStateData> {
     return this.objectStates;
+  }
+
+  /**
+   * VR HAND PHYSICS METHODS
+   */
+
+  /**
+   * Create hand bodies for VR hands
+   */
+  createHandBodies(hands: VRHand[]): void {
+    if (!this.handPhysics) return;
+
+    hands.forEach((hand) => {
+      this.handPhysics!.createHandBody(hand);
+      console.log(`[PhysicsEngine] Created hand body: ${hand.id} (${hand.side})`);
+    });
+  }
+
+  /**
+   * Update hand positions each frame
+   */
+  updateHandPositions(hands: VRHand[]): void {
+    if (!this.handPhysics) return;
+
+    hands.forEach((hand) => {
+      this.handPhysics!.updateHandPosition(hand);
+    });
+  }
+
+  /**
+   * Detect collisions between hand and graspable objects
+   */
+  detectHandObjectCollisions(
+    handId: string,
+    hand: VRHand,
+    params: PhysicsParams,
+    positions: Float32Array
+  ): string[] {
+    if (!this.handPhysics) return [];
+
+    const collisions = this.handPhysics.detectGraspableObjects(
+      hand,
+      params.assetGroups,
+      positions
+    );
+
+    return collisions.map((collision) => collision.objectGroupId);
+  }
+
+  /**
+   * Create grasp constraint between hand and object
+   */
+  createGraspConstraint(handId: string, hand: VRHand, objectGroupId: string): boolean {
+    if (!this.handPhysics) return false;
+
+    const targetBody = this.findBodyByGroupId(objectGroupId);
+    if (!targetBody) {
+      console.warn(`[PhysicsEngine] Cannot grasp: object ${objectGroupId} not found`);
+      return false;
+    }
+
+    const success = this.handPhysics.attemptGrasp(hand, objectGroupId, targetBody);
+
+    if (success) {
+      // Update object state to GRASPED
+      const stateData = this.objectStates.get(objectGroupId) || {
+        objectId: objectGroupId,
+        groupId: objectGroupId,
+        state: ObjectState.FREE,
+        timeInState: 0,
+        lastTransition: performance.now()
+      };
+
+      stateData.state = ObjectState.GRASPED;
+      stateData.lastTransition = performance.now();
+      stateData.timeInState = 0;
+      this.objectStates.set(objectGroupId, stateData);
+
+      console.log(`[PhysicsEngine] Hand ${handId} grasped object ${objectGroupId}`);
+    }
+
+    return success;
+  }
+
+  /**
+   * Release grasp constraint
+   */
+  releaseGraspConstraint(handId: string, hand: VRHand): boolean {
+    if (!this.handPhysics) return false;
+
+    const objectId = this.handPhysics.releaseGrasp(hand);
+
+    if (objectId) {
+      // Update object state back to FREE
+      const stateData = this.objectStates.get(objectId);
+      if (stateData) {
+        stateData.state = ObjectState.FREE;
+        stateData.lastTransition = performance.now();
+        stateData.timeInState = 0;
+      }
+
+      console.log(`[PhysicsEngine] Hand ${handId} released object ${objectId}`);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if hand is currently grasping
+   */
+  isHandGrasping(handId: string): boolean {
+    if (!this.handPhysics) return false;
+    return this.handPhysics.isHandGrasping(handId);
+  }
+
+  /**
+   * Get the object ID being grasped by a hand
+   */
+  getGraspedObjectId(handId: string): string | null {
+    if (!this.handPhysics) return null;
+    return this.handPhysics.getGraspedObjectId(handId);
   }
 
   /**

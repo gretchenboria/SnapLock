@@ -540,22 +540,41 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isAutoSpawn) {
         if (!autoSpawnTimerRef.current) {
-            addLog("Auto Spawn: Active - generating scene variations for dataset", "info");
+            addLog("Auto Spawn: Active - generating procedural room variations for dataset", "info");
         }
 
-        const spawnCycle = async () => {
+        const spawnCycle = () => {
             if (!isAutoSpawnRef.current) return;
-            if (isAnalyzingRef.current) return;
 
-            // If no prompt set, generate initial creative prompt
-            if (!prompt.trim()) {
-                const creativePrompt = await generateCreativePrompt();
-                if (!isAutoSpawnRef.current) return;
-                setPrompt(creativePrompt);
-                await executeAnalysis(creativePrompt, 'AUTO');
-            } else {
-                // Use existing prompt - generate scene variation for dataset
-                await executeAnalysis(prompt, 'AUTO');
+            // Generate random procedural room instead of AI prompt
+            const templates = Object.values(SceneTemplate);
+            const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+
+            const roomSizes: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
+            const densities: Array<'sparse' | 'medium' | 'dense'> = ['sparse', 'medium', 'dense'];
+            const themes: Array<'vibrant' | 'pastel' | 'neon' | 'natural'> = ['vibrant', 'pastel', 'neon', 'natural'];
+
+            const randomRoomSize = roomSizes[Math.floor(Math.random() * roomSizes.length)];
+            const randomDensity = densities[Math.floor(Math.random() * densities.length)];
+            const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+
+            try {
+                const generatedParams = ProceduralSceneGenerator.generateScene({
+                    template: randomTemplate,
+                    roomSize: randomRoomSize,
+                    objectDensity: randomDensity,
+                    colorTheme: randomTheme
+                });
+
+                // Add VR hands if they exist
+                generatedParams.vrHands = vrHands.length > 0 ? vrHands : undefined;
+
+                setParams(generatedParams);
+                setShouldReset(true);
+
+                addLog(`Auto Spawn: ${randomTemplate} (${randomRoomSize}, ${randomDensity}, ${randomTheme})`, 'success');
+            } catch (error) {
+                addLog(`Auto Spawn failed: ${(error as Error).message}`, 'error');
             }
         };
 
@@ -575,7 +594,7 @@ const App: React.FC = () => {
     return () => {
         if (autoSpawnTimerRef.current) window.clearInterval(autoSpawnTimerRef.current);
     }
-  }, [isAutoSpawn, prompt, addLog, executeAnalysis]); 
+  }, [isAutoSpawn, vrHands, addLog]); 
 
   // --- CHAOS MODE LOOP ---
   useEffect(() => {

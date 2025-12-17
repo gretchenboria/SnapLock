@@ -85,14 +85,14 @@ const isTestMode = () => {
 // --- UTILITIES ---
 
 const FALLBACK_PROMPTS = [
-    "Zero-G collision of a heavy gold sphere against a cloud of 200 steel cubes",
-    "Avalanche of red pyramids crashing into a static wall of blue plates",
-    "LIDAR calibration test with floating polyhedrons and a rotating sensor",
-    "Swarm of micro-drones navigating through a debris field",
-    "Heavy industrial pistons crushing soft foam blocks",
-    "Orbital debris containment field failure simulation",
-    "High-velocity impact testing on reinforced glass panels",
-    "Magnetic resonance simulation with metallic shards"
+    "Casual lounge with colorful floating orbs and interactive cubes on tables",
+    "Meeting room with conference table, chairs, and markers scattered around",
+    "Gaming lounge with neon bouncing balls and arcade-style furniture",
+    "Creative studio with art supplies, building blocks, and work tables",
+    "Open world with trees, rocks, and glowing crystals on grassy terrain",
+    "Social hangout space with couches and decorative spheres",
+    "Collaborative workspace with modular furniture and graspable objects",
+    "Minecraft-style environment with natural terrain and collectible items"
 ];
 
 /**
@@ -328,250 +328,108 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
         // Use best reasoning model for physics configuration (Gemini 3 Pro when available)
         const response = await ai.models.generateContent({
         model: getModelForTask('reasoning'),
-        contents: `You are a Physics-Aware Scene Generation Engine for Synthetic Training Data, AR/VR Simulation, Digital Twin Creation, and Robotics Training.
+        contents: `You are a Physics-Aware Scene Generator for SnapLock simulation engine.
 
         USER PROMPT: "${userPrompt}"
 
-        MISSION: Parse natural language to generate PHYSICALLY ACCURATE simulation scenes for ML training data synthesis. Extract objects, infer realistic physics properties, and create scientifically valid environments.
+        MISSION: Parse natural language to generate physically accurate simulation scenes. Extract objects, infer realistic physics properties.
 
-        PHYSICS-FIRST REQUIREMENTS:
+        REQUIREMENTS:
 
-        1. OBJECT EXTRACTION & SHAPE MAPPING
-           Parse every physical entity and map to realistic 3D primitives:
-           - FLAT SURFACES (tables, floors, platforms, walls, ramps) -> PLATE
-           - CONTAINERS (cups, cans, bottles, tubes, pipes) -> CYLINDER
-           - RIGID BOXES (crates, packages, cabinets, blocks) -> CUBE
-           - ROLLING OBJECTS (balls, marbles, spheres, planets) -> SPHERE
-           - POINTED OBJECTS (traffic cones, pyramids) -> CONE or PYRAMID
-           - ARTICULATED BODIES (robots, humanoids, vehicles) -> CAPSULE
-           - ORGANIC/COMPLEX (rocks, debris, irregular objects) -> ICOSAHEDRON
-           - CIRCULAR STRUCTURES (rings, tires, donuts, hoops) -> TORUS
+        1. SHAPE MAPPING
+           - Flat surfaces (tables, floors, platforms) -> PLATE
+           - Containers (cups, cans, bottles) -> CYLINDER
+           - Boxes (crates, packages, blocks) -> CUBE
+           - Rolling objects (balls, spheres) -> SPHERE
+           - Pointed objects (cones, pyramids) -> CONE or PYRAMID
+           - Robots, humanoids -> CAPSULE
+           - Irregular objects (rocks, debris) -> ICOSAHEDRON
+           - Rings, tires, hoops -> TORUS
 
-        2. MATERIAL PHYSICS (Critical for Real Simulation)
-           Infer realistic material properties from descriptions:
+        2. MATERIAL PHYSICS
+           WOOD: friction:0.6, restitution:0.3, mass:5, drag:0.05, color:#8B4513
+           METAL: friction:0.4, restitution:0.5, mass:15, drag:0.02, color:#C0C0C0
+           RUBBER: friction:0.9, restitution:0.85, mass:3, drag:0.1, color:#2F4F4F
+           GLASS: friction:0.1, restitution:0.7, mass:8, drag:0.01, color:#00CED1
+           PLASTIC: friction:0.5, restitution:0.6, mass:2, drag:0.06, color:vibrant
+           STONE/CONCRETE: friction:0.8, restitution:0.2, mass:20, drag:0.03, color:#696969
+           CARDBOARD: friction:0.7, restitution:0.25, mass:1, drag:0.15, color:#D2691E
+           FABRIC: friction:0.8, restitution:0.1, mass:0.5, drag:0.25, color:varied
 
-           WOOD (oak, pine, lumber, wooden):
-           - friction: 0.6, restitution: 0.3, mass: 5 kg/m³, drag: 0.05
-           - color: #8B4513 (saddle brown)
-           - density: 600-900 kg/m³, rigid body
+        3. DRAG COEFFICIENTS
+           - Streamlined (capsule, sphere): 0.02-0.05
+           - Compact rigid (cube, cylinder): 0.05-0.1
+           - Irregular (debris, cloth): 0.1-0.25
 
-           METAL (steel, iron, aluminum, brass, copper):
-           - friction: 0.4, restitution: 0.5, mass: 15 kg/m³, drag: 0.02
-           - color: #C0C0C0 (silver/gray)
-           - density: 2700-7800 kg/m³, very rigid, high inertia
+        4. SPAWN MODES
+           - "on X" / "above X" -> Foundation first (GRID), dependent in contact zone
+           - "floating" / "hovering" -> FLOAT spawn
+           - "falling" / "thrown" -> JET or BLAST spawn
+           - "scattered" / "pile of" -> PILE spawn
+           - "organized" / "grid" -> GRID spawn
+           - "explosion" / "burst" -> BLAST spawn
 
-           RUBBER (elastic, bouncy, tire, foam):
-           - friction: 0.9, restitution: 0.85, mass: 3 kg/m³, drag: 0.1
-           - color: #2F4F4F (dark slate)
-           - density: 900-1200 kg/m³, deformable, high energy return
+        5. GRAVITY & WIND
+           GRAVITY:
+           - Earth (default): {x:0, y:-9.81, z:0}, PHYSICS_GRAVITY
+           - Moon / low gravity: {x:0, y:-1.62, z:0}
+           - Zero-G / space: {x:0, y:0, z:0}, ORBITAL behavior
+           - High gravity: {x:0, y:-15 to -25, z:0}
 
-           GLASS (crystal, transparent, brittle):
-           - friction: 0.1, restitution: 0.7, mass: 8 kg/m³, drag: 0.01
-           - color: #00CED1 (cyan/transparent)
-           - density: 2500 kg/m³, rigid, slippery surface
+           WIND:
+           - Calm (default): {x:0, y:0, z:0}
+           - Breeze: {x:3-5, y:0, z:0}
+           - Windy: {x:8-12, y:0, z:0}
+           - Storm: {x:20-30, y:0, z:-5}
 
-           PLASTIC (polymer, synthetic):
-           - friction: 0.5, restitution: 0.6, mass: 2 kg/m³, drag: 0.06
-           - color: vibrant (red, blue, yellow)
-           - density: 900-1400 kg/m³, semi-rigid
+        6. SCALE & COUNT
+           - Large static (tables, floors): scale 2-5, count 1-3, mass 20-100 kg
+           - Medium objects (boxes, robots): scale 0.5-2, count 1-15, mass 2-50 kg
+           - Small items (cups, balls): scale 0.2-0.8, count 1-20, mass 0.1-5 kg
+           - Particles (marbles, debris): scale 0.05-0.2, count 20-200, mass 0.01-0.5 kg
+           - Mass scales with volume (scale³) and material density
 
-           STONE/CONCRETE (rock, granite, cement):
-           - friction: 0.8, restitution: 0.2, mass: 20 kg/m³, drag: 0.03
-           - color: #696969 (dim gray)
-           - density: 2300-2700 kg/m³, very rigid, low bounce
+        7. COLOR ASSIGNMENT
+           - Use material-realistic colors (wood=brown, metal=gray, glass=cyan)
+           - High contrast for computer vision (bright vs dark)
+           - Avoid pure black (#000) or pure white (#FFF)
 
-           CARDBOARD/PAPER:
-           - friction: 0.7, restitution: 0.25, mass: 1 kg/m³, drag: 0.15
-           - color: #D2691E (tan/brown)
-           - density: 200-700 kg/m³, lightweight, compressible
+        8. VR INTERACTIONS (when prompt mentions VR/grasping/manipulation)
+           Add affordances to objects:
+           - graspable: true for small/medium pickable objects
+           - manipulable: true if movable after grasping
+           - interactive: true for mechanisms (doors, drawers, buttons)
+           - interactionType: 'door'/'drawer'/'button'/'lever' or 'static'
 
-           FABRIC/CLOTH:
-           - friction: 0.8, restitution: 0.1, mass: 0.5 kg/m³, drag: 0.25
-           - color: varied
-           - density: 100-500 kg/m³, very flexible, high drag
+           Add spatial constraints for structured scenes:
+           - type: 'on_surface' (objects on tables), 'attached_to' (connected parts), 'none' (floating)
+           - parentGroupId: ID of surface/parent object
+           - maintainOrientation: true to keep upright
 
-        3. REALISTIC DRAG COEFFICIENTS (Critical for Accurate Motion)
-           Air resistance based on object properties:
-           - Streamlined (capsule, sphere) -> drag: 0.02-0.05
-           - Compact rigid (cube, cylinder) -> drag: 0.05-0.1
-           - Irregular/porous (debris, cloth) -> drag: 0.1-0.25
-           - Lightweight flat (paper, leaves) -> drag: 0.3-0.5
-           - Scale drag with surface area to volume ratio
+           Add semantic labels:
+           - semanticLabel: Specific category (e.g., "coffee_mug", "office_desk")
+           - vrRole: 'target'/'tool'/'furniture'/'environment'
 
-        4. SPATIAL LAYOUT & SPAWN LOGIC
-           Understand 3D spatial relationships and interaction patterns:
-           - "on X" / "above X" -> Foundation object spawns first (GRID/fixed position), dependent object spawns in contact zone
-           - "floating" / "suspended" / "hovering" -> FLOAT spawn, reduce gravity or orbital motion
-           - "falling" / "dropping" / "thrown" -> JET or BLAST spawn with initial velocity
-           - "scattered" / "pile of" / "messy" -> PILE spawn, random positions
-           - "organized" / "arranged" / "grid" -> GRID spawn, structured layout
-           - "explosion" / "burst" / "shatter" -> BLAST spawn, radial velocity
-           - "rolling" / "sliding" -> Low friction surface + sphere/cylinder + initial angular velocity
+        9. JOINTS (for interactive objects: doors, drawers, buttons)
+           DOOR (Revolute): type:'REVOLUTE', axis:{x:0,y:1,z:0}, limits:{min:0,max:1.57}
+           DRAWER (Prismatic): type:'PRISMATIC', axis:{x:1,y:0,z:0}, limits:{min:0,max:0.5}
+           BUTTON (Prismatic): type:'PRISMATIC', axis:{x:0,y:-1,z:0}, limits:{min:0,max:0.02}
+           HANDLE (Fixed): type:'FIXED', rigidly attached
 
-        5. GRAVITY & ENVIRONMENT (Mission-Critical for Robotics Training)
-           Parse environmental physics from context:
+           Rules: Parent object before child, joint ID: "{parent}_to_{child}_joint"
 
-           GRAVITY MODES:
-           - "Earth" / standard / default -> {x:0, y:-9.81, z:0} m/s², PHYSICS_GRAVITY
-           - "Moon" / "lunar" / "low gravity" -> {x:0, y:-1.62, z:0} m/s², PHYSICS_GRAVITY
-           - "Mars" -> {x:0, y:-3.71, z:0} m/s²
-           - "Zero-G" / "space" / "ISS" / "orbital" -> {x:0, y:0, z:0} m/s², ORBITAL behavior
-           - "High gravity" / "Jupiter" / "heavy" -> {x:0, y:-15 to -25, z:0} m/s²
-           - "Underwater" -> {x:0, y:-2, z:0} m/s² (buoyancy approximation)
-
-           WIND/AIRFLOW:
-           - "Calm" / indoor / default -> {x:0, y:0, z:0} m/s
-           - "Breeze" / "gentle wind" -> {x:3-5, y:0, z:0} m/s
-           - "Windy" / "moderate wind" -> {x:8-12, y:0, z:0} m/s
-           - "Storm" / "gust" / "hurricane" -> {x:20-30, y:0, z:-5} m/s (includes vertical)
-           - "Updraft" / "thermal" -> {x:0, y:10-20, z:0} m/s (vertical wind)
-
-        6. SCALE, COUNT & DENSITY (Data Synthesis Realism)
-           Base on real-world proportions:
-           - LARGE STATIC (tables, floors, walls): scale 2-5, count 1-3, mass 20-100 kg
-           - MEDIUM OBJECTS (boxes, robots, furniture): scale 0.5-2, count 1-15, mass 2-50 kg
-           - SMALL ITEMS (cups, tools, balls): scale 0.2-0.8, count 1-20, mass 0.1-5 kg
-           - PARTICLES (marbles, debris, grains): scale 0.05-0.2, count 20-200, mass 0.01-0.5 kg
-           - Mass should scale with volume (scale³) and material density
-
-        7. COLOR FOR COMPUTER VISION TRAINING
-           Assign colors based on:
-           - Material realism (wood=brown, metal=gray, glass=cyan/clear)
-           - High contrast for CV detection (bright vs dark, complementary colors)
-           - Semantic meaning (robots=cyan, hazards=red/yellow, environment=earth tones)
-           - Avoid pure black (#000) or pure white (#FFF) - use slight variations
-
-        8. VR TRAINING DATA REQUIREMENTS (Critical for XR/VR Scenarios)
-           For VR training scenarios, add affordance and interaction properties:
-
-           OBJECT AFFORDANCES (Add when prompt mentions VR, grasping, manipulation, interaction):
-           - graspable: true for small/medium objects that can be picked up (cups, tools, boxes)
-           - manipulable: true if object can be moved after grasping (not fixed furniture)
-           - interactive: true for objects with mechanisms (doors, drawers, buttons)
-           - interactionType: 'door'/'drawer'/'button'/'lever' for interactive objects, 'static' for fixed
-
-           SPATIAL CONSTRAINTS (Add for structured scenes):
-           - type: 'on_surface' for objects on tables/floors, 'attached_to' for connected parts, 'none' for floating
-           - parentGroupId: ID of surface/parent object (e.g., cup ON table -> parent is table's ID)
-           - maintainOrientation: true to keep objects upright on surfaces
-
-           SEMANTIC LABELING (Add for VR):
-           - semanticLabel: Specific category name (e.g., "coffee_mug", "office_desk", "sliding_door")
-           - vrRole: 'target' for main interaction objects, 'tool' for instruments, 'furniture' for surfaces, 'environment' for walls/floors
-
-           VR SCENE STRUCTURE:
-           - Always create foundation objects FIRST (floors, tables, walls) with vrRole='furniture'/'environment'
-           - Then place interactive objects ON surfaces using spatialConstraint
-           - Mark graspable objects with affordances
-           - Use semantic labels for all objects in VR scenarios
-
-        9. SYNTHETIC DATA GENERATION CONTEXT
-           Consider how scene will be used for training:
-           - Object variety: Include multiple object types for dataset diversity
-           - Pose variation: Use different spawn modes for varied orientations
-           - Occlusion scenarios: Dense pile spawns for partial occlusion training
-           - Scale variation: Range of sizes for scale-invariant detection
-           - Physics diversity: Different material combinations for interaction learning
-
-        EXAMPLE SCENARIOS:
-
-        A) "Robot arm picking up cardboard boxes from a wooden pallet"
-           -> wooden_pallet (PLATE, brown, scale:3, mass:15, friction:0.6, count:1, GRID)
-           -> cardboard_boxes (CUBE, tan, scale:0.8, mass:2, friction:0.7, restitution:0.25, count:12, PILE on pallet)
-           -> robot_arm (CAPSULE, cyan, scale:2, mass:50, friction:0.5, count:1, GRID)
-           -> Earth gravity, no wind
-
-        B) "Ball rolling down a metal ramp in low gravity with wind"
-           -> rubber_ball (SPHERE, red, scale:0.5, mass:1.5, restitution:0.85, friction:0.9, count:1, FLOAT)
-           -> metal_ramp (PLATE, silver, scale:4, mass:80, friction:0.4, angle:30°, count:1, GRID)
-           -> Moon gravity {x:0, y:-1.62, z:0}, wind {x:5, y:0, z:0}
-
-        C) "Glass bottles falling into a pile of plastic cubes"
-           -> glass_bottles (CYLINDER, cyan, scale:0.4, mass:2, restitution:0.7, friction:0.1, count:8, JET/falling)
-           -> plastic_cubes (CUBE, multi-color, scale:0.3, mass:0.5, restitution:0.6, friction:0.5, count:50, PILE)
-           -> Earth gravity, indoor (no wind)
-
-        D) "Drone navigating through warehouse with metal shelves and boxes"
-           -> drone (CAPSULE, black, scale:0.6, mass:2, friction:0.5, count:1, FLOAT, drag:0.08)
-           -> metal_shelves (CUBE, gray, scale:4, mass:200, friction:0.4, count:3, GRID/structured)
-           -> storage_boxes (CUBE, brown, scale:0.8, mass:5, friction:0.7, count:30, PILE on shelves)
-           -> Earth gravity, gentle breeze {x:2, y:0, z:0}
-
-        E) "VR training: Pick up coffee mug from office desk" (VR-SPECIFIC EXAMPLE)
-           -> office_desk (PLATE, wood brown, scale:4, mass:50, friction:0.6, count:1, GRID,
-               vrRole:'furniture', semanticLabel:'office_desk',
-               affordances:{graspable:false, manipulable:false, interactive:false, interactionType:'static'})
-           -> coffee_mug (CYLINDER, white, scale:0.3, mass:0.5, friction:0.5, restitution:0.3, count:1, FLOAT,
-               vrRole:'target', semanticLabel:'coffee_mug',
-               affordances:{graspable:true, manipulable:true, interactive:false, graspPoints:[{x:0.1, y:0, z:0}]},
-               spatialConstraint:{type:'on_surface', parentGroupId:'office_desk', offset:{x:0, y:0.15, z:0}, maintainOrientation:true})
-           -> Earth gravity, no wind
-
-        F) "VR training: Open drawer and retrieve tool" (VR-SPECIFIC WITH INTERACTIVE)
-           -> workbench (PLATE, wood, scale:4, mass:100, friction:0.7, count:1, GRID,
-               vrRole:'furniture', semanticLabel:'workbench',
-               affordances:{graspable:false, manipulable:false, interactive:false, interactionType:'static'})
-           -> drawer (CUBE, wood, scale:0.8, mass:5, friction:0.6, count:1, GRID,
-               vrRole:'tool', semanticLabel:'storage_drawer',
-               affordances:{graspable:true, manipulable:true, interactive:true, interactionType:'drawer'},
-               spatialConstraint:{type:'attached_to', parentGroupId:'workbench', offset:{x:0, y:-0.5, z:0}})
-           -> screwdriver (CYLINDER, metal, scale:0.4, mass:0.3, count:1, PILE,
-               vrRole:'tool', semanticLabel:'screwdriver',
-               affordances:{graspable:true, manipulable:true, interactive:false},
-               spatialConstraint:{type:'inside', parentGroupId:'drawer'})
-           -> Earth gravity, no wind
-
-        10. VR JOINT SYSTEM (FOR INTERACTIVE OBJECTS)
-           When interactive objects are mentioned (doors, drawers, buttons, levers), create joints:
-
-           DOOR JOINT (Revolute - Hinge):
-           - type: 'REVOLUTE'
-           - axis: Hinge axis (e.g., {x:0, y:1, z:0} for vertical hinge)
-           - limits: {min:0, max:1.57} (0 to 90 degrees)
-           - parentGroupId: Wall/frame ID, childGroupId: Door ID
-           - parentAnchor: Hinge position on parent
-           - childAnchor: Hinge position on door edge
-
-           DRAWER JOINT (Prismatic - Sliding):
-           - type: 'PRISMATIC'
-           - axis: Slide direction (e.g., {x:1, y:0, z:0} for forward)
-           - limits: {min:0, max:0.5} (0 to 0.5 meters extension)
-           - parentGroupId: Cabinet ID, childGroupId: Drawer ID
-           - parentAnchor: {x:0, y:0, z:0}, childAnchor: {x:0, y:0, z:0}
-
-           BUTTON JOINT (Prismatic - Press):
-           - type: 'PRISMATIC'
-           - axis: Press direction (e.g., {x:0, y:-1, z:0} downward)
-           - limits: {min:0, max:0.02} (20mm press depth)
-           - parentGroupId: Panel ID, childGroupId: Button ID
-           - motor: {enabled:true, targetVelocity:0, maxForce:50} (spring back)
-
-           LEVER JOINT (Revolute - Rotation):
-           - type: 'REVOLUTE'
-           - axis: Rotation axis
-           - limits: {min:-0.78, max:0.78} (-45° to +45°)
-           - parentGroupId: Base ID, childGroupId: Lever ID
-
-           HANDLE ATTACHMENT (Fixed):
-           - type: 'FIXED'
-           - parentGroupId: Door/Drawer ID, childGroupId: Handle ID
-           - Rigidly attached, no movement
-
-           JOINT GENERATION RULES:
-           - Always create parent object BEFORE child in assetGroups
-           - Parent must be static or heavier than child
-           - Joint ID format: "{parent_id}_to_{child_id}_joint"
-           - Initial state: 0 (closed/neutral position)
-           - Add motors for buttons/springs that auto-return
+        EXAMPLE:
+        "Lounge with floating orbs on a table"
+        -> table (PLATE, wood, scale:3, mass:30, friction:0.6, count:1, GRID)
+        -> orbs (SPHERE, colors, scale:0.4, mass:1, restitution:0.7, count:8, PILE on table)
+        -> Earth gravity, no wind
 
         CRITICAL RULES:
-        - Extract EVERY object mentioned - no random additions, no omissions
-        - Use REALISTIC physics values based on actual material science
-        - Scale mass with object size (mass ∝ scale³ for same material)
-        - Drag increases for irregular shapes and decreases for streamlined objects
-        - Foundation objects (floors, tables) must spawn before dependent objects
-        - Create joints array ONLY when interactive objects present
-        - Provide detailed "explanation" of physics reasoning
+        - Extract EVERY mentioned object - no additions, no omissions
+        - Use realistic physics values from material science
+        - Foundation objects (floors, tables) spawn before dependent objects
+        - Only create joints array when interactive objects present
+        - Provide brief explanation of physics reasoning
 
         Return strictly valid JSON matching the schema.`,
         config: {
@@ -767,15 +625,22 @@ export const generateCreativePrompt = async (): Promise<string> => {
             const ai = getAI();
             const response = await ai.models.generateContent({
                 model: getModelForTask('creative'),
-                contents: `Generate a single, short, creative, and scientifically interesting prompt for a physics simulation engine called SnapLock. 
-                The engine handles robotics, rigid body dynamics, zero-g, and multiple interacting asset layers.
-                
-                Examples:
-                - "Zero-G collision of a heavy gold sphere against a cloud of 200 steel cubes"
-                - "Avalanche of red pyramids crashing into a static wall of blue plates"
-                - "LIDAR calibration test with floating polyhedrons and a rotating sensor"
+                contents: `Generate a single, creative scene prompt for a social VR physics simulation engine called SnapLock.
 
-                OUTPUT: Just the prompt text string. No quotes, no markdown.`,
+                Scene Template Options:
+                - LOUNGE: Casual hangout with couches, floating orbs, interactive objects
+                - MEETING_ROOM: Conference table with chairs, markers, collaborative tools
+                - GAMING_ROOM: Arcade cabinets, neon bouncing balls, gaming furniture
+                - CREATIVE_STUDIO: Work tables with art supplies, colorful building blocks
+                - OPEN_WORLD: Minecraft-style terrain with trees, rocks, natural objects
+
+                Examples:
+                - "Casual lounge with colorful floating orbs and interactive cubes on tables"
+                - "Gaming lounge with neon bouncing balls and arcade-style furniture"
+                - "Creative studio with art supplies, building blocks, and work tables"
+                - "Open world with trees, rocks, and glowing crystals on grassy terrain"
+
+                OUTPUT: Just the prompt text string describing a social/collaborative VR space. No quotes, no markdown.`,
             });
             const text = response.text?.trim();
             if (!text) throw new Error("Empty response");
@@ -788,12 +653,28 @@ export const generateCreativePrompt = async (): Promise<string> => {
     }
 };
 
+/**
+ * WARNING: This function has critical issues:
+ * 1. Model "gemini-3-pro-image-preview" likely doesn't exist or is deprecated
+ * 2. Correct models: "imagen-3.0" or "gemini-2.0-flash-exp" with vision
+ * 3. The workflow is fundamentally flawed: trying to make wireframe "photorealistic"
+ *    while maintaining "pixel-perfect geometry" is impossible
+ * 4. SnapLock's 3D renders ARE ALREADY accurate - no AI enhancement needed
+ *
+ * RECOMMENDATION: Export screenshots directly from Three.js instead of AI generation
+ * TEMPORARY FIX: Returns original image until proper solution is implemented
+ */
 export const generateRealityImage = async (base64Image: string, prompt: string): Promise<string> => {
   if (isTestMode()) {
      // Return a 1x1 pixel base64 image
      return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
   }
 
+  // TEMPORARY: Return original image until proper model is configured
+  console.warn('[generateRealityImage] Photorealistic generation disabled. Returning original screenshot.');
+  return base64Image;
+
+  /* DISABLED CODE - Re-enable when model name is verified
   return withRetry(async () => {
     try {
         const ai = getAI();
@@ -867,14 +748,30 @@ export const generateRealityImage = async (base64Image: string, prompt: string):
         throw error;
     }
   });
+  */
 };
 
+/**
+ * WARNING: Video generation has fundamental issues:
+ * 1. Video AI models generate based on visual patterns, NOT physics simulation
+ * 2. Cannot accurately simulate Newtonian mechanics, collision dynamics, or gravity
+ * 3. Output looks plausible but is physically inaccurate
+ * 4. Generation takes minutes and may not be available in all API tiers
+ *
+ * RECOMMENDATION: Use Three.js to record actual physics simulation frames
+ * TEMPORARY FIX: Disabled until proper physics-based video recording is implemented
+ */
 export const generateSimulationVideo = async (base64Image: string, prompt: string): Promise<string> => {
   if (isTestMode()) {
       // Mock video blob url
       return "mock_video_url.mp4";
   }
 
+  // TEMPORARY: Disabled until proper solution
+  console.warn('[generateSimulationVideo] Video generation disabled. Use Three.js frame recording instead.');
+  throw new Error('Video generation temporarily disabled. Use screenshot capture instead.');
+
+  /* DISABLED CODE - Re-enable when physics-based recording is implemented
   try {
     const veoAi = getAI();
     const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
@@ -916,6 +813,7 @@ export const generateSimulationVideo = async (base64Image: string, prompt: strin
     console.error("Video Gen Error:", error);
     throw error;
   }
+  */
 };
 
 /**

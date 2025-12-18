@@ -6,6 +6,7 @@ import { PhysicsParams, LogEntry, ViewMode, TelemetryData, VRHand } from './type
 import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
 import { analyzePhysicsPrompt, analyzeSceneStability, generateCreativePrompt, generateSimulationReport, generatePhotorealisticScene } from './services/geminiService';
+import { SimpleInterface } from './components/SimpleInterface';
 import { ChaosMode } from './services/chaosMode';
 import { validateAndSanitize, ValidationOntology } from './services/validationService';
 import { LazarusDebugger } from './services/lazarusDebugger';
@@ -72,10 +73,16 @@ const App: React.FC = () => {
   // ML Export Modal State
   const [showMLExportModal, setShowMLExportModal] = useState(false);
 
-  // Photorealistic Rendering State
+  // Photorealistic Rendering State (DISABLED for simplicity)
   const [photorealisticImage, setPhotorealisticImage] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [showPhotorealistic, setShowPhotorealistic] = useState(true);
+  const [showPhotorealistic, setShowPhotorealistic] = useState(false); // Disabled by default
+
+  // Simple status message for user feedback
+  const [statusMessage, setStatusMessage] = useState<string>('');
+
+  // Calculate total particles for display
+  const totalParticles = params.assetGroups.reduce((sum, group) => sum + group.count, 0);
 
   // Refs
   const sceneRef = useRef<PhysicsSceneHandle>(null);
@@ -176,6 +183,7 @@ const App: React.FC = () => {
     }
 
     setIsAnalyzing(true);
+    setStatusMessage(`Generating scene: "${inputPrompt}"...`);
     addLog(`Configuring simulation for: "${inputPrompt}"...`);
 
     try {
@@ -213,23 +221,7 @@ const App: React.FC = () => {
       setIsPaused(false);
 
       addLog(`✓ Spawned ${validatedParams.assetGroups.length} groups - ${result.explanation}`, 'success');
-
-      // Generate photorealistic image
-      if (showPhotorealistic) {
-        setIsGeneratingImage(true);
-        addLog('🎨 Generating photorealistic render...', 'info');
-        try {
-          const realisticImage = await generatePhotorealisticScene(result.explanation);
-          setPhotorealisticImage(realisticImage);
-          addLog('✓ Photorealistic render complete', 'success');
-        } catch (imageError) {
-          console.error('[PHOTOREALISTIC ERROR]', imageError);
-          addLog('⚠️ Photorealistic rendering unavailable (using geometric render)', 'warning');
-          setPhotorealisticImage(null);
-        } finally {
-          setIsGeneratingImage(false);
-        }
-      }
+      setStatusMessage(`✓ Scene generated: ${validatedParams.assetGroups.length} object groups created`);
 
     } catch (error) {
       const errorMsg = (error as Error).message;
@@ -874,49 +866,25 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Photorealistic Image Overlay */}
-      {showPhotorealistic && photorealisticImage && (
-        <div className="absolute inset-0 z-5 pointer-events-none">
-          <img
-            src={photorealisticImage}
-            alt="Photorealistic render"
-            className="w-full h-full object-cover opacity-90"
-            style={{ mixBlendMode: 'normal' }}
-          />
-          <div className="absolute top-4 left-4 bg-black/70 text-cyan-400 px-3 py-1 rounded text-xs font-mono">
-            🎨 AI RENDER
-          </div>
-          <button
-            onClick={() => setShowPhotorealistic(false)}
-            className="absolute top-4 right-4 bg-black/70 hover:bg-black/90 text-white px-3 py-1 rounded text-xs pointer-events-auto"
-          >
-            Show Geometric
-          </button>
-        </div>
-      )}
+      {/* Simplified UI */}
+      <SimpleInterface
+        prompt={prompt}
+        setPrompt={setPrompt}
+        onGenerate={handleAnalyze}
+        isGenerating={isAnalyzing}
+        statusMessage={statusMessage}
+        autoRegenerate={isAutoSpawn}
+        setAutoRegenerate={setIsAutoSpawn}
+        onExport={handleOpenMLExportModal}
+        onResetCamera={handleResetCamera}
+        sceneInfo={{
+          objectCount: totalParticles,
+          fps: Math.round(telemetryRef.current.fps)
+        }}
+      />
 
-      {/* Loading Indicator for Photorealistic Generation */}
-      {isGeneratingImage && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/80 text-white px-6 py-4 rounded-lg flex items-center gap-3">
-            <div className="animate-spin h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full" />
-            <span className="font-mono text-sm">Generating photorealistic render...</span>
-          </div>
-        </div>
-      )}
-
-      {/* Toggle button when photorealistic is hidden */}
-      {!showPhotorealistic && (
-        <button
-          onClick={() => setShowPhotorealistic(true)}
-          className="absolute top-4 right-4 z-10 bg-cyan-600/90 hover:bg-cyan-500 text-white px-4 py-2 rounded text-sm font-medium"
-        >
-          🎨 Show AI Render
-        </button>
-      )}
-
-      {/* UI Overlay Layer */}
-      <ControlPanel
+      {/* Old ControlPanel (hidden, for debugging) */}
+      {false && <ControlPanel
         prompt={prompt}
         setPrompt={setPrompt}
         onAnalyze={handleAnalyze}
@@ -949,7 +917,7 @@ const App: React.FC = () => {
         onExportYOLO={handleExportYOLO}
         isRecording={isRecording}
         recordedFrameCount={recordedFrameCount}
-      />
+      />}
 
       {/* ML Export Modal */}
       <MLExportModal

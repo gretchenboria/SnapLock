@@ -563,9 +563,18 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
   } catch (error: any) {
       console.error("[GeminiService] Analysis Error:", error);
 
-      // Use fallback for quota errors
-      if (error.message && (error.message.includes('quota') || error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED'))) {
-        console.warn('[GeminiService] API quota exceeded, using fallback scene generation');
+      // Use fallback for quota errors, authentication errors, or API key issues
+      const errorMessage = error.message || '';
+      const errorCode = error.status || error.code || '';
+
+      const isQuotaError = errorMessage.includes('quota') || errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED');
+      const isAuthError = errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('403') ||
+                          errorCode === 401 || errorCode === 403 || errorMessage.includes('unauthorized') ||
+                          errorMessage.includes('API_KEY_INVALID') || !hasApiKey();
+      const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('ECONNREFUSED');
+
+      if (isQuotaError || isAuthError || isNetworkError) {
+        console.warn('[GeminiService] API unavailable (quota/auth/network), using fallback scene generation');
         return generateFallbackScene(userPrompt);
       }
 
@@ -578,49 +587,55 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
  * Validates AI response against user intent and retries if needed
  */
 export const analyzePhysicsPrompt = async (userPrompt: string): Promise<AnalysisResponse> => {
-  const MAX_RETRIES = 2;
-  let attempt = 0;
-  let lastResponse: AnalysisResponse | null = null;
+  try {
+    const MAX_RETRIES = 2;
+    let attempt = 0;
+    let lastResponse: AnalysisResponse | null = null;
 
-  while (attempt < MAX_RETRIES) {
-    attempt++;
+    while (attempt < MAX_RETRIES) {
+      attempt++;
 
-    // Get AI response
-    const promptToUse = attempt === 1
-      ? userPrompt
-      : AIValidationService.generateEnhancedPrompt(userPrompt, AIValidationService.extractIntent(userPrompt));
+      // Get AI response
+      const promptToUse = attempt === 1
+        ? userPrompt
+        : AIValidationService.generateEnhancedPrompt(userPrompt, AIValidationService.extractIntent(userPrompt));
 
-    const response = await analyzePhysicsPromptInternal(promptToUse);
-    lastResponse = response;
+      const response = await analyzePhysicsPromptInternal(promptToUse);
+      lastResponse = response;
 
-    // Extract physics params for validation
-    const physicsParams: PhysicsParams = {
-      gravity: response.gravity,
-      wind: response.wind,
-      movementBehavior: response.movementBehavior,
-      assetGroups: response.assetGroups,
-    };
+      // Extract physics params for validation
+      const physicsParams: PhysicsParams = {
+        gravity: response.gravity,
+        wind: response.wind,
+        movementBehavior: response.movementBehavior,
+        assetGroups: response.assetGroups,
+      };
 
-    // Validate response
-    const validationResult = AIValidationService.validateAIResponse(userPrompt, physicsParams);
+      // Validate response
+      const validationResult = AIValidationService.validateAIResponse(userPrompt, physicsParams);
 
-    // Log validation results
-    AIValidationService.logValidationResults(validationResult, userPrompt);
+      // Log validation results
+      AIValidationService.logValidationResults(validationResult, userPrompt);
 
-    // If valid or last attempt, return
-    if (validationResult.isValid || attempt >= MAX_RETRIES) {
-      if (!validationResult.isValid && attempt >= MAX_RETRIES) {
-        console.warn(`⚠️ AI validation failed after ${MAX_RETRIES} attempts. Using last response anyway.`);
+      // If valid or last attempt, return
+      if (validationResult.isValid || attempt >= MAX_RETRIES) {
+        if (!validationResult.isValid && attempt >= MAX_RETRIES) {
+          console.warn(`⚠️ AI validation failed after ${MAX_RETRIES} attempts. Using last response anyway.`);
+        }
+        return response;
       }
-      return response;
+
+      // Log retry
+      console.log(`🔄 Validation failed (confidence: ${(validationResult.confidence * 100).toFixed(1)}%). Retrying with enhanced prompt (attempt ${attempt + 1}/${MAX_RETRIES})...`);
     }
 
-    // Log retry
-    console.log(`🔄 Validation failed (confidence: ${(validationResult.confidence * 100).toFixed(1)}%). Retrying with enhanced prompt (attempt ${attempt + 1}/${MAX_RETRIES})...`);
+    // Fallback (should never reach here)
+    return lastResponse!;
+  } catch (error) {
+    // Final safety net: if everything fails, return a basic fallback scene
+    console.error('[GeminiService] All attempts failed, using final fallback scene:', error);
+    return generateFallbackScene(userPrompt);
   }
-
-  // Fallback (should never reach here)
-  return lastResponse!;
 };
 
 export const generateCreativePrompt = async (): Promise<string> => {

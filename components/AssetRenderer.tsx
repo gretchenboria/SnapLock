@@ -80,22 +80,49 @@ const PrimitiveAsset: React.FC<AssetRendererProps> = ({ group, meshRef, viewMode
     );
 };
 
-// Shared Material Logic
+// Shared Material Logic - Enhanced for Photorealistic Rendering
 const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }) => {
     const baseColor = new THREE.Color(group.color);
     // Brighten colors by 50% for much better visibility
     const brightenedColor = baseColor.clone().multiplyScalar(1.5);
 
+    // Enhanced PBR properties based on material physics
+    // High restitution (bouncy) = smooth/hard surface = low roughness
+    // Low restitution (absorbs energy) = rough/soft surface = high roughness
+    const roughness = viewMode === ViewMode.RGB
+        ? Math.max(0.2, Math.min(0.9, 1.0 - group.restitution))
+        : 1.0;
+
+    // High friction suggests non-metallic (wood, rubber, fabric)
+    // Low friction suggests metal or glass
+    const metalness = viewMode === ViewMode.RGB
+        ? Math.max(0, Math.min(0.95, (1.0 - group.friction) * 0.8))
+        : 0.0;
+
+    // Enhanced lighting and reflections
+    const emissive = viewMode === ViewMode.LIDAR
+        ? new THREE.Color(0x222222)
+        : baseColor.clone().multiplyScalar(0.15);
+
+    const emissiveIntensity = viewMode === ViewMode.RGB ? 0.2 : 0.0;
+
+    // Glass-like materials (low friction, high restitution)
+    const isGlassLike = group.friction < 0.3 && group.restitution > 0.6;
+    const transparent = viewMode === ViewMode.RGB && isGlassLike;
+    const opacity = transparent ? 0.7 : 1.0;
+
     return (
         <meshStandardMaterial
             color={brightenedColor}
             wireframe={viewMode === ViewMode.WIREFRAME}
-            roughness={viewMode === ViewMode.RGB ? Math.max(0.3, 1.0 - group.restitution) : 1.0}
-            metalness={viewMode === ViewMode.RGB ? 0.1 : 0.0}
-            transparent={viewMode === ViewMode.RGB && group.restitution < 0.2}
-            opacity={viewMode === ViewMode.RGB && group.restitution < 0.2 ? 0.8 : 1.0}
-            emissive={viewMode === ViewMode.LIDAR ? new THREE.Color(0x222222) : baseColor.clone().multiplyScalar(0.2)}
-            emissiveIntensity={viewMode === ViewMode.RGB ? 0.3 : 0.0}
+            roughness={roughness}
+            metalness={metalness}
+            transparent={transparent}
+            opacity={opacity}
+            emissive={emissive}
+            emissiveIntensity={emissiveIntensity}
+            envMapIntensity={1.5} // Enhanced environment reflections
+            flatShading={false} // Smooth shading for realism
         />
     );
 };

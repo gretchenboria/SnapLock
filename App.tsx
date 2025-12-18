@@ -5,7 +5,7 @@ import { DEFAULT_PHYSICS } from './constants';
 import { PhysicsParams, LogEntry, ViewMode, TelemetryData, VRHand } from './types';
 import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
-import { analyzePhysicsPrompt, analyzeSceneStability, generateCreativePrompt, generateSimulationReport } from './services/geminiService';
+import { analyzePhysicsPrompt, analyzeSceneStability, generateCreativePrompt, generateSimulationReport, generatePhotorealisticScene } from './services/geminiService';
 import { ChaosMode } from './services/chaosMode';
 import { validateAndSanitize, ValidationOntology } from './services/validationService';
 import { LazarusDebugger } from './services/lazarusDebugger';
@@ -71,6 +71,11 @@ const App: React.FC = () => {
 
   // ML Export Modal State
   const [showMLExportModal, setShowMLExportModal] = useState(false);
+
+  // Photorealistic Rendering State
+  const [photorealisticImage, setPhotorealisticImage] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [showPhotorealistic, setShowPhotorealistic] = useState(true);
 
   // Refs
   const sceneRef = useRef<PhysicsSceneHandle>(null);
@@ -208,6 +213,23 @@ const App: React.FC = () => {
       setIsPaused(false);
 
       addLog(`✓ Spawned ${validatedParams.assetGroups.length} groups - ${result.explanation}`, 'success');
+
+      // Generate photorealistic image
+      if (showPhotorealistic) {
+        setIsGeneratingImage(true);
+        addLog('🎨 Generating photorealistic render...', 'info');
+        try {
+          const realisticImage = await generatePhotorealisticScene(result.explanation);
+          setPhotorealisticImage(realisticImage);
+          addLog('✓ Photorealistic render complete', 'success');
+        } catch (imageError) {
+          console.error('[PHOTOREALISTIC ERROR]', imageError);
+          addLog('⚠️ Photorealistic rendering unavailable (using geometric render)', 'warning');
+          setPhotorealisticImage(null);
+        } finally {
+          setIsGeneratingImage(false);
+        }
+      }
 
     } catch (error) {
       const errorMsg = (error as Error).message;
@@ -840,7 +862,7 @@ const App: React.FC = () => {
 
       {/* 3D Scene Layer */}
       <div className="absolute inset-0 z-0">
-        <PhysicsScene 
+        <PhysicsScene
           ref={sceneRef}
           params={params}
           isPaused={isPaused}
@@ -851,6 +873,47 @@ const App: React.FC = () => {
           telemetryRef={telemetryRef}
         />
       </div>
+
+      {/* Photorealistic Image Overlay */}
+      {showPhotorealistic && photorealisticImage && (
+        <div className="absolute inset-0 z-5 pointer-events-none">
+          <img
+            src={photorealisticImage}
+            alt="Photorealistic render"
+            className="w-full h-full object-cover opacity-90"
+            style={{ mixBlendMode: 'normal' }}
+          />
+          <div className="absolute top-4 left-4 bg-black/70 text-cyan-400 px-3 py-1 rounded text-xs font-mono">
+            🎨 AI RENDER
+          </div>
+          <button
+            onClick={() => setShowPhotorealistic(false)}
+            className="absolute top-4 right-4 bg-black/70 hover:bg-black/90 text-white px-3 py-1 rounded text-xs pointer-events-auto"
+          >
+            Show Geometric
+          </button>
+        </div>
+      )}
+
+      {/* Loading Indicator for Photorealistic Generation */}
+      {isGeneratingImage && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <div className="bg-black/80 text-white px-6 py-4 rounded-lg flex items-center gap-3">
+            <div className="animate-spin h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full" />
+            <span className="font-mono text-sm">Generating photorealistic render...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Toggle button when photorealistic is hidden */}
+      {!showPhotorealistic && (
+        <button
+          onClick={() => setShowPhotorealistic(true)}
+          className="absolute top-4 right-4 z-10 bg-cyan-600/90 hover:bg-cyan-500 text-white px-4 py-2 rounded text-sm font-medium"
+        >
+          🎨 Show AI Render
+        </button>
+      )}
 
       {/* UI Overlay Layer */}
       <ControlPanel

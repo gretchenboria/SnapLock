@@ -37,9 +37,9 @@ const App: React.FC = () => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.RGB);
   
-  // Auto Spawn State - DEFAULT ON for blank slate workflow
-  const [isAutoSpawn, setIsAutoSpawn] = useState(true);
-  const isAutoSpawnRef = useRef(true); // Ref to track state inside async closures
+  // Auto Spawn State - DEFAULT OFF for manual workflow
+  const [isAutoSpawn, setIsAutoSpawn] = useState(false);
+  const isAutoSpawnRef = useRef(false); // Ref to track state inside async closures
   const autoSpawnTimerRef = useRef<number | null>(null);
   const isAnalyzingRef = useRef(false); // Ref to avoid stale closure in intervals
 
@@ -48,9 +48,9 @@ const App: React.FC = () => {
   const [chaosActivity, setChaosActivity] = useState<string>('');
   const chaosIntervalRef = useRef<number | null>(null);
 
-  // Lazarus Diagnostics State
-  const [lazarusStatus, setLazarusStatus] = useState<'HEALTHY' | 'WARNING' | 'CRITICAL' | 'ERROR'>('HEALTHY');
-  const [lazarusSummary, setLazarusSummary] = useState<string>('All systems operational');
+  // Lazarus Diagnostics State - DISABLED
+  // const [lazarusStatus, setLazarusStatus] = useState<'HEALTHY' | 'WARNING' | 'CRITICAL' | 'ERROR'>('HEALTHY');
+  // const [lazarusSummary, setLazarusSummary] = useState<string>('All systems operational');
 
   // Snappy Assistant State
   const [isSnappyEnabled, setIsSnappyEnabled] = useState(false);
@@ -125,26 +125,26 @@ const App: React.FC = () => {
       }
   }, []);
 
-  // Load Initial Scene on Mount (prevent blank canvas on startup)
-  useEffect(() => {
-      // Generate initial procedural scene so users see something immediately
-      const templates = Object.values(SceneTemplate);
-      const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
-      const roomSizes: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
-      const densities: Array<'sparse' | 'medium' | 'dense'> = ['sparse', 'medium', 'dense'];
-      const themes: Array<'vibrant' | 'pastel' | 'neon' | 'natural'> = ['vibrant', 'pastel', 'neon', 'natural'];
+  // Load Initial Scene on Mount - DISABLED (user should manually generate)
+  // useEffect(() => {
+  //     // Generate initial procedural scene so users see something immediately
+  //     const templates = Object.values(SceneTemplate);
+  //     const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+  //     const roomSizes: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
+  //     const densities: Array<'sparse' | 'medium' | 'dense'> = ['sparse', 'medium', 'dense'];
+  //     const themes: Array<'vibrant' | 'pastel' | 'neon' | 'natural'> = ['vibrant', 'pastel', 'neon', 'natural'];
 
-      const initialParams = ProceduralSceneGenerator.generateScene({
-          template: randomTemplate,
-          roomSize: roomSizes[Math.floor(Math.random() * roomSizes.length)],
-          objectDensity: densities[Math.floor(Math.random() * densities.length)],
-          colorTheme: themes[Math.floor(Math.random() * themes.length)]
-      });
+  //     const initialParams = ProceduralSceneGenerator.generateScene({
+  //         template: randomTemplate,
+  //         roomSize: roomSizes[Math.floor(Math.random() * roomSizes.length)],
+  //         objectDensity: densities[Math.floor(Math.random() * densities.length)],
+  //         colorTheme: themes[Math.floor(Math.random() * themes.length)]
+  //     });
 
-      setParams(initialParams);
-      setShouldReset(true);
-      console.log(`[SnapLock] Initial scene loaded: ${randomTemplate}`);
-  }, []); // Empty dependency array - run once on mount
+  //     setParams(initialParams);
+  //     setShouldReset(true);
+  //     console.log(`[SnapLock] Initial scene loaded: ${randomTemplate}`);
+  // }, []); // Empty dependency array - run once on mount
 
   // Helpers
   const addLog = useCallback((message: string, type: LogEntry['type'] = 'info') => {
@@ -337,48 +337,49 @@ const App: React.FC = () => {
       }
   };
 
-  const handleRunDiagnostics = async () => {
-      addLog("Running Lazarus Diagnostics...", "info");
+  // DISABLED - Lazarus diagnostics
+  // const handleRunDiagnostics = async () => {
+  //     addLog("Running Lazarus Diagnostics...", "info");
 
-      try {
-          const report = await LazarusDebugger.runDiagnostics(
-              params,
-              telemetryRef.current,
-              logs,
-              {
-                  prompt,
-                  isAutoSpawn,
-                  isPaused,
-                  isAnalyzing,
-                  isChaosActive
-              }
-          );
+  //     try {
+  //         const report = await LazarusDebugger.runDiagnostics(
+  //             params,
+  //             telemetryRef.current,
+  //             logs,
+  //             {
+  //                 prompt,
+  //                 isAutoSpawn,
+  //                 isPaused,
+  //                 isAnalyzing,
+  //                 isChaosActive
+  //             }
+  //         );
 
-          // Format and log report
-          const formattedReport = LazarusDebugger.formatReport(report);
-          console.log(formattedReport);
+  //         // Format and log report
+  //         const formattedReport = LazarusDebugger.formatReport(report);
+  //         console.log(formattedReport);
 
-          // Add summary to logs
-          addLog(`Diagnostics Complete: ${report.overallStatus}`,
-                 report.overallStatus === 'HEALTHY' ? 'success' :
-                 report.overallStatus === 'CRITICAL' ? 'error' : 'warning');
+  //         // Add summary to logs
+  //         addLog(`Diagnostics Complete: ${report.overallStatus}`,
+  //                report.overallStatus === 'HEALTHY' ? 'success' :
+  //                report.overallStatus === 'CRITICAL' ? 'error' : 'warning');
 
-          if (report.errors.length > 0) {
-              addLog(`Found ${report.errors.length} errors - see console for details`, 'error');
-          }
+  //         if (report.errors.length > 0) {
+  //             addLog(`Found ${report.errors.length} errors - see console for details`, 'error');
+  //         }
 
-          if (report.warnings.length > 0) {
-              addLog(`Found ${report.warnings.length} warnings - see console for details`, 'warning');
-          }
+  //         if (report.warnings.length > 0) {
+  //             addLog(`Found ${report.warnings.length} warnings - see console for details`, 'warning');
+  //         }
 
-          // Show alert with summary
-          alert(`LAZARUS DIAGNOSTIC REPORT\n\nStatus: ${report.overallStatus}\n${report.summary}\n\nErrors: ${report.errors.length}\nWarnings: ${report.warnings.length}\n\nFull report available in browser console.`);
+  //         // Show alert with summary
+  //         alert(`LAZARUS DIAGNOSTIC REPORT\n\nStatus: ${report.overallStatus}\n${report.summary}\n\nErrors: ${report.errors.length}\nWarnings: ${report.warnings.length}\n\nFull report available in browser console.`);
 
-      } catch (error) {
-          addLog(`Diagnostics failed: ${(error as Error).message}`, 'error');
-          console.error('Lazarus diagnostics error:', error);
-      }
-  };
+  //     } catch (error) {
+  //         addLog(`Diagnostics failed: ${(error as Error).message}`, 'error');
+  //         console.error('Lazarus diagnostics error:', error);
+  //     }
+  // };
 
   // --- ML GROUND TRUTH EXPORT HANDLERS ---
   const handleCaptureMLFrame = useCallback(() => {
@@ -639,38 +640,38 @@ const App: React.FC = () => {
     };
   }, [isChaosActive, addLog, isPaused]);
 
-  // --- LAZARUS DIAGNOSTICS LOOP ---
-  useEffect(() => {
-    const runDiagnostics = async () => {
-      try {
-        const report = await LazarusDebugger.runDiagnostics(
-          params,
-          telemetryRef.current,
-          logs,
-          {
-            prompt,
-            isAutoSpawn,
-            isPaused,
-            isAnalyzing,
-            isChaosActive
-          }
-        );
+  // --- LAZARUS DIAGNOSTICS LOOP --- DISABLED
+  // useEffect(() => {
+  //   const runDiagnostics = async () => {
+  //     try {
+  //       const report = await LazarusDebugger.runDiagnostics(
+  //         params,
+  //         telemetryRef.current,
+  //         logs,
+  //         {
+  //           prompt,
+  //           isAutoSpawn,
+  //           isPaused,
+  //           isAnalyzing,
+  //           isChaosActive
+  //         }
+  //       );
 
-        setLazarusStatus(report.overallStatus);
-        setLazarusSummary(report.summary);
-      } catch (error) {
-        console.error('[Lazarus] Diagnostics failed:', error);
-        setLazarusStatus('ERROR');
-        setLazarusSummary('Diagnostics error');
-      }
-    };
+  //       setLazarusStatus(report.overallStatus);
+  //       setLazarusSummary(report.summary);
+  //     } catch (error) {
+  //       console.error('[Lazarus] Diagnostics failed:', error);
+  //       setLazarusStatus('ERROR');
+  //       setLazarusSummary('Diagnostics error');
+  //     }
+  //   };
 
-    // Run diagnostics every 10 seconds
-    const interval = window.setInterval(runDiagnostics, 10000);
-    runDiagnostics(); // Run immediately
+  //   // Run diagnostics every 10 seconds
+  //   const interval = window.setInterval(runDiagnostics, 10000);
+  //   runDiagnostics(); // Run immediately
 
-    return () => window.clearInterval(interval);
-  }, [params, logs, prompt, isAutoSpawn, isPaused, isAnalyzing, isChaosActive]);
+  //   return () => window.clearInterval(interval);
+  // }, [params, logs, prompt, isAutoSpawn, isPaused, isAnalyzing, isChaosActive]);
 
   // --- SNAPPY CHATBOT HANDLER ---
   const handleSnappyMessage = useCallback(async (message: string): Promise<string> => {
@@ -683,61 +684,61 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // --- LAZARUS AUTO-FIX HANDLER ---
-  const handleLazarusClick = useCallback(async () => {
-    addLog('🐛 Lazarus: Running diagnostics...', 'info');
+  // --- LAZARUS AUTO-FIX HANDLER --- DISABLED
+  // const handleLazarusClick = useCallback(async () => {
+  //   addLog('🐛 Lazarus: Running diagnostics...', 'info');
 
-    try {
-      const report = await LazarusDebugger.runDiagnostics(
-        params,
-        telemetryRef.current,
-        logs,
-        {
-          prompt,
-          isAutoSpawn,
-          isPaused,
-          isAnalyzing,
-          isChaosActive
-        }
-      );
+  //   try {
+  //     const report = await LazarusDebugger.runDiagnostics(
+  //       params,
+  //       telemetryRef.current,
+  //       logs,
+  //       {
+  //         prompt,
+  //         isAutoSpawn,
+  //         isPaused,
+  //         isAnalyzing,
+  //         isChaosActive
+  //       }
+  //     );
 
-      // Log diagnosis
-      addLog(`🐛 Lazarus: ${report.summary}`, report.overallStatus === 'HEALTHY' ? 'success' : 'warning');
+  //     // Log diagnosis
+  //     addLog(`🐛 Lazarus: ${report.summary}`, report.overallStatus === 'HEALTHY' ? 'success' : 'warning');
 
-      // Auto-fix common issues
-      if (report.errors.length > 0 || report.warnings.length > 0) {
-        // Fix empty asset groups
-        if (params.assetGroups.length === 0) {
-          addLog('🐛 Lazarus: Fixing empty scene...', 'info');
-          if (isAutoSpawn) {
-            const creativePrompt = await generateCreativePrompt();
-            setPrompt(creativePrompt);
-            await executeAnalysis(creativePrompt, 'MANUAL');
-            addLog('🐛 Lazarus: Scene populated!', 'success');
-          } else {
-            addLog('🐛 Lazarus: Enable Auto-Spawn or enter a prompt to populate scene', 'warning');
-          }
-        }
+  //     // Auto-fix common issues
+  //     if (report.errors.length > 0 || report.warnings.length > 0) {
+  //       // Fix empty asset groups
+  //       if (params.assetGroups.length === 0) {
+  //         addLog('🐛 Lazarus: Fixing empty scene...', 'info');
+  //         if (isAutoSpawn) {
+  //           const creativePrompt = await generateCreativePrompt();
+  //           setPrompt(creativePrompt);
+  //           await executeAnalysis(creativePrompt, 'MANUAL');
+  //           addLog('🐛 Lazarus: Scene populated!', 'success');
+  //         } else {
+  //           addLog('🐛 Lazarus: Enable Auto-Spawn or enter a prompt to populate scene', 'warning');
+  //         }
+  //       }
 
-        // Fix paused simulation with no reason
-        if (isPaused && params.assetGroups.length > 0) {
-          addLog('🐛 Lazarus: Unpausing simulation...', 'info');
-          setIsPaused(false);
-        }
+  //       // Fix paused simulation with no reason
+  //       if (isPaused && params.assetGroups.length > 0) {
+  //         addLog('🐛 Lazarus: Unpausing simulation...', 'info');
+  //         setIsPaused(false);
+  //       }
 
-        // Recommend fixes for other issues
-        if (report.recommendations.length > 0) {
-          report.recommendations.forEach(rec => {
-            addLog(`🐛 Lazarus suggests: ${rec}`, 'info');
-          });
-        }
-      } else {
-        addLog('🐛 Lazarus: All systems healthy! No fixes needed.', 'success');
-      }
-    } catch (error) {
-      addLog(`🐛 Lazarus: Diagnostics failed - ${(error as Error).message}`, 'error');
-    }
-  }, [params, logs, prompt, isAutoSpawn, isPaused, isAnalyzing, isChaosActive, addLog, executeAnalysis]);
+  //       // Recommend fixes for other issues
+  //       if (report.recommendations.length > 0) {
+  //         report.recommendations.forEach(rec => {
+  //           addLog(`🐛 Lazarus suggests: ${rec}`, 'info');
+  //         });
+  //       }
+  //     } else {
+  //       addLog('🐛 Lazarus: All systems healthy! No fixes needed.', 'success');
+  //     }
+  //   } catch (error) {
+  //     addLog(`🐛 Lazarus: Diagnostics failed - ${(error as Error).message}`, 'error');
+  //   }
+  // }, [params, logs, prompt, isAutoSpawn, isPaused, isAnalyzing, isChaosActive, addLog, executeAnalysis]);
 
   // --- PROCEDURAL ROOM GENERATION ---
   const handleGenerateRoom = useCallback(() => {
@@ -906,7 +907,7 @@ const App: React.FC = () => {
         onDownloadCSV={handleDownloadCSV}
         onGenerateReport={handleGenerateReport}
         isGeneratingReport={isGeneratingReport}
-        onRunDiagnostics={handleRunDiagnostics}
+        onRunDiagnostics={() => {}} // Disabled Lazarus
         isSnappyEnabled={isSnappyEnabled}
         toggleSnappy={() => setIsSnappyEnabled(!isSnappyEnabled)}
         // ML Export props
@@ -1075,13 +1076,13 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Characters: Chaos, Lazarus, Snappy (Free-floating gently around UI) */}
-      <FloatingCharacters
+      {/* Floating Characters: Chaos, Lazarus, Snappy (Free-floating gently around UI) - DISABLED */}
+      {/* <FloatingCharacters
         isChaosActive={isChaosActive}
         onChaosClick={() => setIsChaosActive(!isChaosActive)}
         onLazarusClick={handleLazarusClick}
         onSnappyClick={() => setIsSnappyEnabled(true)}
-      />
+      /> */}
 
       {/* Guided Tour */}
       {showGuidedTour && (

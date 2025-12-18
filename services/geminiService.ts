@@ -707,52 +707,74 @@ export const generatePhotorealisticScene = async (sceneDescription: string): Pro
      return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
   }
 
-  if (!hasApiKey()) {
-    console.warn('[generatePhotorealisticScene] No API key available');
-    throw new Error('API key required for photorealistic rendering');
-  }
+  // Enhanced prompt for photorealistic rendering
+  const imagePrompt = `Photorealistic 3D render: ${sceneDescription}.
+  Professional quality, realistic materials (wood textures, metallic reflections, glass transparency),
+  neutral office/lab environment with proper lighting and shadows,
+  clean composition, high detail, suitable for computer vision training data. 16:9 aspect ratio.`;
+
+  console.log('[generatePhotorealisticScene] Generating with local Stable Diffusion server');
 
   try {
-    const apiKey = getApiKey();
+    // Try local Stable Diffusion server first
+    const sdResponse = await fetch('http://localhost:5001/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: imagePrompt })
+    });
 
-    // Enhanced prompt for photorealistic rendering
-    const imagePrompt = `Photorealistic 3D render: ${sceneDescription}.
-    Professional quality, realistic materials (wood textures, metallic reflections, glass transparency),
-    neutral office/lab environment with proper lighting and shadows,
-    clean composition, high detail, suitable for computer vision training data.`;
-
-    console.log('[generatePhotorealisticScene] Generating with Imagen 4.0');
-
-    // Try Imagen 4.0 first
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:generateImages?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: imagePrompt,
-            config: {
-              numberOfImages: 1,
-              aspectRatio: '16:9'
-            }
-          })
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.images && result.images.length > 0) {
-          const imageData = result.images[0].imageBytes;
-          return `data:image/png;base64,${imageData}`;
-        }
+    if (sdResponse.ok) {
+      const result = await sdResponse.json();
+      if (result.success && result.image) {
+        console.log('[generatePhotorealisticScene] Successfully generated with Stable Diffusion');
+        return result.image;
       }
-    } catch (imagenError) {
-      console.warn('[generatePhotorealisticScene] Imagen 4.0 failed, trying Gemini alternative:', imagenError);
     }
 
-    // Fallback: Use Gemini 2.0 Flash Image Generation
-    console.log('[generatePhotorealisticScene] Falling back to Gemini 2.0 Flash Image Generation');
+    console.warn('[generatePhotorealisticScene] Local SD server unavailable, trying cloud APIs...');
+  } catch (sdError) {
+    console.warn('[generatePhotorealisticScene] Local SD server error:', sdError);
+  }
+
+  // Fallback to cloud APIs if local server unavailable
+  if (!hasApiKey()) {
+    throw new Error('Photorealistic rendering requires either local SD server (http://localhost:5001) or Gemini API key');
+  }
+
+  const apiKey = getApiKey();
+
+  // Try Imagen 4.0
+  try {
+    console.log('[generatePhotorealisticScene] Trying Imagen 4.0...');
+    const imagenResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:generateImages?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: imagePrompt,
+          config: {
+            numberOfImages: 1,
+            aspectRatio: '16:9'
+          }
+        })
+      }
+    );
+
+    if (imagenResponse.ok) {
+      const result = await imagenResponse.json();
+      if (result.images && result.images.length > 0) {
+        const imageData = result.images[0].imageBytes;
+        return `data:image/png;base64,${imageData}`;
+      }
+    }
+  } catch (imagenError) {
+    console.warn('[generatePhotorealisticScene] Imagen 4.0 failed:', imagenError);
+  }
+
+  // Final fallback: Gemini image generation
+  try {
+    console.log('[generatePhotorealisticScene] Trying Gemini 2.0 Flash Image Generation...');
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash-exp-image-generation',
@@ -767,12 +789,11 @@ export const generatePhotorealisticScene = async (sceneDescription: string): Pro
     if (imagePart && imagePart.inlineData && imagePart.inlineData.data) {
       return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
     }
-
-    throw new Error('No image data found in response');
-  } catch (error: any) {
-    console.error('[generatePhotorealisticScene] All image generation attempts failed:', error);
-    throw new Error(`Photorealistic generation failed: ${error.message}`);
+  } catch (geminiError) {
+    console.error('[generatePhotorealisticScene] Gemini image generation failed:', geminiError);
   }
+
+  throw new Error('All photorealistic generation methods failed. Start local SD server: cd backend && python sd_server.py');
 };
 
 /**

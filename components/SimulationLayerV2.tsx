@@ -8,7 +8,7 @@
 import React, { useRef, useMemo, useEffect, useImperativeHandle, forwardRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { PhysicsParams, ShapeType, MovementBehavior, SpawnMode, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot, MLGroundTruthFrame, BoundingBox2D, BoundingBox3D, CameraIntrinsics, CameraExtrinsics, Vector3Data, VRHand } from '../types';
+import { PhysicsParams, ShapeType, MovementBehavior, SpawnMode, ViewMode, TelemetryData, SimulationLayerHandle, ParticleSnapshot, MLGroundTruthFrame, BoundingBox2D, BoundingBox3D, CameraIntrinsics, CameraExtrinsics, Vector3Data, VRHand, RigidBodyType } from '../types';
 import { AssetRenderer } from './AssetRenderer';
 import { PhysicsEngine } from '../services/physicsEngine';
 import { VRHandRenderer } from './VRHandRenderer';
@@ -88,6 +88,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
   const angularVelocities = useRef(new Float32Array(0));
   const initialPositions = useRef(new Float32Array(0));
   const meta = useRef(new Float32Array(0));
+  const bodyTypes = useRef(new Uint8Array(0)); // 0=DYNAMIC, 1=KINEMATIC, 2=STATIC
 
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const tempColor = useMemo(() => new THREE.Color(), []);
@@ -367,6 +368,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
       angularVelocities.current = new Float32Array(totalParticles * 3);
       initialPositions.current = new Float32Array(totalParticles * 3);
       meta.current = new Float32Array(totalParticles);
+      bodyTypes.current = new Uint8Array(totalParticles);
     }
 
     const pos = positions.current;
@@ -374,6 +376,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
     const rot = rotations.current;
     const init = initialPositions.current;
     const m = meta.current;
+    const bodyType = bodyTypes.current;
 
     // Seed particles
     groupStructure.forEach((structure) => {
@@ -456,10 +459,22 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
             pos[i3] = x; pos[i3+1] = y; pos[i3+2] = z;
             init[i3] = x; init[i3+1] = y; init[i3+2] = z;
 
-            // Initial velocity based on movement behavior and spawn mode
-            // Kinematic behaviors (ORBITAL, SWARM_FLOCK, SINUSOIDAL_WAVE, LINEAR_FLOW) don't use velocity
-            // They're driven by position updates, so set minimal velocity
-            if (params.movementBehavior === MovementBehavior.ORBITAL ||
+            // Set rigid body type FIRST (CRITICAL for surgical/industrial simulations)
+            let bodyTypeValue = 0; // Default to DYNAMIC
+            if (group.rigidBodyType === RigidBodyType.STATIC) {
+                bodyTypeValue = 2; // STATIC: Don't move at all
+            } else if (group.rigidBodyType === RigidBodyType.KINEMATIC) {
+                bodyTypeValue = 1; // KINEMATIC: Programmed motion, ignore forces
+            }
+
+            // Initial velocity based on rigid body type and movement behavior
+            // STATIC and KINEMATIC bodies always start with zero velocity
+            if (bodyTypeValue === 2 || bodyTypeValue === 1) {
+                // STATIC or KINEMATIC: Zero velocity
+                vel[i3] = 0;
+                vel[i3+1] = 0;
+                vel[i3+2] = 0;
+            } else if (params.movementBehavior === MovementBehavior.ORBITAL ||
                 params.movementBehavior === MovementBehavior.SINUSOIDAL_WAVE ||
                 params.movementBehavior === MovementBehavior.LINEAR_FLOW) {
                 // Zero velocity for kinematic-driven behaviors
@@ -516,6 +531,9 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
             rot[i3+2] = Math.random() * Math.PI * 2;
 
             m[i] = Math.random();
+
+            // Store rigid body type in buffer (already calculated above)
+            bodyType[i] = bodyTypeValue;
 
             // Initialize Color
             if (mesh) {
@@ -635,6 +653,30 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 
         // Step physics engine with fixed timestep
         physicsEngineRef.current.step(dt, params, pos, vel, rot, init, m, time);
+
+        // CRITICAL: Apply rigid body type constraints AFTER physics step
+        // This ensures STATIC/KINEMATIC bodies behave correctly for surgical/industrial sims
+        const bodyType = bodyTypes.current;
+        for (let i = 0; i < bodyType.length; i++) {
+          const i3 = i * 3;
+
+          if (bodyType[i] === 2) {
+            // STATIC: Reset to initial position, zero velocity (organs, tables stay fixed)
+            pos[i3] = init[i3];
+            pos[i3+1] = init[i3+1];
+            pos[i3+2] = init[i3+2];
+            vel[i3] = 0;
+            vel[i3+1] = 0;
+            vel[i3+2] = 0;
+          } else if (bodyType[i] === 1) {
+            // KINEMATIC: Zero velocity (robot arms follow programmed paths, not forces)
+            // Position can be updated externally, but physics forces are ignored
+            vel[i3] = 0;
+            vel[i3+1] = 0;
+            vel[i3+2] = 0;
+          }
+          // DYNAMIC (0): Normal physics, do nothing
+        }
     }
 
     // Update rendering and telemetry

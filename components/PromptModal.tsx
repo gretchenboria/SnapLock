@@ -49,7 +49,7 @@ export function PromptModal({
 
       {/* Modal */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-full max-w-3xl px-6">
-        <div className="bg-black/95 backdrop-blur-xl border-2 border-cyan-500/50 rounded-2xl shadow-[0_0_60px_rgba(34,211,238,0.4)] p-6 animate-in fade-in zoom-in duration-200">
+        <div className="bg-black/95 backdrop-blur-xl border-2 border-cyan-500/50 rounded-2xl shadow-[0_0_60px_rgba(34,211,238,0.4)] p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">

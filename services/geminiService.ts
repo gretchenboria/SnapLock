@@ -603,39 +603,23 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
         const aiResponse = JSON.parse(jsonText) as AnalysisResponse;
 
-        // POST-PROCESSING #1: TRY OPEN-SOURCE MODELS, FALLBACK TO DOMAIN RANDOMIZATION
-        // Best of both worlds:
-        // 1. Try to load industry-standard models (YCB robotics dataset, Poly Haven)
-        // 2. If model fails or not found → Use domain randomization (NVIDIA approach)
-        console.log('[GeminiService] Attempting to match objects to open-source 3D models...');
-
-        const { findOpenSourceModel } = await import('./openSourceModels');
+        // POST-PROCESSING #1: DOMAIN RANDOMIZATION (NVIDIA Isaac Sim Approach)
+        // NOTE: 3D model loading temporarily disabled due to format incompatibility
+        // - YCB models are OBJ format, but useGLTF only supports glTF/GLB
+        // - Need to implement OBJLoader or find glTF versions of models
+        // Using pure domain randomization until proper loader implemented
+        console.log('[GeminiService] Using domain randomization with geometric primitives (NVIDIA approach)');
 
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
-          // Try to find matching open-source model
-          const modelMatch = findOpenSourceModel(group.name, group.semanticLabel);
-
           // Add domain randomization to material properties (±20%)
           const materialVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
 
-          if (modelMatch.modelUrl) {
-            console.log(`[GeminiService] ✓ Assigned ${modelMatch.source} model to "${group.name}"`);
-            return {
-              ...group,
-              modelUrl: modelMatch.modelUrl,
-              // Still apply material randomization for variety
-              restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
-              friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
-            };
-          } else {
-            console.log(`[GeminiService] ○ No model for "${group.name}", using domain randomization`);
-            return {
-              ...group,
-              // Domain randomization: vary material properties
-              restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
-              friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
-            };
-          }
+          return {
+            ...group,
+            // Domain randomization: vary material properties for training diversity
+            restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
+            friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
+          };
         });
 
         // POST-PROCESSING #2: Set default rigidBodyType if missing

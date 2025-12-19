@@ -13,7 +13,7 @@ import { LazarusDebugger } from './services/lazarusDebugger';
 import { MLExportService } from './services/mlExportService';
 import { askSnappy } from './services/snappyChatbot';
 import { ProceduralSceneGenerator, SceneTemplate } from './services/proceduralSceneGenerator';
-import { X } from 'lucide-react';
+import { X, Bot } from 'lucide-react';
 import { MLExportModal } from './components/MLExportModal';
 import { TestDashboard } from './components/TestDashboard';
 import { GuidedTour } from './components/GuidedTour';
@@ -887,11 +887,30 @@ const App: React.FC = () => {
         recordedFrameCount={recordedFrameCount}
       />
 
-      {/* Snappy AI Chatbot */}
+      {/* Snappy AI Chatbot - PRIMARY PROMPT INTERFACE */}
       <SnappyChatbot
         isOpen={isSnappyEnabled}
         onClose={() => setIsSnappyEnabled(false)}
+        onGenerateScene={(scenePrompt) => {
+          setPrompt(scenePrompt);
+          executeAnalysis(scenePrompt, 'MANUAL');
+        }}
       />
+
+      {/* Floating Snappy Button - PRIMARY INTERFACE */}
+      {!isSnappyEnabled && (
+        <button
+          onClick={() => setIsSnappyEnabled(true)}
+          className="fixed bottom-8 right-8 z-[9999] bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-full p-6 shadow-[0_0_40px_rgba(34,211,238,0.6)] hover:shadow-[0_0_60px_rgba(34,211,238,0.8)] transition-all duration-300 flex items-center gap-3 group animate-pulse hover:animate-none pointer-events-auto"
+          title="Open Snappy AI Assistant"
+        >
+          <Bot className="w-8 h-8" />
+          <span className="font-bold text-lg">Ask Snappy</span>
+          <div className="absolute -top-1 -right-1 bg-green-400 text-black text-[10px] font-bold px-2 py-1 rounded-full">
+            AI
+          </div>
+        </button>
+      )}
 
       {/* Chaos Activity Panel - Shows what Chaos mode is doing */}
       <ChaosActivityPanel

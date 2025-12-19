@@ -12,9 +12,10 @@ import { askSnappy } from '../services/snappyChatbot';
 interface SnappyChatbotProps {
   isOpen: boolean;
   onClose: () => void;
+  onGenerateScene?: (prompt: string) => void; // Callback to trigger scene generation
 }
 
-export function SnappyChatbot({ isOpen, onClose }: SnappyChatbotProps) {
+export function SnappyChatbot({ isOpen, onClose, onGenerateScene }: SnappyChatbotProps) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const [loading, setLoading] = useState(false);
@@ -28,8 +29,26 @@ export function SnappyChatbot({ isOpen, onClose }: SnappyChatbotProps) {
     setLoading(true);
 
     try {
-      const response = await askSnappy(userMsg, messages);
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      // Check if this is a scene generation command
+      const isSceneGenCommand = /^(generate|create|spawn|make|build|show me)\s+/i.test(userMsg.trim());
+
+      if (isSceneGenCommand && onGenerateScene) {
+        // Extract the scene description (everything after the command word)
+        const scenePrompt = userMsg.replace(/^(generate|create|spawn|make|build|show me)\s+/i, '').trim();
+
+        // Trigger scene generation
+        onGenerateScene(scenePrompt);
+
+        // Respond to user
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `🎬 Generating scene: "${scenePrompt}"\n\nI'm using AI to analyze your prompt and spawn objects with the right physics properties. Check the 3D viewport!`
+        }]);
+      } else {
+        // Normal chat
+        const response = await askSnappy(userMsg, messages);
+        setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      }
     } catch (error) {
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -61,8 +80,17 @@ export function SnappyChatbot({ isOpen, onClose }: SnappyChatbotProps) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <div className="text-center text-gray-500 text-sm mt-8">
-            Hi! I'm Snappy, your AI assistant. Ask me anything about SnapLock, physics simulations, or how to use the app.
+          <div className="text-center text-gray-400 text-sm mt-8 space-y-3">
+            <div className="text-cyan-300 font-bold">👋 Hi! I'm Snappy, your AI assistant.</div>
+            <div className="text-left bg-cyan-900/20 border border-cyan-500/30 rounded p-3 space-y-2">
+              <div className="font-bold text-cyan-300">🎬 Generate Scenes:</div>
+              <div className="text-xs space-y-1">
+                <div>• "generate office with laptops"</div>
+                <div>• "create falling cubes"</div>
+                <div>• "spawn conference room"</div>
+              </div>
+            </div>
+            <div className="text-xs">Or ask me anything about SnapLock!</div>
           </div>
         )}
         {messages.map((msg, idx) => (

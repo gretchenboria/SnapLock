@@ -420,7 +420,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   }
                 }}
                 className="w-full h-10 bg-transparent border-none pl-12 pr-48 text-sm font-mono text-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-600 pointer-events-auto"
-                placeholder="Type simulation command or Ctrl+Space for suggestions..."
+                placeholder="Describe industrial/medical simulation (e.g., surgical robot, robotic arm)..."
               />
 
               {/* Right Action Buttons */}

@@ -42,7 +42,7 @@ export function SnappyChatbot({ isOpen, onClose, onGenerateScene }: SnappyChatbo
         // Respond to user
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `🎬 Generating scene: "${scenePrompt}"\n\nI'm using AI to analyze your prompt and spawn objects with the right physics properties. Check the 3D viewport!`
+          content: `✓ Generating simulation: "${scenePrompt}"\n\nAnalyzing prompt with AI to extract:\n• Object types and materials\n• Physics parameters (mass, friction, restitution)\n• Spatial relationships and constraints\n\nCheck the 3D viewport for spawned objects. Use "Export Dataset" to capture training data.`
         }]);
       } else {
         // Normal chat
@@ -81,16 +81,17 @@ export function SnappyChatbot({ isOpen, onClose, onGenerateScene }: SnappyChatbo
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-center text-gray-400 text-sm mt-8 space-y-3">
-            <div className="text-cyan-300 font-bold">👋 Hi! I'm Snappy, your AI assistant.</div>
+            <div className="text-cyan-300 font-bold">AI Assistant for Enterprise VR Simulation</div>
             <div className="text-left bg-cyan-900/20 border border-cyan-500/30 rounded p-3 space-y-2">
-              <div className="font-bold text-cyan-300">🎬 Generate Scenes:</div>
+              <div className="font-bold text-cyan-300">🏥 Medical & Industrial Examples:</div>
               <div className="text-xs space-y-1">
-                <div>• "generate office with laptops"</div>
-                <div>• "create falling cubes"</div>
-                <div>• "spawn conference room"</div>
+                <div>• "generate surgical robot stitching heart"</div>
+                <div>• "create robotic arm grasping tools"</div>
+                <div>• "spawn warehouse forklift simulation"</div>
+                <div>• "make autonomous vehicle obstacle course"</div>
               </div>
             </div>
-            <div className="text-xs">Or ask me anything about SnapLock!</div>
+            <div className="text-xs">Ask me anything about VR simulation & training data!</div>
           </div>
         )}
         {messages.map((msg, idx) => (

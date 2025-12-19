@@ -897,17 +897,41 @@ const App: React.FC = () => {
         }}
       />
 
-      {/* Floating Snappy Button - PRIMARY INTERFACE */}
+      {/* Snappy Kawaii Robot Eyes - PRIMARY INTERFACE */}
       {!isSnappyEnabled && (
         <button
           onClick={() => setIsSnappyEnabled(true)}
-          className="fixed bottom-8 right-8 z-[9999] bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-full p-6 shadow-[0_0_40px_rgba(34,211,238,0.6)] hover:shadow-[0_0_60px_rgba(34,211,238,0.8)] transition-all duration-300 flex items-center gap-3 group animate-pulse hover:animate-none pointer-events-auto"
-          title="Open Snappy AI Assistant"
+          className="fixed bottom-8 right-8 z-[9999] pointer-events-auto group"
+          title="Ask Snappy AI Assistant"
         >
-          <Bot className="w-8 h-8" />
-          <span className="font-bold text-lg">Ask Snappy</span>
-          <div className="absolute -top-1 -right-1 bg-green-400 text-black text-[10px] font-bold px-2 py-1 rounded-full">
-            AI
+          {/* Robot Eyes Container */}
+          <div className="relative flex items-center gap-4">
+            {/* Left Eye */}
+            <div className="relative">
+              <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full shadow-[0_0_30px_rgba(34,211,238,0.6)] animate-pulse">
+                <div className="absolute inset-2 bg-white rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 bg-black rounded-full group-hover:scale-110 transition-transform"></div>
+                </div>
+              </div>
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-cyan-400 rounded-full blur-xl opacity-40 animate-pulse"></div>
+            </div>
+
+            {/* Right Eye */}
+            <div className="relative">
+              <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full shadow-[0_0_30px_rgba(34,211,238,0.6)] animate-pulse" style={{animationDelay: '0.15s'}}>
+                <div className="absolute inset-2 bg-white rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 bg-black rounded-full group-hover:scale-110 transition-transform"></div>
+                </div>
+              </div>
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-cyan-400 rounded-full blur-xl opacity-40 animate-pulse" style={{animationDelay: '0.15s'}}></div>
+            </div>
+
+            {/* AI Badge */}
+            <div className="absolute -top-2 -right-2 bg-green-400 text-black text-[9px] font-bold px-2 py-0.5 rounded-full shadow-lg">
+              AI
+            </div>
           </div>
         </button>
       )}

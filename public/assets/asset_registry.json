@@ -1,75 +1,94 @@
 {
   "warehouse": [
     {
-      "id": "pallet_wood_nvidia",
-      "name": "Wooden Pallet (NVIDIA)",
-      "path": "/assets/warehouse/pallet_wood.usd",
+      "id": "pallet_wood_box",
+      "name": "Wooden Pallet",
+      "geometry": "box",
       "category": "warehouse",
       "physics_enabled": true,
       "mass": 15.0,
       "friction": 0.6,
       "restitution": 0.2,
-      "tags": ["shipping", "logistics", "storage", "nvidia"]
+      "tags": ["shipping", "logistics", "storage"]
     },
     {
-      "id": "pallet_metal_nvidia",
-      "name": "Metal Pallet (NVIDIA)",
-      "path": "/assets/warehouse/pallet_metal.usd",
+      "id": "pallet_metal_box",
+      "name": "Metal Pallet",
+      "geometry": "box",
       "category": "warehouse",
       "physics_enabled": true,
       "mass": 25.0,
       "friction": 0.5,
       "restitution": 0.3,
-      "tags": ["shipping", "storage", "heavy", "nvidia"]
+      "tags": ["shipping", "storage", "heavy"]
     },
     {
-      "id": "rack_small_nvidia",
-      "name": "Small Warehouse Rack (NVIDIA)",
-      "path": "/assets/warehouse/rack_small.usd",
+      "id": "crate_box",
+      "name": "Shipping Crate",
+      "geometry": "box",
       "category": "warehouse",
       "physics_enabled": true,
-      "mass": 180.0,
-      "friction": 0.7,
-      "restitution": 0.1,
-      "tags": ["storage", "shelving", "nvidia"]
+      "mass": 35.0,
+      "friction": 0.6,
+      "restitution": 0.25,
+      "tags": ["shipping", "storage"]
+    },
+    {
+      "id": "barrel_cylinder",
+      "name": "Industrial Barrel",
+      "geometry": "cylinder",
+      "category": "warehouse",
+      "physics_enabled": true,
+      "mass": 18.0,
+      "friction": 0.4,
+      "restitution": 0.3,
+      "tags": ["storage", "cylindrical", "rolling"]
     }
   ],
   "industrial": [
     {
-      "id": "shipping_container_20ft",
-      "name": "20ft Shipping Container",
-      "path": "/assets/industrial/container_20ft.glb",
+      "id": "shipping_container_box",
+      "name": "Shipping Container",
+      "geometry": "box",
       "category": "industrial",
       "physics_enabled": true,
       "mass": 2200.0,
       "friction": 0.7,
       "restitution": 0.1,
-      "thumbnail": "/assets/industrial/container_20ft_thumb.jpg",
-      "tags": ["shipping", "cargo", "large"]
+      "tags": ["shipping", "cargo", "large", "heavy"]
     },
     {
-      "id": "cargo_box_01",
-      "name": "Cargo Box",
-      "path": "/assets/industrial/cargo_box.glb",
+      "id": "cargo_box_industrial",
+      "name": "Industrial Cargo Box",
+      "geometry": "box",
       "category": "industrial",
       "physics_enabled": true,
-      "mass": 35.0,
+      "mass": 85.0,
       "friction": 0.6,
       "restitution": 0.2,
-      "thumbnail": "/assets/industrial/cargo_box_thumb.jpg",
-      "tags": ["shipping", "storage"]
+      "tags": ["shipping", "storage", "metal"]
     },
     {
-      "id": "pipe_section_01",
-      "name": "Industrial Pipe",
-      "path": "/assets/industrial/pipe_section.glb",
+      "id": "pipe_cylinder",
+      "name": "Metal Pipe Section",
+      "geometry": "cylinder",
       "category": "industrial",
       "physics_enabled": true,
       "mass": 45.0,
       "friction": 0.5,
       "restitution": 0.3,
-      "thumbnail": "/assets/industrial/pipe_section_thumb.jpg",
       "tags": ["cylindrical", "rolling", "metal"]
+    },
+    {
+      "id": "steel_beam",
+      "name": "Steel I-Beam",
+      "geometry": "box",
+      "category": "industrial",
+      "physics_enabled": true,
+      "mass": 150.0,
+      "friction": 0.6,
+      "restitution": 0.15,
+      "tags": ["construction", "steel", "heavy"]
     }
   ],
   "medical": [
@@ -120,65 +139,60 @@
       "tags": ["articulated", "manipulator", "industrial"]
     },
     {
-      "id": "gripper_parallel_01",
-      "name": "Parallel Gripper",
-      "path": "/assets/robots/gripper_parallel.glb",
+      "id": "gripper_box",
+      "name": "Robot Gripper",
+      "geometry": "box",
       "category": "robots",
       "physics_enabled": true,
       "mass": 2.5,
       "friction": 0.9,
       "restitution": 0.1,
-      "thumbnail": "/assets/robots/gripper_parallel_thumb.jpg",
-      "tags": ["end-effector", "precision"]
+      "tags": ["end-effector", "precision", "small"]
     },
     {
-      "id": "mobile_robot_01",
+      "id": "mobile_robot_platform",
       "name": "Mobile Robot Platform",
-      "path": "/assets/robots/mobile_robot.glb",
+      "geometry": "cylinder",
       "category": "robots",
       "physics_enabled": true,
       "mass": 75.0,
       "friction": 0.8,
       "restitution": 0.2,
-      "thumbnail": "/assets/robots/mobile_robot_thumb.jpg",
       "tags": ["wheeled", "autonomous", "platform"]
     }
   ],
   "furniture": [
     {
-      "id": "table_industrial_01",
-      "name": "Industrial Work Table",
-      "path": "/assets/furniture/table_industrial.glb",
+      "id": "table_box",
+      "name": "Work Table",
+      "geometry": "box",
       "category": "furniture",
       "physics_enabled": true,
       "mass": 40.0,
       "friction": 0.7,
       "restitution": 0.15,
-      "thumbnail": "/assets/furniture/table_industrial_thumb.jpg",
-      "tags": ["surface", "workspace"]
+      "tags": ["surface", "workspace", "flat"]
     },
     {
-      "id": "chair_office_01",
-      "name": "Office Chair",
-      "path": "/assets/furniture/chair_office.glb",
+      "id": "chair_box",
+      "name": "Chair",
+      "geometry": "box",
       "category": "furniture",
       "physics_enabled": true,
       "mass": 12.0,
       "friction": 0.6,
       "restitution": 0.3,
-      "thumbnail": "/assets/furniture/chair_office_thumb.jpg",
-      "tags": ["seating", "wheeled"]
+      "tags": ["seating"]
     },
     {
-      "id": "shelf_metal_01",
-      "name": "Metal Shelf Unit",
-      "path": "/assets/furniture/shelf_metal.glb",
+      "id": "shelf_box",
+      "name": "Shelf Unit",
+      "geometry": "box",
       "category": "furniture",
       "physics_enabled": true,
       "mass": 55.0,
       "friction": 0.6,
       "restitution": 0.2,
-      "thumbnail": "/assets/furniture/shelf_metal_thumb.jpg",
       "tags": ["storage", "vertical"]
     }
   ],

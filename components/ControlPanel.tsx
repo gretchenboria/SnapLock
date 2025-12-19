@@ -287,41 +287,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
         </div>
 
-        {/* Center: SIMPLE PROMPT INPUT - ALWAYS VISIBLE */}
-        <div className="flex-1 flex items-center gap-3 max-w-4xl mx-auto pointer-events-auto relative z-[9999]">
-          <input
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && prompt.trim() && !isAnalyzing) {
-                setPromptHistory(prev => [...prev, prompt]);
-                onAnalyze();
-              }
-            }}
-            placeholder="Type your scene prompt here (e.g., surgical robot, robotic arm, metal sphere on table)..."
-            className="flex-1 h-10 px-4 bg-white/10 border-2 border-cyan-500/50 rounded-lg text-white text-base font-mono placeholder-gray-400 focus:outline-none focus:border-cyan-400 focus:bg-white/20 pointer-events-auto"
-            autoFocus
-          />
-          <button
-            onClick={() => {
-              if (prompt.trim()) {
-                setPromptHistory(prev => [...prev, prompt]);
-                onAnalyze();
-              }
-            }}
-            disabled={isAnalyzing || !prompt.trim()}
-            className={`h-10 px-6 rounded-lg font-bold text-sm tracking-wider ${
-              isAnalyzing
-                ? 'bg-yellow-500/20 text-yellow-400 cursor-wait'
-                : prompt.trim()
-                ? 'bg-cyan-500 text-black hover:bg-cyan-400'
-                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {isAnalyzing ? 'GENERATING...' : 'GENERATE'}
-          </button>
-        </div>
+        {/* Prompt moved to bottom center - see floating prompt bar below */}
 
         {/* AUTO-SPAWN TOGGLE - SIMPLE AND CLEAR */}
         <div className="flex items-center gap-3 px-4 py-2 bg-black/40 border-2 border-green-500/50 rounded-lg pointer-events-auto">
@@ -1149,6 +1115,65 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             </button>
           </div>
 
+        </div>
+      </div>
+
+      {/* FLOATING PROMPT BAR - BOTTOM CENTER */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none w-full max-w-4xl px-6">
+        <div className="bg-black/95 backdrop-blur-xl border-2 border-cyan-500/50 rounded-2xl shadow-[0_0_60px_rgba(34,211,238,0.4)] p-4 pointer-events-auto">
+          <div className="flex items-center gap-4">
+            {/* Prompt Input */}
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && prompt.trim() && !isAnalyzing) {
+                  setPromptHistory(prev => [...prev, prompt]);
+                  onAnalyze();
+                }
+              }}
+              placeholder="Type scene prompt: surgical robot, warehouse with pallets, robotic arm grasping..."
+              className="flex-1 h-14 px-6 bg-white/10 border-2 border-cyan-500/30 rounded-xl text-white text-lg font-mono placeholder-gray-500 focus:outline-none focus:border-cyan-400 focus:bg-white/15 transition-all"
+              autoFocus
+            />
+
+            {/* Generate Button */}
+            <button
+              onClick={() => {
+                if (prompt.trim()) {
+                  setPromptHistory(prev => [...prev, prompt]);
+                  onAnalyze();
+                }
+              }}
+              disabled={isAnalyzing || !prompt.trim()}
+              className={`h-14 px-8 rounded-xl font-bold text-base tracking-wider transition-all flex items-center gap-3 ${
+                isAnalyzing
+                  ? 'bg-yellow-500/30 text-yellow-300 cursor-wait animate-pulse'
+                  : prompt.trim()
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-400 hover:to-blue-400 shadow-[0_0_30px_rgba(34,211,238,0.5)]'
+                  : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+              }`}
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  GENERATING...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  GENERATE
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Quick Hint */}
+          <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
+            <span>💡 Tip: Add 3D assets from left panel, or generate scenes with AI</span>
+            <span className="text-cyan-400 font-mono">Press Enter ↵</span>
+          </div>
         </div>
       </div>
 

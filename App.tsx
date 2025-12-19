@@ -22,6 +22,7 @@ import { SnappyChatbot } from './components/SnappyChatbot';
 import { ChaosActivityPanel } from './components/ChaosActivityPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProminentTelemetry } from './components/ProminentTelemetry';
+import { PromptModal } from './components/PromptModal';
 
 const App: React.FC = () => {
   // State
@@ -56,6 +57,9 @@ const App: React.FC = () => {
 
   // Snappy Assistant State
   const [isSnappyEnabled, setIsSnappyEnabled] = useState(false);
+
+  // Prompt Modal State
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
   // ML Export State
   const [isRecording, setIsRecording] = useState(false);
@@ -1012,11 +1016,10 @@ const App: React.FC = () => {
       <ProminentTelemetry telemetryRef={telemetryRef} />
 
 
-      {/* Floating Characters: Chaos, Lazarus, Snappy (Free-floating gently around UI) */}
+      {/* Floating Characters: Chaos, Snappy (Free-floating gently around UI) */}
       <FloatingCharacters
         isChaosActive={isChaosActive}
         onChaosClick={() => setIsChaosActive(!isChaosActive)}
-        onLazarusClick={() => {}} // Disabled Lazarus diagnostics
         onSnappyClick={() => setIsSnappyEnabled(true)}
       />
 
@@ -1024,6 +1027,32 @@ const App: React.FC = () => {
       {showGuidedTour && (
         <GuidedTour onComplete={() => setShowGuidedTour(false)} />
       )}
+
+      {/* Floating Prompt Button */}
+      <button
+        onClick={() => setIsPromptModalOpen(true)}
+        className="fixed bottom-8 right-8 z-[9997] w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full shadow-[0_0_40px_rgba(34,211,238,0.6)] hover:scale-110 transition-all duration-300 flex items-center justify-center group pointer-events-auto"
+        title="Open AI Scene Generator"
+      >
+        <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+        </svg>
+        <div className="absolute inset-0 bg-cyan-400 rounded-full animate-ping opacity-20" />
+      </button>
+
+      {/* Prompt Modal */}
+      <PromptModal
+        isOpen={isPromptModalOpen}
+        onClose={() => setIsPromptModalOpen(false)}
+        prompt={prompt}
+        setPrompt={setPrompt}
+        onAnalyze={handleAnalyze}
+        isAnalyzing={isAnalyzing}
+        isPaused={isPaused}
+        togglePause={() => setIsPaused(!isPaused)}
+        onReset={handleReset}
+        onExportCOCO={handleExportCOCO}
+      />
     </div>
     </ErrorBoundary>
   );

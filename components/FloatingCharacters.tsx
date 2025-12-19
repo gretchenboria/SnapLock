@@ -1,17 +1,15 @@
 import React from 'react';
-import { Skull, Bug } from 'lucide-react';
+import { Skull } from 'lucide-react';
 
 interface FloatingCharactersProps {
   isChaosActive: boolean;
   onChaosClick?: () => void;
-  onLazarusClick?: () => void;
   onSnappyClick?: () => void;
 }
 
 export function FloatingCharacters({
   isChaosActive,
   onChaosClick,
-  onLazarusClick,
   onSnappyClick
 }: FloatingCharactersProps) {
   return (
@@ -39,27 +37,6 @@ export function FloatingCharacters({
           </div>
         </button>
       )}
-
-      {/* Lazarus Bug - Top center-left (moved away from left panel) */}
-      <button
-        onClick={onLazarusClick}
-        className="absolute top-32 left-96 pointer-events-auto transition-all duration-300 hover:scale-110 group"
-        style={{
-          animation: 'float 7s ease-in-out infinite',
-          animationDelay: '1s'
-        }}
-        title="Lazarus Diagnostics"
-      >
-        <div className="relative">
-          <div className="absolute inset-0 bg-green-500/30 rounded-full blur-xl animate-pulse" />
-          <div className="relative bg-gradient-to-br from-green-950/60 to-green-900/40 backdrop-blur-sm border-2 border-green-500/50 rounded-full p-3 shadow-[0_0_30px_rgba(34,197,94,0.5)]">
-            <Bug
-              className="w-6 h-6 text-green-400 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]"
-              strokeWidth={2.5}
-            />
-          </div>
-        </div>
-      </button>
 
       {/* Snappy Eyes - Top right (kawaii floating chatbot) */}
       <button

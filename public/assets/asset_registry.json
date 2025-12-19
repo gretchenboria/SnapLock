@@ -1,52 +1,37 @@
 {
   "warehouse": [
     {
-      "id": "pallet_wood_01",
-      "name": "Wooden Pallet",
-      "path": "/assets/warehouse/pallet_wood.glb",
+      "id": "pallet_wood_nvidia",
+      "name": "Wooden Pallet (NVIDIA)",
+      "path": "/assets/warehouse/pallet_wood.usd",
       "category": "warehouse",
       "physics_enabled": true,
       "mass": 15.0,
       "friction": 0.6,
       "restitution": 0.2,
-      "thumbnail": "/assets/warehouse/pallet_wood_thumb.jpg",
-      "tags": ["shipping", "logistics", "storage"]
+      "tags": ["shipping", "logistics", "storage", "nvidia"]
     },
     {
-      "id": "crate_metal_01",
-      "name": "Metal Crate",
-      "path": "/assets/warehouse/crate_metal.glb",
+      "id": "pallet_metal_nvidia",
+      "name": "Metal Pallet (NVIDIA)",
+      "path": "/assets/warehouse/pallet_metal.usd",
       "category": "warehouse",
       "physics_enabled": true,
       "mass": 25.0,
       "friction": 0.5,
       "restitution": 0.3,
-      "thumbnail": "/assets/warehouse/crate_metal_thumb.jpg",
-      "tags": ["shipping", "storage", "heavy"]
+      "tags": ["shipping", "storage", "heavy", "nvidia"]
     },
     {
-      "id": "barrel_industrial_01",
-      "name": "Industrial Barrel",
-      "path": "/assets/warehouse/barrel_industrial.glb",
+      "id": "rack_small_nvidia",
+      "name": "Small Warehouse Rack (NVIDIA)",
+      "path": "/assets/warehouse/rack_small.usd",
       "category": "warehouse",
       "physics_enabled": true,
-      "mass": 18.0,
-      "friction": 0.4,
-      "restitution": 0.25,
-      "thumbnail": "/assets/warehouse/barrel_industrial_thumb.jpg",
-      "tags": ["storage", "cylindrical", "rolling"]
-    },
-    {
-      "id": "forklift_01",
-      "name": "Forklift",
-      "path": "/assets/warehouse/forklift.glb",
-      "category": "warehouse",
-      "physics_enabled": true,
-      "mass": 500.0,
-      "friction": 0.8,
+      "mass": 180.0,
+      "friction": 0.7,
       "restitution": 0.1,
-      "thumbnail": "/assets/warehouse/forklift_thumb.jpg",
-      "tags": ["vehicle", "heavy", "industrial"]
+      "tags": ["storage", "shelving", "nvidia"]
     }
   ],
   "industrial": [

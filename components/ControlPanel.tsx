@@ -363,7 +363,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col justify-between z-50 font-sans text-xs select-none pointer-events-none">
+    <div className="absolute inset-0 flex flex-col justify-between z-50 font-sans text-xs select-none">
       
       {/* --- TOP HEADER --- */}
       <div className="w-full bg-scifi-900 border-b border-white/10 p-2 pointer-events-auto flex items-center gap-3 shadow-xl z-50 h-12 relative">
@@ -512,7 +512,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
 
           {/* AUTO-SPAWN TOGGLE - SIMPLE AND CLEAR */}
-          <div className="flex items-center gap-3 px-4 py-2 bg-black/40 border-2 border-green-500/50 rounded-lg">
+          <div className="flex items-center gap-3 px-4 py-2 bg-black/40 border-2 border-green-500/50 rounded-lg pointer-events-auto">
             <Database size={20} className={isAutoSpawn ? "text-green-400 animate-bounce" : "text-gray-500"} />
             <div className="flex-1">
               <div className="text-sm font-bold text-white tracking-wide">AUTO-SPAWN</div>
@@ -838,17 +838,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                                 <NumInput label="X" value={params.gravity.x} onChange={(v: number) => updateVector('gravity', 'x', v)} />
                                 <NumInput label="Y" value={params.gravity.y} onChange={(v: number) => updateVector('gravity', 'y', v)} />
                                 <NumInput label="Z" value={params.gravity.z} onChange={(v: number) => updateVector('gravity', 'z', v)} />
-                             </div>
-                          </div>
-                          <div className="space-y-2">
-                             <div className="flex items-center gap-2 text-gray-200">
-                                <Wind size={12} />
-                                <label className="text-[10px] font-bold tracking-wide">WIND VELOCITY</label>
-                             </div>
-                             <div className="flex gap-2">
-                                <NumInput label="X" value={params.wind.x} onChange={(v: number) => updateVector('wind', 'x', v)} />
-                                <NumInput label="Y" value={params.wind.y} onChange={(v: number) => updateVector('wind', 'y', v)} />
-                                <NumInput label="Z" value={params.wind.z} onChange={(v: number) => updateVector('wind', 'z', v)} />
                              </div>
                           </div>
                        </div>
@@ -1239,6 +1228,106 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
            </div>
 
+        </div>
+
+        {/* --- RIGHT PANEL: MANUAL CONTROLS (ALWAYS VISIBLE) --- */}
+        <div className="w-80 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex flex-col pointer-events-auto overflow-y-auto custom-scrollbar">
+          <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+              <Settings className="w-5 h-5 text-cyan-400" />
+              <span className="text-sm font-bold text-white tracking-wider">MANUAL CONTROLS</span>
+            </div>
+
+            {/* GRAVITY */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-cyan-400 tracking-wider">GRAVITY Y (m/s²)</label>
+              <input
+                type="range"
+                min="-20"
+                max="0"
+                step="0.1"
+                value={params.gravity.y}
+                onChange={(e) => updateVector('gravity', 'y', parseFloat(e.target.value))}
+                className="w-full"
+              />
+              <div className="text-right text-sm font-mono text-white font-bold">{params.gravity.y.toFixed(1)}</div>
+            </div>
+
+            {/* GLOBAL FRICTION */}
+            {params.assetGroups.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-orange-400 tracking-wider">GLOBAL FRICTION</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={params.assetGroups[0]?.friction || 0.5}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setParams({
+                      ...params,
+                      assetGroups: params.assetGroups.map(g => ({ ...g, friction: val }))
+                    });
+                  }}
+                  className="w-full"
+                />
+                <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.friction || 0.5).toFixed(2)}</div>
+              </div>
+            )}
+
+            {/* GLOBAL RESTITUTION (Bounciness) */}
+            {params.assetGroups.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-green-400 tracking-wider">GLOBAL RESTITUTION</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={params.assetGroups[0]?.restitution || 0.5}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setParams({
+                      ...params,
+                      assetGroups: params.assetGroups.map(g => ({ ...g, restitution: val }))
+                    });
+                  }}
+                  className="w-full"
+                />
+                <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.restitution || 0.5).toFixed(2)}</div>
+              </div>
+            )}
+
+            {/* GLOBAL MASS MULTIPLIER */}
+            {params.assetGroups.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-purple-400 tracking-wider">MASS MULTIPLIER</label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="10"
+                  step="0.1"
+                  value={params.assetGroups[0]?.mass || 1}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setParams({
+                      ...params,
+                      assetGroups: params.assetGroups.map(g => ({ ...g, mass: val }))
+                    });
+                  }}
+                  className="w-full"
+                />
+                <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.mass || 1).toFixed(1)}x</div>
+              </div>
+            )}
+
+            {params.assetGroups.length === 0 && (
+              <div className="text-center text-gray-500 text-xs py-8">
+                Generate a scene first to access manual controls
+              </div>
+            )}
+          </div>
         </div>
 
       </div>

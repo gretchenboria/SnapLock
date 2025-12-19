@@ -72,30 +72,52 @@
       "tags": ["cylindrical", "rolling", "metal"]
     }
   ],
+  "medical": [
+    {
+      "id": "surgical_robot_prompt",
+      "name": "Surgical Robot (AI Generated)",
+      "geometry": "box",
+      "category": "medical",
+      "physics_enabled": true,
+      "mass": 120.0,
+      "friction": 0.7,
+      "restitution": 0.15,
+      "tags": ["medical", "precision", "articulated", "surgery"]
+    },
+    {
+      "id": "operating_table",
+      "name": "Operating Table",
+      "geometry": "box",
+      "category": "medical",
+      "physics_enabled": true,
+      "mass": 250.0,
+      "friction": 0.8,
+      "restitution": 0.1,
+      "tags": ["medical", "furniture", "surgery"]
+    },
+    {
+      "id": "medical_tray",
+      "name": "Medical Instrument Tray",
+      "geometry": "box",
+      "category": "medical",
+      "physics_enabled": true,
+      "mass": 8.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "tags": ["medical", "tools", "surgery"]
+    }
+  ],
   "robots": [
     {
       "id": "robot_arm_6dof",
       "name": "6-DOF Robot Arm",
-      "path": "/assets/robots/robot_arm_6dof.glb",
+      "geometry": "cylinder",
       "category": "robots",
       "physics_enabled": true,
       "mass": 85.0,
       "friction": 0.6,
       "restitution": 0.2,
-      "thumbnail": "/assets/robots/robot_arm_6dof_thumb.jpg",
       "tags": ["articulated", "manipulator", "industrial"]
-    },
-    {
-      "id": "surgical_robot_01",
-      "name": "Surgical Robot",
-      "path": "/assets/robots/surgical_robot.glb",
-      "category": "robots",
-      "physics_enabled": true,
-      "mass": 120.0,
-      "friction": 0.7,
-      "restitution": 0.15,
-      "thumbnail": "/assets/robots/surgical_robot_thumb.jpg",
-      "tags": ["medical", "precision", "articulated"]
     },
     {
       "id": "gripper_parallel_01",

@@ -992,78 +992,105 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               <div className="text-right text-sm font-mono text-white font-bold">{params.gravity.y.toFixed(1)}</div>
             </div>
 
-            {/* GLOBAL FRICTION */}
-            {params.assetGroups.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-orange-400 tracking-wider">GLOBAL FRICTION</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={params.assetGroups[0]?.friction || 0.5}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
+            {/* GLOBAL FRICTION - ALWAYS VISIBLE */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-orange-400 tracking-wider">GLOBAL FRICTION</label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={params.assetGroups[0]?.friction || 0.5}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (params.assetGroups.length > 0) {
                     setParams({
                       ...params,
                       assetGroups: params.assetGroups.map(g => ({ ...g, friction: val }))
                     });
-                  }}
-                  className="w-full"
-                />
-                <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.friction || 0.5).toFixed(2)}</div>
-              </div>
-            )}
+                  }
+                }}
+                className="w-full"
+                disabled={params.assetGroups.length === 0}
+              />
+              <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.friction || 0.5).toFixed(2)}</div>
+            </div>
 
-            {/* GLOBAL RESTITUTION (Bounciness) */}
-            {params.assetGroups.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-green-400 tracking-wider">GLOBAL RESTITUTION</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={params.assetGroups[0]?.restitution || 0.5}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
+            {/* GLOBAL RESTITUTION (BOUNCINESS) - ALWAYS VISIBLE */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-green-400 tracking-wider">GLOBAL RESTITUTION (BOUNCE)</label>
+              <input
+                type="range"
+                min="0"
+                max="1.2"
+                step="0.01"
+                value={params.assetGroups[0]?.restitution || 0.5}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (params.assetGroups.length > 0) {
                     setParams({
                       ...params,
                       assetGroups: params.assetGroups.map(g => ({ ...g, restitution: val }))
                     });
-                  }}
-                  className="w-full"
-                />
-                <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.restitution || 0.5).toFixed(2)}</div>
-              </div>
-            )}
+                  }
+                }}
+                className="w-full"
+                disabled={params.assetGroups.length === 0}
+              />
+              <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.restitution || 0.5).toFixed(2)}</div>
+            </div>
 
-            {/* GLOBAL MASS MULTIPLIER */}
-            {params.assetGroups.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-purple-400 tracking-wider">MASS MULTIPLIER</label>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="10"
-                  step="0.1"
-                  value={params.assetGroups[0]?.mass || 1}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
+            {/* GLOBAL MASS - ALWAYS VISIBLE */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-purple-400 tracking-wider">GLOBAL MASS (kg)</label>
+              <input
+                type="range"
+                min="0.1"
+                max="500"
+                step="0.5"
+                value={params.assetGroups[0]?.mass || 10}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (params.assetGroups.length > 0) {
                     setParams({
                       ...params,
                       assetGroups: params.assetGroups.map(g => ({ ...g, mass: val }))
                     });
-                  }}
-                  className="w-full"
-                />
-                <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.mass || 1).toFixed(1)}x</div>
-              </div>
-            )}
+                  }
+                }}
+                className="w-full"
+                disabled={params.assetGroups.length === 0}
+              />
+              <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.mass || 10).toFixed(1)} kg</div>
+            </div>
+
+            {/* GLOBAL DRAG (AIR RESISTANCE) - ALWAYS VISIBLE */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-blue-400 tracking-wider">GLOBAL DRAG (AIR RESISTANCE)</label>
+              <input
+                type="range"
+                min="0"
+                max="0.5"
+                step="0.01"
+                value={params.assetGroups[0]?.drag || 0.05}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (params.assetGroups.length > 0) {
+                    setParams({
+                      ...params,
+                      assetGroups: params.assetGroups.map(g => ({ ...g, drag: val }))
+                    });
+                  }
+                }}
+                className="w-full"
+                disabled={params.assetGroups.length === 0}
+              />
+              <div className="text-right text-sm font-mono text-white font-bold">{(params.assetGroups[0]?.drag || 0.05).toFixed(2)}</div>
+            </div>
 
             {params.assetGroups.length === 0 && (
-              <div className="text-center text-gray-500 text-xs py-8">
-                Generate a scene first to access manual controls
+              <div className="mt-4 text-center text-gray-400 text-xs py-4 bg-yellow-900/10 border border-yellow-500/20 rounded">
+                💡 Add assets from left panel to enable controls
               </div>
             )}
           </div>

@@ -542,7 +542,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                     friction: { type: Type.NUMBER },
                     drag: { type: Type.NUMBER },
                     },
-                    required: ["id", "name", "count", "shape", "color", "spawnMode", "scale", "rigidBodyType", "mass", "restitution", "friction", "drag"]
+                    required: ["id", "name", "count", "shape", "color", "spawnMode", "scale", "mass", "restitution", "friction", "drag"]
                 }
                 },
                 joints: {
@@ -622,7 +622,16 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
           return group;
         });
 
-        // POST-PROCESSING #2: Apply spatial positioning (P0 CRITICAL FIX)
+        // POST-PROCESSING #2: Set default rigidBodyType if missing
+        aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
+          if (!group.rigidBodyType) {
+            // Default to DYNAMIC for backward compatibility
+            return { ...group, rigidBodyType: RigidBodyType.DYNAMIC };
+          }
+          return group;
+        });
+
+        // POST-PROCESSING #3: Apply spatial positioning (P0 CRITICAL FIX)
         console.log('[GeminiService] Applying spatial positioning to prevent random falling...');
         const { calculateSpatialPositions } = await import('./spatialPositioning');
         aiResponse.assetGroups = calculateSpatialPositions(aiResponse.assetGroups);

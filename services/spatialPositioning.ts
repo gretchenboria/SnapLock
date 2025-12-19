@@ -82,6 +82,11 @@ export function calculateSpatialPositions(
   console.log('[SpatialPositioning] Positioning complete. Summary:');
   finalGroups.forEach(g => {
     if (g.spawnPosition) {
+      // Validate positions (check for NaN which breaks rendering)
+      if (isNaN(g.spawnPosition.x) || isNaN(g.spawnPosition.y) || isNaN(g.spawnPosition.z)) {
+        console.error(`[SpatialPositioning] ERROR: NaN position detected for "${g.name}"! Defaulting to origin.`);
+        g.spawnPosition = { x: 0, y: 1, z: 0 };
+      }
       console.log(`  - ${g.name}: (${g.spawnPosition.x.toFixed(2)}, ${g.spawnPosition.y.toFixed(2)}, ${g.spawnPosition.z.toFixed(2)})`);
     }
   });

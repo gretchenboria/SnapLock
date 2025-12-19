@@ -128,7 +128,7 @@ export function ProminentTelemetry({ telemetryRef }: ProminentTelemetryProps) {
   }, [telemetryRef]);
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 bg-black/95 border-2 border-cyan-500/50 rounded-lg shadow-[0_0_40px_rgba(34,211,238,0.4)] z-50 pointer-events-auto">
+    <div className="fixed top-20 right-6 w-80 bg-black/95 border-2 border-cyan-500/50 rounded-lg shadow-[0_0_40px_rgba(34,211,238,0.4)] z-40 pointer-events-auto">
       {/* Header */}
       <div className="bg-gradient-to-r from-cyan-950/60 to-cyan-900/40 px-4 py-3 border-b border-cyan-500/30 flex items-center gap-2">
         <Activity className="w-5 h-5 text-cyan-400" strokeWidth={2.5} />

@@ -531,7 +531,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
              }
           >
              <Database size={18} className={isAutoSpawn ? "animate-bounce" : "group-hover:scale-110 transition-transform"} />
-             <span className="text-[11px] tracking-widest font-extrabold">DATASET MODE</span>
+             <span className="text-[11px] tracking-widest font-extrabold">AUTO-SPAWN DATASET MODE</span>
              {isAutoSpawn && (
                <>
                  <span className="text-[9px] px-2 py-0.5 bg-green-500/30 text-green-200 border border-green-400/50 rounded-full animate-pulse ml-1">
@@ -619,19 +619,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                  </button>
              )}
 
-             {/* LAZARUS DEBUGGER - DIAGNOSTIC BUTTON */}
-             <button
-                onClick={onRunDiagnostics}
-                title="Run Lazarus Diagnostics"
-                className="h-9 px-3 rounded-lg border transition-all duration-300 bg-black/40 border-blue-900/30 hover:border-blue-500/50 hover:bg-blue-950/20 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] flex items-center gap-1.5 group"
-             >
-                <Bug size={14} className="text-blue-700 group-hover:text-blue-400 transition-colors" strokeWidth={2} />
-                <div className="flex flex-col items-start">
-                    <span className="font-bold text-[10px] tracking-wider text-blue-700 group-hover:text-blue-400">
-                        LAZARUS
-                    </span>
-                </div>
-             </button>
 
              {/* Snappy button removed - will be in 3D scene */}
 
@@ -1229,21 +1216,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               
               <TelemetryReadout telemetryRef={telemetryRef} />
               
-              {/* Force Readout */}
-              <div className="space-y-1 pt-1 border-t border-white/5 mt-2">
-                  <div className="flex justify-between text-[9px] text-gray-300">
-                      <span>GRAVITY Y</span>
-                      <span className={`font-mono font-bold ${Math.abs(params.gravity.y) > 0.1 ? 'text-white' : 'text-gray-500'}`}>{params.gravity.y.toFixed(2)}</span>
-                  </div>
-                   <div className="flex justify-between text-[9px] text-gray-300">
-                      <span>WIND MAG</span>
-                      <span className={`font-mono font-bold ${Math.abs(params.wind.x) + Math.abs(params.wind.z) > 0.1 ? 'text-white' : 'text-gray-500'}`}>
-                          {(Math.abs(params.wind.x) + Math.abs(params.wind.z)).toFixed(2)}
-                      </span>
-                  </div>
-              </div>
-
-              {/* Rotation Metrics */}
+              {/* Rotation Metrics for VR/Robotics */}
               <div className="space-y-1 pt-1 border-t border-white/5 mt-2">
                   <div className="text-[8px] font-bold text-cyan-400 mb-1 tracking-wider">ROTATION METRICS</div>
                   <div className="flex justify-between text-[9px] text-gray-300">
@@ -1429,10 +1402,10 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
             </div>
 
             <div className="border-t border-white/10 pt-3">
-                <div className="text-[8px] font-bold text-cyan-400 tracking-widest uppercase mb-2">SAMPLE OBJECT (First Entity)</div>
+                <div className="text-[8px] font-bold text-green-400 tracking-widest uppercase mb-2">🎯 VR/ROBOTICS TRACKING (Object #1)</div>
                 <div className="space-y-2">
                     <TelemetryBoxRaw label="POSITION (m)" ref={samplePosRef} />
-                    <TelemetryBoxRaw label="QUATERNION (x,y,z,w)" ref={sampleQuatRef} />
+                    <TelemetryBoxRaw label="QUATERNION ORIENTATION" ref={sampleQuatRef} />
                     <TelemetryBoxRaw label="VELOCITY (m/s)" ref={sampleVelRef} />
                 </div>
             </div>

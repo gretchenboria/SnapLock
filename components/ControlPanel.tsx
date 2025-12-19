@@ -84,13 +84,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const [presets, setPresets] = useState<MaterialPreset[]>(DEFAULT_MATERIAL_PRESETS);
   const [newPresetName, setNewPresetName] = useState('');
 
-  // Intelligent Command Line State
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  // Prompt History
   const [promptHistory, setPromptHistory] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const commandLineRef = useRef<HTMLInputElement>(null);
 
   // API Key Modal State
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -379,139 +374,42 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
         </div>
 
-        {/* Center: Intelligent Command Line */}
-        <div className="flex-1 flex items-center justify-center gap-3 max-w-6xl mx-auto">
-          {/* Command Line Container */}
-          <div className="relative flex-1 max-w-4xl" ref={commandLineRef}>
-            {/* Main Input Area */}
-            <div className={`relative bg-gradient-to-r from-black/60 via-black/50 to-black/60 backdrop-blur-sm border-2 rounded-lg transition-all duration-300 ${
-              showSuggestions
-                ? 'border-scifi-cyan shadow-[0_0_25px_rgba(34,211,238,0.3)]'
-                : 'border-white/20 hover:border-white/30'
-            }`}>
-              {/* Terminal Prompt Indicator */}
-              <div className="absolute inset-y-0 left-0 w-12 flex items-center justify-center border-r border-white/10 bg-scifi-cyan/5">
-                <ChevronRight className="w-5 h-5 text-scifi-cyan animate-pulse" strokeWidth={3} />
-              </div>
+        {/* Center: SIMPLE PROMPT INPUT - ALWAYS VISIBLE */}
+        <div className="flex-1 flex items-center gap-3 max-w-4xl mx-auto pointer-events-auto">
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && prompt.trim() && !isAnalyzing) {
+                setPromptHistory(prev => [...prev, prompt]);
+                onAnalyze();
+              }
+            }}
+            placeholder="Type your scene prompt here (e.g., surgical robot, robotic arm, metal sphere on table)..."
+            className="flex-1 h-10 px-4 bg-white/10 border-2 border-cyan-500/50 rounded-lg text-white text-base font-mono placeholder-gray-400 focus:outline-none focus:border-cyan-400 focus:bg-white/20"
+          />
+          <button
+            onClick={() => {
+              if (prompt.trim()) {
+                setPromptHistory(prev => [...prev, prompt]);
+                onAnalyze();
+              }
+            }}
+            disabled={isAnalyzing || !prompt.trim()}
+            className={`h-10 px-6 rounded-lg font-bold text-sm tracking-wider ${
+              isAnalyzing
+                ? 'bg-yellow-500/20 text-yellow-400 cursor-wait'
+                : prompt.trim()
+                ? 'bg-cyan-500 text-black hover:bg-cyan-400'
+                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {isAnalyzing ? 'GENERATING...' : 'GENERATE'}
+          </button>
+        </div>
 
-              {/* Input Field */}
-              <input
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={(e) => {
-                  e.target.select();
-                  if(isAutoSpawn) toggleAutoSpawn();
-                  if(prompt.length === 0) {
-                    setSuggestions(SAMPLE_PROMPTS);
-                    setShowSuggestions(true);
-                  }
-                }}
-                className="w-full h-10 bg-transparent border-none pl-12 pr-48 text-sm font-mono text-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-600 pointer-events-auto"
-                placeholder="Generate photorealistic 3D digital twins (e.g., surgical robot manipulating tissue, robotic arm assembling parts)..."
-              />
-
-              {/* Right Action Buttons */}
-              <div className="absolute inset-y-0 right-2 flex items-center gap-1">
-                {/* Character Count */}
-                {prompt.length > 0 && (
-                  <div className="text-[10px] text-gray-600 font-mono px-2">
-                    {prompt.length}
-                  </div>
-                )}
-
-                {/* Execute Button - Make it BOLD and OBVIOUS */}
-                <button
-                  onClick={() => {
-                    if (prompt.trim()) {
-                      setPromptHistory(prev => [...prev, prompt]);
-                      onAnalyze();
-                    }
-                  }}
-                  disabled={isAnalyzing || !prompt.trim()}
-                  className={`h-8 px-4 rounded-lg flex items-center gap-2 transition-all border-2 font-bold text-[11px] tracking-wider pointer-events-auto shadow-lg ${
-                    isAnalyzing
-                      ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
-                      : prompt.trim()
-                      ? 'bg-scifi-cyan/20 border-scifi-cyan text-scifi-cyan hover:bg-scifi-cyan hover:text-black shadow-[0_0_20px_rgba(34,211,238,0.4)]'
-                      : 'bg-black/20 border-white/5 text-gray-600 cursor-not-allowed'
-                  }`}
-                  title="Generate Photorealistic 3D Digital Twin (Enter)"
-                >
-                  {isAnalyzing ? (
-                    <Activity className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
-                  <span>{isAnalyzing ? 'GENERATING 3D...' : 'GENERATE 3D TWIN'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Auto-complete Suggestions Dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-scifi-900/98 backdrop-blur-md border border-scifi-cyan/30 rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.8)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                {/* Suggestions Header */}
-                <div className="px-4 py-2 bg-scifi-cyan/10 border-b border-scifi-cyan/20 flex items-center gap-2">
-                  <Lightbulb className="w-3.5 h-3.5 text-scifi-cyan" />
-                  <span className="text-[10px] font-bold text-scifi-cyan tracking-wider">SUGGESTIONS</span>
-                  <div className="flex-1"></div>
-                  <div className="flex items-center gap-3 text-[9px] text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Keyboard className="w-3 h-3" />
-                      <kbd className="px-1 py-0.5 bg-black/40 rounded text-[8px] border border-white/10">Tab</kbd> to accept
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <kbd className="px-1 py-0.5 bg-black/40 rounded text-[8px] border border-white/10">↑↓</kbd> to navigate
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <kbd className="px-1 py-0.5 bg-black/40 rounded text-[8px] border border-white/10">Esc</kbd> to close
-                    </span>
-                  </div>
-                </div>
-
-                {/* Suggestions List */}
-                <div className="max-h-80 overflow-y-auto custom-scrollbar">
-                  {suggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setPrompt(suggestion);
-                        setShowSuggestions(false);
-                        setSelectedSuggestionIndex(-1);
-                      }}
-                      className={`w-full px-4 py-3 text-left font-mono text-sm transition-all border-b border-white/5 ${
-                        index === selectedSuggestionIndex
-                          ? 'bg-scifi-cyan/20 text-white border-l-4 border-l-scifi-cyan'
-                          : 'text-gray-300 hover:bg-white/5 hover:text-white border-l-4 border-l-transparent'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <Command className="w-4 h-4 text-scifi-cyan/50 mt-0.5 flex-shrink-0" />
-                        <span className="flex-1">{suggestion}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Keyboard Shortcuts Hint */}
-            {!showSuggestions && prompt.length === 0 && (
-              <div className="absolute -bottom-6 left-0 flex items-center gap-3 text-[9px] text-gray-600">
-                <span className="flex items-center gap-1">
-                  <History className="w-3 h-3" />
-                  <kbd className="px-1 py-0.5 bg-black/40 rounded text-[8px] border border-white/10">↑</kbd> for history
-                </span>
-                <span className="flex items-center gap-1">
-                  <Keyboard className="w-3 h-3" />
-                  <kbd className="px-1 py-0.5 bg-black/40 rounded text-[8px] border border-white/10">Ctrl+Space</kbd> for all commands
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* AUTO-SPAWN TOGGLE - SIMPLE AND CLEAR */}
+        {/* AUTO-SPAWN TOGGLE - SIMPLE AND CLEAR */}
           <div className="flex items-center gap-3 px-4 py-2 bg-black/40 border-2 border-green-500/50 rounded-lg pointer-events-auto">
             <Database size={20} className={isAutoSpawn ? "text-green-400 animate-bounce" : "text-gray-500"} />
             <div className="flex-1">

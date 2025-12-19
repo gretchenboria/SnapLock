@@ -874,7 +874,7 @@ const App: React.FC = () => {
         recordedFrameCount={recordedFrameCount}
       />
 
-      {/* ML Export Modal */}
+      {/* ML Export Modal - P0 FIX: Recording controls now visible */}
       <MLExportModal
         isOpen={showMLExportModal}
         onClose={() => setShowMLExportModal(false)}
@@ -885,6 +885,9 @@ const App: React.FC = () => {
         onExportVRPoses={handleExportVRPoses}
         onExportPhysics={handleExportPhysics}
         recordedFrameCount={recordedFrameCount}
+        isRecording={isRecording}
+        onStartRecording={handleStartRecording}
+        onStopRecording={handleStopRecording}
       />
 
       {/* Snappy AI Chatbot - PRIMARY PROMPT INTERFACE */}

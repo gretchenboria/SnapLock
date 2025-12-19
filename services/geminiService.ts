@@ -571,7 +571,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
         const aiResponse = JSON.parse(jsonText) as AnalysisResponse;
 
-        // POST-PROCESSING: Assign 3D model URLs to asset groups
+        // POST-PROCESSING #1: Assign 3D model URLs to asset groups
         const { findModelForObject } = await import('./modelLibrary');
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
           const modelUrl = findModelForObject(group.name, group.semanticLabel);
@@ -581,6 +581,11 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
           }
           return group;
         });
+
+        // POST-PROCESSING #2: Apply spatial positioning (P0 CRITICAL FIX)
+        console.log('[GeminiService] Applying spatial positioning to prevent random falling...');
+        const { calculateSpatialPositions } = await import('./spatialPositioning');
+        aiResponse.assetGroups = calculateSpatialPositions(aiResponse.assetGroups);
 
         return aiResponse;
     });

@@ -92,6 +92,9 @@ export interface AssetGroup {
   // Semantic Properties for VR Training
   semanticLabel?: string;         // Human-readable category (e.g., "coffee_mug", "door", "table")
   vrRole?: 'target' | 'obstacle' | 'tool' | 'furniture' | 'environment';
+
+  // P0 CRITICAL FIX: Calculated spawn position from spatial positioning service
+  spawnPosition?: Vector3Data;    // Initial position calculated from spatial constraints
 }
 
 // --- VR JOINT & CONSTRAINT SYSTEM ---

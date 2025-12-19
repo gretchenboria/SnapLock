@@ -386,8 +386,32 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
             const i3 = i * 3;
             let x=0, y=0, z=0;
 
-            // Positioning based on spawn mode
-            switch(group.spawnMode) {
+            // P0 CRITICAL FIX: Use spawnPosition from spatial positioning service if available
+            const hasSpawnPosition = group.spawnPosition &&
+                                    typeof group.spawnPosition.x === 'number' &&
+                                    typeof group.spawnPosition.y === 'number' &&
+                                    typeof group.spawnPosition.z === 'number';
+
+            if (hasSpawnPosition) {
+                // Use calculated position as base (for "on_surface" constraints, etc.)
+                x = group.spawnPosition!.x;
+                y = group.spawnPosition!.y;
+                z = group.spawnPosition!.z;
+
+                // For multiple objects in same group, add small offsets to prevent overlapping
+                if (group.count > 1) {
+                    const localI = i - structure.start;
+                    const offset = 0.3; // Small spacing between objects
+                    const perRow = Math.ceil(Math.sqrt(group.count));
+                    const row = Math.floor(localI / perRow);
+                    const col = localI % perRow;
+                    x += (col - perRow/2) * offset;
+                    z += (row - perRow/2) * offset;
+                }
+            } else {
+                // Fallback to original spawn mode logic
+                // Positioning based on spawn mode
+                switch(group.spawnMode) {
                 case SpawnMode.BLAST:
                    const r = Math.cbrt(Math.random()) * spread * 0.5;
                    const theta = Math.random() * Math.PI * 2;
@@ -426,7 +450,8 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
                    y = (Math.random()) * spread * 2;
                    z = (Math.random() - 0.5) * spread;
                    break;
-            }
+                }
+            } // End of spawnPosition check
 
             pos[i3] = x; pos[i3+1] = y; pos[i3+2] = z;
             init[i3] = x; init[i3+1] = y; init[i3+2] = z;

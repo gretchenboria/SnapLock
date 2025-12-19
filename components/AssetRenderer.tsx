@@ -80,40 +80,55 @@ const PrimitiveAsset: React.FC<AssetRendererProps> = ({ group, meshRef, viewMode
     );
 };
 
-// Shared Material Logic - Enhanced for Photorealistic Rendering
+// DOMAIN RANDOMIZATION Material Logic (NVIDIA Isaac Sim Approach)
+// Generates photorealistic PBR materials with randomized properties
+// This creates training data diversity without needing 3D models
 const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }) => {
     const baseColor = new THREE.Color(group.color);
-    // Brighten colors by 50% for much better visibility
-    const brightenedColor = baseColor.clone().multiplyScalar(1.5);
 
-    // Enhanced PBR properties based on material physics
-    // High restitution (bouncy) = smooth/hard surface = low roughness
-    // Low restitution (absorbs energy) = rough/soft surface = high roughness
+    // Domain Randomization: Add controlled color variation (±10% hue shift)
+    // Keeps material identity while adding diversity for training data
+    const hueVariation = (Math.random() - 0.5) * 0.2; // -0.1 to +0.1
+    const randomizedColor = baseColor.clone();
+    const hsl = { h: 0, s: 0, l: 0 };
+    randomizedColor.getHSL(hsl);
+    randomizedColor.setHSL(
+        (hsl.h + hueVariation + 1) % 1, // Wrap around
+        Math.min(1, hsl.s + (Math.random() - 0.5) * 0.1), // Slight saturation variation
+        Math.min(1, hsl.l + (Math.random() - 0.5) * 0.1)  // Slight lightness variation
+    );
+
+    // PBR properties from physics parameters + randomization
+    // Base roughness from restitution, then add variation (±0.15)
+    const baseRoughness = 1.0 - group.restitution;
     const roughness = viewMode === ViewMode.RGB
-        ? Math.max(0.2, Math.min(0.9, 1.0 - group.restitution))
+        ? Math.max(0.05, Math.min(0.95, baseRoughness + (Math.random() - 0.5) * 0.3))
         : 1.0;
 
-    // High friction suggests non-metallic (wood, rubber, fabric)
-    // Low friction suggests metal or glass
+    // Base metalness from friction, then add variation (±0.1)
+    const baseMetalness = (1.0 - group.friction) * 0.8;
     const metalness = viewMode === ViewMode.RGB
-        ? Math.max(0, Math.min(0.95, (1.0 - group.friction) * 0.8))
+        ? Math.max(0, Math.min(0.95, baseMetalness + (Math.random() - 0.5) * 0.2))
         : 0.0;
 
-    // Enhanced lighting and reflections
+    // Emissive properties for better visibility
     const emissive = viewMode === ViewMode.LIDAR
         ? new THREE.Color(0x222222)
-        : baseColor.clone().multiplyScalar(0.15);
+        : randomizedColor.clone().multiplyScalar(0.05);
 
-    const emissiveIntensity = viewMode === ViewMode.RGB ? 0.2 : 0.0;
+    const emissiveIntensity = viewMode === ViewMode.RGB ? 0.1 : 0.0;
 
     // Glass-like materials (low friction, high restitution)
     const isGlassLike = group.friction < 0.3 && group.restitution > 0.6;
     const transparent = viewMode === ViewMode.RGB && isGlassLike;
     const opacity = transparent ? 0.7 : 1.0;
 
+    // Environment map intensity randomization (lighting variation)
+    const envMapIntensity = 1.0 + Math.random() * 1.0; // 1.0 to 2.0
+
     return (
         <meshStandardMaterial
-            color={brightenedColor}
+            color={randomizedColor}
             wireframe={viewMode === ViewMode.WIREFRAME}
             roughness={roughness}
             metalness={metalness}
@@ -121,8 +136,8 @@ const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }
             opacity={opacity}
             emissive={emissive}
             emissiveIntensity={emissiveIntensity}
-            envMapIntensity={1.5} // Enhanced environment reflections
-            flatShading={false} // Smooth shading for realism
+            envMapIntensity={envMapIntensity} // Randomized reflection intensity
+            flatShading={false} // Smooth shading for photorealism
         />
     );
 };

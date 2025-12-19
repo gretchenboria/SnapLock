@@ -248,23 +248,15 @@ function generateFallbackScene(prompt: string): AnalysisResponse {
     );
   }
 
-  // Assign 3D models to fallback asset groups
-  const { findModelForObject } = require('./modelLibrary');
-  const assetGroupsWithModels = assetGroups.map(group => {
-    const modelUrl = findModelForObject(group.name);
-    if (modelUrl) {
-      console.log(`[GeminiService/Fallback] Assigned model to "${group.name}": ${modelUrl}`);
-      return { ...group, modelUrl };
-    }
-    return group;
-  });
+  // NO 3D MODELS - Use geometric primitives with domain randomization (NVIDIA approach)
+  console.log('[GeminiService/Fallback] Using geometric primitives (no 3D models)');
 
   return {
     movementBehavior,
     gravity,
     wind,
-    assetGroups: assetGroupsWithModels,
-    explanation: `Fallback scene generated from keyword parsing (API quota exceeded). Detected: ${assetGroupsWithModels.map(g => g.name).join(', ')}`
+    assetGroups,
+    explanation: `Fallback scene generated from keyword parsing (API quota exceeded). Detected: ${assetGroups.map(g => g.name).join(', ')}. Using geometric primitives with domain randomization.`
   };
 }
 
@@ -611,15 +603,23 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
         const aiResponse = JSON.parse(jsonText) as AnalysisResponse;
 
-        // POST-PROCESSING #1: Assign 3D model URLs to asset groups
-        const { findModelForObject } = await import('./modelLibrary');
+        // POST-PROCESSING #1: NO 3D MODELS (NVIDIA Domain Randomization Approach)
+        // Using geometric primitives with randomized materials is the industry standard
+        // for synthetic data generation. Complex 3D models are NOT needed and often
+        // cause rendering failures. Domain randomization with simple shapes generalizes better.
+        console.log('[GeminiService] Using geometric primitives with domain randomization (NVIDIA approach)');
+
+        // Domain randomization: Add random material variation to each object
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
-          const modelUrl = findModelForObject(group.name, group.semanticLabel);
-          if (modelUrl) {
-            console.log(`[GeminiService] Assigned 3D model to "${group.name}": ${modelUrl}`);
-            return { ...group, modelUrl };
-          }
-          return group;
+          // Add small random variation to material properties (±20%)
+          const materialVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+          return {
+            ...group,
+            restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
+            friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
+            // Color variation: randomize hue slightly while keeping material identity
+            color: group.color, // Keep base color for now, will add hue variation later
+          };
         });
 
         // POST-PROCESSING #2: Set default rigidBodyType if missing

@@ -12,12 +12,12 @@ interface ProminentTelemetryProps {
 }
 
 export function ProminentTelemetry({ telemetryRef }: ProminentTelemetryProps) {
-  const fpsRef = useRef<HTMLSpanElement>(null);
-  const particleRef = useRef<HTMLSpanElement>(null);
-  const posRef = useRef<HTMLSpanElement>(null);
-  const quatRef = useRef<HTMLSpanElement>(null);
-  const velRef = useRef<HTMLSpanElement>(null);
-  const energyRef = useRef<HTMLSpanElement>(null);
+  const fpsRef = useRef<HTMLDivElement>(null);
+  const particleRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef<HTMLDivElement>(null);
+  const quatRef = useRef<HTMLDivElement>(null);
+  const velRef = useRef<HTMLDivElement>(null);
+  const energyRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Graph data

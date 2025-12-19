@@ -236,13 +236,18 @@ const App: React.FC = () => {
 
       // Provide helpful error messages for common issues
       if (errorMsg.includes('API') || errorMsg.includes('key') || errorMsg.includes('401') || errorMsg.includes('403')) {
-        addLog(`❌ SPAWN FAILED: Missing API key`, 'error');
-        addLog(`Click API button (top-right) to configure your Gemini API key`, 'warning');
+        addLog(`AI Generation Failed: API key not configured`, 'warning');
+        addLog(`Scene generated with basic shapes. To enable AI: Click API button (top-right) to add Gemini API key`, 'info');
+        addLog(`TIP: Browse ASSETS tab (left panel) to add 3D models manually`, 'info');
       } else if (errorMsg.includes('backend') || errorMsg.includes('network') || errorMsg.includes('fetch')) {
-        addLog(`❌ SPAWN FAILED: Backend unavailable`, 'error');
-        addLog(`Check network connection or configure API key directly`, 'warning');
+        addLog(`AI Generation Failed: Network/backend unavailable`, 'warning');
+        addLog(`Scene generated with basic shapes. Check network or configure API key directly`, 'info');
+      } else if (errorMsg.includes('quota') || errorMsg.includes('429')) {
+        addLog(`AI API quota exceeded - using basic shapes`, 'warning');
+        addLog(`Scene still works! Using procedural fallback generation`, 'info');
       } else {
-        addLog(`❌ SPAWN FAILED: ${errorMsg}`, 'error');
+        addLog(`AI Generation Error: ${errorMsg}`, 'warning');
+        addLog(`Scene generated with fallback basic shapes`, 'info');
         console.error('[SPAWN ERROR DETAILS]', error);
       }
     } finally {

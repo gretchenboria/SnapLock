@@ -30,15 +30,15 @@ export function GuidedTour({ onComplete }: GuidedTourProps) {
       ]
     },
     {
-      title: "Step 2: How It Works",
-      description: "SnapLock uses AI to automatically extract physics parameters from your text descriptions - no manual configuration needed.",
+      title: "Step 2: Add 3D Models",
+      description: "Browse the ASSETS tab to add 3D models. AI generates basic shapes - you add detailed models manually.",
       icon: Zap,
       spotlight: null,
       actions: [
-        "Type a scenario like 'falling cubes' or 'zero-g debris field'",
-        "AI automatically extracts: object types, physics properties, spawn patterns",
-        "Objects are instantiated (spawned) with correct properties",
-        "Perfect for rapid synthetic data generation"
+        "Click ASSETS tab in left panel",
+        "Browse available 3D models (furniture, tools, objects)",
+        "Click any model to add it to your scene",
+        "Models have realistic physics automatically applied"
       ]
     },
     {

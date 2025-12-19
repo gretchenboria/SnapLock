@@ -144,95 +144,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const activeGroup = params.assetGroups.find(g => g.id === selectedGroupId) || params.assetGroups[0] || null;
 
-  // Auto-complete suggestions based on input
-  useEffect(() => {
-    if (prompt.length > 2) {
-      const matches = SAMPLE_PROMPTS.filter(p =>
-        p.toLowerCase().includes(prompt.toLowerCase())
-      );
-      if (matches.length > 0 && matches[0] !== prompt) {
-        setSuggestions(matches);
-        setShowSuggestions(true);
-      } else {
-        setShowSuggestions(false);
-      }
-    } else if (prompt.length === 0) {
-      setSuggestions(SAMPLE_PROMPTS);
-    } else {
-      setShowSuggestions(false);
-    }
-  }, [prompt]);
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (commandLineRef.current && !commandLineRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Handle Enter key - Execute prompt
-    if (e.key === 'Enter' && !e.shiftKey && !showSuggestions) {
-      e.preventDefault();
-      if (prompt.trim()) {
-        setPromptHistory(prev => [...prev, prompt]);
-        setHistoryIndex(-1);
-        onAnalyze();
-      }
-    }
-
-    // Handle Enter with suggestions - Select suggestion
-    if (e.key === 'Enter' && showSuggestions && selectedSuggestionIndex >= 0) {
-      e.preventDefault();
-      setPrompt(suggestions[selectedSuggestionIndex]);
-      setShowSuggestions(false);
-      setSelectedSuggestionIndex(-1);
-    }
-
-    // Handle Tab - Autocomplete first suggestion
-    if (e.key === 'Tab' && showSuggestions && suggestions.length > 0) {
-      e.preventDefault();
-      setPrompt(suggestions[0]);
-      setShowSuggestions(false);
-    }
-
-    // Handle Escape - Close suggestions
-    if (e.key === 'Escape') {
-      setShowSuggestions(false);
-      setSelectedSuggestionIndex(-1);
-    }
-
-    // Handle Arrow Down - Navigate suggestions
-    if (e.key === 'ArrowDown' && showSuggestions) {
-      e.preventDefault();
-      setSelectedSuggestionIndex(prev =>
-        prev < suggestions.length - 1 ? prev + 1 : prev
-      );
-    }
-
-    // Handle Arrow Up - Navigate suggestions or history
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (showSuggestions) {
-        setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : 0);
-      } else if (promptHistory.length > 0) {
-        const newIndex = historyIndex === -1 ? promptHistory.length - 1 : Math.max(0, historyIndex - 1);
-        setHistoryIndex(newIndex);
-        setPrompt(promptHistory[newIndex]);
-      }
-    }
-
-    // Handle Ctrl/Cmd + Space - Show all suggestions
-    if ((e.ctrlKey || e.metaKey) && e.key === ' ') {
-      e.preventDefault();
-      setSuggestions(SAMPLE_PROMPTS);
-      setShowSuggestions(true);
-    }
-  };
+  // Autocomplete functionality removed - using simple input now
 
 
   const handleImportConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -410,7 +322,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
 
         {/* AUTO-SPAWN TOGGLE - SIMPLE AND CLEAR */}
-          <div className="flex items-center gap-3 px-4 py-2 bg-black/40 border-2 border-green-500/50 rounded-lg pointer-events-auto">
+        <div className="flex items-center gap-3 px-4 py-2 bg-black/40 border-2 border-green-500/50 rounded-lg pointer-events-auto">
             <Database size={20} className={isAutoSpawn ? "text-green-400 animate-bounce" : "text-gray-500"} />
             <div className="flex-1">
               <div className="text-sm font-bold text-white tracking-wide">AUTO-SPAWN</div>
@@ -478,7 +390,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               <span className="tracking-wider">SNAP</span>
             </button>
           </div>
-        </div>
 
         {/* Right: View Controls & AI Director */}
         <div className="flex items-center gap-3 pr-4">

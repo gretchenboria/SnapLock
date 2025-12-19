@@ -1016,7 +1016,7 @@ const App: React.FC = () => {
       <FloatingCharacters
         isChaosActive={isChaosActive}
         onChaosClick={() => setIsChaosActive(!isChaosActive)}
-        onLazarusClick={handleLazarusClick}
+        onLazarusClick={() => {}} // Disabled Lazarus diagnostics
         onSnappyClick={() => setIsSnappyEnabled(true)}
       />
 

@@ -860,8 +860,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         {/* --- SPACER TO REVEAL VIEWPORT --- */}
         <div className="flex-1 min-w-0"></div>
 
-        {/* --- RIGHT PANEL (Scene Graph) --- */}
-        <div className="w-64 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex flex-col pointer-events-auto p-4 space-y-4">
+        {/* --- RIGHT PANEL (Scene Graph) --- HIDDEN FOR CLEAN UI */}
+        <div className="hidden w-64 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex-col pointer-events-auto p-4 space-y-4">
            
            {/* Header with Add Action */}
            <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
@@ -969,8 +969,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
         </div>
 
-        {/* --- RIGHT PANEL: MANUAL CONTROLS (ALWAYS VISIBLE) --- */}
-        <div className="w-80 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex flex-col pointer-events-auto overflow-y-auto custom-scrollbar">
+        {/* --- RIGHT PANEL: MANUAL CONTROLS --- HIDDEN FOR CLEAN UI */}
+        <div className="hidden w-80 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex-col pointer-events-auto overflow-y-auto custom-scrollbar">
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-2 border-b border-white/10 pb-3">
               <Settings className="w-5 h-5 text-cyan-400" />

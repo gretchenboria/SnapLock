@@ -1098,55 +1098,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       </div>
 
-      {/* --- BOTTOM CONTROL BAR --- */}
-      <div className="w-full bg-scifi-900/98 backdrop-blur-md border-t border-white/10 pointer-events-auto shadow-xl">
-        <div className="flex items-center justify-center gap-3 py-3">
-
-          {/* Execute Button */}
-          <button
-            onClick={onAnalyze}
-            disabled={isAnalyzing}
-            className={`h-8 px-4 rounded font-mono text-xs font-bold transition-all border flex items-center gap-2 pointer-events-auto ${
-              isAnalyzing
-                ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
-                : 'bg-scifi-cyan/10 border-scifi-cyan/50 text-scifi-cyan-light hover:bg-scifi-cyan hover:text-black'
-            }`}
-            title="Execute Prompt"
-          >
-            {isAnalyzing ? <Activity className="w-3.5 h-3.5 animate-spin"/> : <Sparkles className="w-3.5 h-3.5"/>}
-            {isAnalyzing ? 'GENERATING...' : 'GENERATE'}
-          </button>
-
-          {/* Separator */}
-          <div className="w-px h-8 bg-white/10"></div>
-
-          {/* Playback Controls */}
-          <div className="flex items-center gap-1 bg-black/40 rounded border border-white/10 p-1 pointer-events-auto">
-            <IconButton onClick={togglePause} icon={isPaused ? <Play size={16}/> : <Pause size={16}/>} active={!isPaused} title={isPaused ? "Play" : "Pause"} />
-            <IconButton onClick={onReset} icon={<RefreshCw size={16}/>} title="Reset" />
-            <IconButton onClick={resetCamera} icon={<RotateCcw size={16}/>} title="Reset Camera" />
-          </div>
-
-          {/* Separator */}
-          <div className="w-px h-8 bg-white/10"></div>
-
-          {/* ML Export Controls */}
-          <div className="flex gap-2 pointer-events-auto">
-            <button
-              onClick={onExportCOCO}
-              className="h-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 rounded font-mono text-xs font-bold flex items-center gap-2 hover:from-blue-500 hover:to-purple-500 transition-all border border-white/20 pointer-events-auto"
-              title="Export Training Dataset (COCO/Depth/Segmentation/VR Poses)"
-            >
-              <Database size={14} />
-              EXPORT DATASET
-            </button>
-          </div>
-
-        </div>
-      </div>
-
       {/* FLOATING PROMPT BAR - BOTTOM CENTER */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none w-full max-w-4xl px-6">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none w-full max-w-3xl px-6">
         <div className="bg-black/95 backdrop-blur-xl border-2 border-cyan-500/50 rounded-2xl shadow-[0_0_60px_rgba(34,211,238,0.4)] p-4 pointer-events-auto">
           <div className="flex items-center gap-4">
             {/* Prompt Input */}
@@ -1196,9 +1149,34 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             </button>
           </div>
 
-          {/* Quick Hint */}
-          <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
-            <span>💡 Tip: Add 3D assets from left panel, or generate scenes with AI</span>
+          {/* Quick Hint & Controls */}
+          <div className="mt-3 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={togglePause}
+                className="flex items-center gap-1 px-3 py-1.5 bg-black/40 hover:bg-black/60 border border-white/20 rounded text-white transition-all"
+                title={isPaused ? "Play" : "Pause"}
+              >
+                {isPaused ? <Play size={14}/> : <Pause size={14}/>}
+                <span className="text-xs font-bold">{isPaused ? 'PLAY' : 'PAUSE'}</span>
+              </button>
+              <button
+                onClick={onReset}
+                className="flex items-center gap-1 px-3 py-1.5 bg-black/40 hover:bg-black/60 border border-white/20 rounded text-white transition-all"
+                title="Reset Simulation"
+              >
+                <RefreshCw size={14}/>
+                <span className="text-xs font-bold">RESET</span>
+              </button>
+              <button
+                onClick={onExportCOCO}
+                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 border border-white/20 rounded text-white transition-all"
+                title="Export ML Dataset"
+              >
+                <Database size={14}/>
+                <span className="text-xs font-bold">EXPORT</span>
+              </button>
+            </div>
             <span className="text-cyan-400 font-mono">Press Enter ↵</span>
           </div>
         </div>

@@ -237,12 +237,23 @@ function generateFallbackScene(prompt: string): AnalysisResponse {
     );
   }
 
+  // Assign 3D models to fallback asset groups
+  const { findModelForObject } = require('./modelLibrary');
+  const assetGroupsWithModels = assetGroups.map(group => {
+    const modelUrl = findModelForObject(group.name);
+    if (modelUrl) {
+      console.log(`[GeminiService/Fallback] Assigned model to "${group.name}": ${modelUrl}`);
+      return { ...group, modelUrl };
+    }
+    return group;
+  });
+
   return {
     movementBehavior,
     gravity,
     wind,
-    assetGroups,
-    explanation: `Fallback scene generated from keyword parsing (API quota exceeded). Detected: ${assetGroups.map(g => g.name).join(', ')}`
+    assetGroups: assetGroupsWithModels,
+    explanation: `Fallback scene generated from keyword parsing (API quota exceeded). Detected: ${assetGroupsWithModels.map(g => g.name).join(', ')}`
   };
 }
 
@@ -558,7 +569,20 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
             throw new Error("Empty response from AI model.");
         }
 
-        return JSON.parse(jsonText) as AnalysisResponse;
+        const aiResponse = JSON.parse(jsonText) as AnalysisResponse;
+
+        // POST-PROCESSING: Assign 3D model URLs to asset groups
+        const { findModelForObject } = await import('./modelLibrary');
+        aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
+          const modelUrl = findModelForObject(group.name, group.semanticLabel);
+          if (modelUrl) {
+            console.log(`[GeminiService] Assigned 3D model to "${group.name}": ${modelUrl}`);
+            return { ...group, modelUrl };
+          }
+          return group;
+        });
+
+        return aiResponse;
     });
   } catch (error: any) {
       console.error("[GeminiService] Analysis Error:", error);

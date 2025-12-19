@@ -18,6 +18,11 @@ export function ProminentTelemetry({ telemetryRef }: ProminentTelemetryProps) {
   const quatRef = useRef<HTMLSpanElement>(null);
   const velRef = useRef<HTMLSpanElement>(null);
   const energyRef = useRef<HTMLSpanElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Graph data
+  const fpsHistory = useRef<number[]>([]);
+  const maxHistory = 60; // 60 data points
 
   useEffect(() => {
     let active = true;
@@ -59,6 +64,63 @@ export function ProminentTelemetry({ telemetryRef }: ProminentTelemetryProps) {
         velRef.current.innerText = `[${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}]`;
       }
 
+      // Update graph
+      fpsHistory.current.push(data.fps);
+      if (fpsHistory.current.length > maxHistory) {
+        fpsHistory.current.shift();
+      }
+
+      // Draw graph
+      if (canvasRef.current) {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          const width = canvas.width;
+          const height = canvas.height;
+
+          // Clear
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.fillRect(0, 0, width, height);
+
+          // Grid lines
+          ctx.strokeStyle = 'rgba(34, 211, 238, 0.1)';
+          ctx.lineWidth = 1;
+          for (let i = 0; i <= 4; i++) {
+            const y = (height / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+          }
+
+          // Draw FPS line
+          if (fpsHistory.current.length > 1) {
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            const xStep = width / (maxHistory - 1);
+            const yScale = height / 120; // 0-120 FPS range
+
+            fpsHistory.current.forEach((fps, i) => {
+              const x = i * xStep;
+              const y = height - (fps * yScale);
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            });
+
+            ctx.stroke();
+          }
+
+          // Labels
+          ctx.fillStyle = '#22d3ee';
+          ctx.font = '10px monospace';
+          ctx.fillText('FPS', 5, 12);
+          ctx.fillText('120', width - 25, 12);
+          ctx.fillText('0', width - 15, height - 2);
+        }
+      }
+
       requestAnimationFrame(update);
     };
     requestAnimationFrame(update);
@@ -76,6 +138,17 @@ export function ProminentTelemetry({ telemetryRef }: ProminentTelemetryProps) {
 
       {/* Content */}
       <div className="p-4 space-y-4">
+        {/* Real-time Graph */}
+        <div className="bg-black/60 border border-cyan-500/30 rounded p-2">
+          <div className="text-xs text-gray-400 mb-2">FPS GRAPH (Real-time)</div>
+          <canvas
+            ref={canvasRef}
+            width={336}
+            height={80}
+            className="w-full h-20 rounded"
+          />
+        </div>
+
         {/* System Metrics */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-black/60 border border-cyan-500/30 rounded p-2 text-center">

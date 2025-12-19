@@ -88,7 +88,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
-  const [isEnhancing, setIsEnhancing] = useState(false);
   const [promptHistory, setPromptHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const commandLineRef = useRef<HTMLInputElement>(null);
@@ -240,17 +239,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     }
   };
 
-  const handleEnhancePrompt = async () => {
-    if (!prompt.trim() || isEnhancing) return;
-
-    setIsEnhancing(true);
-    // Simulate AI enhancement - in production, this would call your AI service
-    setTimeout(() => {
-      const enhanced = `${prompt} with high fidelity physics and realistic material properties, optimized for robotic perception training`;
-      setPrompt(enhanced);
-      setIsEnhancing(false);
-    }, 1500);
-  };
 
   const handleImportConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -420,7 +408,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   }
                 }}
                 className="w-full h-10 bg-transparent border-none pl-12 pr-48 text-sm font-mono text-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-600 pointer-events-auto"
-                placeholder="Describe industrial/medical simulation (e.g., surgical robot, robotic arm)..."
+                placeholder="Generate photorealistic 3D digital twins (e.g., surgical robot manipulating tissue, robotic arm assembling parts)..."
               />
 
               {/* Right Action Buttons */}
@@ -432,28 +420,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   </div>
                 )}
 
-                {/* AI Enhance Button */}
-                <button
-                  onClick={handleEnhancePrompt}
-                  disabled={!prompt.trim() || isEnhancing}
-                  className={`h-7 px-3 rounded flex items-center gap-1.5 transition-all border text-[9px] font-bold tracking-wider pointer-events-auto ${
-                    isEnhancing
-                      ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
-                      : prompt.trim()
-                      ? 'bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/50 text-purple-300 hover:from-purple-600/30 hover:to-pink-600/30 hover:border-purple-400'
-                      : 'bg-black/20 border-white/5 text-gray-600 cursor-not-allowed'
-                  }`}
-                  title="Enhance prompt with AI"
-                >
-                  {isEnhancing ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3 h-3" />
-                  )}
-                  <span>ENHANCE</span>
-                </button>
-
-                {/* Execute Button */}
+                {/* Execute Button - Make it BOLD and OBVIOUS */}
                 <button
                   onClick={() => {
                     if (prompt.trim()) {
@@ -462,21 +429,21 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     }
                   }}
                   disabled={isAnalyzing || !prompt.trim()}
-                  className={`h-7 px-3 rounded flex items-center gap-1.5 transition-all border font-bold text-[9px] tracking-wider pointer-events-auto ${
+                  className={`h-8 px-4 rounded-lg flex items-center gap-2 transition-all border-2 font-bold text-[11px] tracking-wider pointer-events-auto shadow-lg ${
                     isAnalyzing
                       ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400 cursor-wait'
                       : prompt.trim()
-                      ? 'bg-scifi-cyan/20 border-scifi-cyan text-scifi-cyan hover:bg-scifi-cyan hover:text-black'
+                      ? 'bg-scifi-cyan/20 border-scifi-cyan text-scifi-cyan hover:bg-scifi-cyan hover:text-black shadow-[0_0_20px_rgba(34,211,238,0.4)]'
                       : 'bg-black/20 border-white/5 text-gray-600 cursor-not-allowed'
                   }`}
-                  title="Execute simulation (Enter)"
+                  title="Generate Photorealistic 3D Digital Twin (Enter)"
                 >
                   {isAnalyzing ? (
-                    <Activity className="w-3 h-3 animate-spin" />
+                    <Activity className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Sparkles className="w-3 h-3" />
+                    <Sparkles className="w-4 h-4" />
                   )}
-                  <span>{isAnalyzing ? 'GENERATING...' : 'GENERATE'}</span>
+                  <span>{isAnalyzing ? 'GENERATING 3D...' : 'GENERATE 3D TWIN'}</span>
                 </button>
               </div>
             </div>
@@ -544,33 +511,72 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             )}
           </div>
 
-          {/* DATASET MODE - Auto-generate variations for ML training */}
+          {/* DATASET MODE - PROMINENT BUTTON */}
           <button
              onClick={toggleAutoSpawn}
              disabled={!prompt.trim() && !isAutoSpawn}
-             className={`h-9 px-3 flex items-center justify-center gap-1.5 rounded-lg transition-all border font-bold whitespace-nowrap group relative ${
+             className={`h-10 px-5 flex items-center justify-center gap-2 rounded-lg transition-all border-2 font-bold whitespace-nowrap group relative shadow-lg ${
                  isAutoSpawn
-                 ? 'bg-green-600/20 border-green-500 text-green-300 shadow-[0_0_15px_rgba(34,197,94,0.2)]'
+                 ? 'bg-green-600/30 border-green-500 text-green-200 shadow-[0_0_25px_rgba(34,197,94,0.4)] animate-pulse'
                  : !prompt.trim()
                  ? 'bg-black/20 border-white/10 text-gray-600 cursor-not-allowed'
-                 : 'bg-black/40 border-white/20 text-gray-400 hover:text-green-300 hover:border-green-500/50 hover:bg-green-600/10'
+                 : 'bg-green-950/30 border-green-700/50 text-green-400 hover:text-green-200 hover:border-green-500 hover:bg-green-600/20 hover:shadow-[0_0_20px_rgba(34,197,94,0.3)]'
              }`}
              title={
                isAutoSpawn
-               ? "Dataset Mode Active - Generating variations every 15s for ML training"
+               ? "DATASET MODE ACTIVE - Generating variations every 15s for ML training"
                : !prompt.trim()
                ? "Enter a prompt first to enable Dataset Mode"
                : "Enable Dataset Mode - Auto-generates scene variations for synthetic training data"
              }
           >
-             <Database size={14} className={isAutoSpawn ? "animate-pulse" : "group-hover:scale-110 transition-transform"} />
-             <span className="text-[10px] tracking-wider font-bold">DATASET MODE</span>
+             <Database size={18} className={isAutoSpawn ? "animate-bounce" : "group-hover:scale-110 transition-transform"} />
+             <span className="text-[11px] tracking-widest font-extrabold">DATASET MODE</span>
              {isAutoSpawn && (
-               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-500/50 rounded-full overflow-hidden">
-                 <div className="h-full bg-green-400 animate-[progress_15s_linear_infinite]" />
-               </div>
+               <>
+                 <span className="text-[9px] px-2 py-0.5 bg-green-500/30 text-green-200 border border-green-400/50 rounded-full animate-pulse ml-1">
+                   RECORDING
+                 </span>
+                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-green-500/50 rounded-full overflow-hidden">
+                   <div className="h-full bg-green-400 animate-[progress_15s_linear_infinite]" />
+                 </div>
+               </>
              )}
           </button>
+
+          {/* VIDEO RECORDING CONTROLS - MAKE THEM OBVIOUS! */}
+          <div className="flex items-center gap-2 border-l border-white/10 pl-3">
+            {!isRecording ? (
+              <button
+                onClick={onStartRecording}
+                disabled={!onStartRecording}
+                className="h-10 px-5 flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 border-2 border-red-500/50 hover:border-red-500 text-red-300 hover:text-red-200 rounded-lg text-[11px] font-extrabold transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]"
+                title="Start Recording Video Sequence"
+              >
+                <Video size={18} />
+                <span className="tracking-widest">START RECORDING</span>
+              </button>
+            ) : (
+              <button
+                onClick={onStopRecording}
+                className="h-10 px-5 flex items-center gap-2 bg-red-500/30 hover:bg-red-500/40 border-2 border-red-500 text-red-200 rounded-lg text-[11px] font-extrabold transition-all animate-pulse shadow-[0_0_25px_rgba(239,68,68,0.5)]"
+                title="Stop Recording"
+              >
+                <StopCircle size={18} className="animate-pulse" />
+                <span className="tracking-widest">STOP • {recordedFrameCount} FRAMES</span>
+              </button>
+            )}
+
+            <button
+              onClick={onCaptureMLFrame}
+              disabled={!onCaptureMLFrame || isRecording}
+              className="h-10 px-4 flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/30 border-2 border-cyan-500/50 hover:border-cyan-500 text-cyan-300 hover:text-cyan-200 rounded-lg text-[10px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Capture Single Frame"
+            >
+              <Camera size={16} />
+              <span className="tracking-wider">SNAP</span>
+            </button>
+          </div>
         </div>
 
         {/* Right: View Controls & AI Director */}

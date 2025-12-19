@@ -342,11 +342,11 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
         // Use best reasoning model for physics configuration (Gemini 3 Pro when available)
         const response = await ai.models.generateContent({
         model: getModelForTask('reasoning'),
-        contents: `You are a Physics-Aware Scene Generator for SnapLock simulation engine.
+        contents: `You are a Photorealistic Physics-Aware 3D Digital Twin Generator for SnapLock simulation engine.
 
         USER PROMPT: "${userPrompt}"
 
-        MISSION: Identify the scene context and generate a COMPLETE 3D environment with the user's requested objects.
+        MISSION: Generate PHOTOREALISTIC 3D digital twins with physics-accurate materials and properties. Create a COMPLETE 3D environment with the user's requested objects that looks and behaves like the real world.
 
         STEP 1: Identify the SCENE TYPE from the prompt
         STEP 2: Generate the BASE ENVIRONMENT (floor, walls, furniture for that scene type)

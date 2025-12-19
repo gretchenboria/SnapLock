@@ -14,6 +14,8 @@ interface MLExportModalProps {
   isRecording: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
+  recordedVideoBlob: Blob | null;
+  onDownloadVideo: () => void;
 }
 
 export const MLExportModal: React.FC<MLExportModalProps> = ({
@@ -28,7 +30,9 @@ export const MLExportModal: React.FC<MLExportModalProps> = ({
   recordedFrameCount,
   isRecording,
   onStartRecording,
-  onStopRecording
+  onStopRecording,
+  recordedVideoBlob,
+  onDownloadVideo
 }) => {
   if (!isOpen) return null;
 
@@ -109,6 +113,41 @@ export const MLExportModal: React.FC<MLExportModalProps> = ({
             )}
           </div>
         </div>
+
+        {/* Video Preview & Download */}
+        {recordedVideoBlob && (
+          <div className="mb-6 p-6 rounded-lg border-2 bg-green-900/20 border-green-500">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Video className="w-5 h-5 text-green-400" />
+                <span className="text-lg font-bold text-white">Video Recording Ready</span>
+              </div>
+            </div>
+
+            {/* Video Player */}
+            <div className="mb-4 rounded-lg overflow-hidden bg-black">
+              <video
+                controls
+                className="w-full max-h-96"
+                src={URL.createObjectURL(recordedVideoBlob)}
+                preload="metadata"
+              />
+            </div>
+
+            {/* Download Button */}
+            <button
+              onClick={onDownloadVideo}
+              className="w-full py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-colors"
+            >
+              <Download className="w-5 h-5" />
+              DOWNLOAD VIDEO (.webm)
+            </button>
+
+            <div className="mt-3 text-xs text-gray-400">
+              <p>✓ Video recorded at 30 FPS in WebM format. Ready for download or further processing.</p>
+            </div>
+          </div>
+        )}
 
         {/* Export Format Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

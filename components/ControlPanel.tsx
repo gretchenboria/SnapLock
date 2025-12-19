@@ -1328,12 +1328,17 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
     const countRef = useRef<HTMLDivElement>(null);
     const stabilityRef = useRef<HTMLDivElement>(null);
 
+    // Sample object transform data (for ML ground truth display)
+    const samplePosRef = useRef<HTMLDivElement>(null);
+    const sampleQuatRef = useRef<HTMLDivElement>(null);
+    const sampleVelRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         let active = true;
         const update = () => {
             if (!active) return;
             const data = telemetryRef.current;
-            
+
             if (fpsRef.current) {
                 fpsRef.current.innerText = `${data.fps.toFixed(0)} FPS`;
                 fpsRef.current.style.color = data.fps < 30 ? '#ef4444' : (data.fps < 50 ? '#f59e0b' : '#22d3ee');
@@ -1356,13 +1361,41 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
                 const score = data.stabilityScore || 0;
                 let color = '#22d3ee'; // Blue/Stable default
                 let label = 'STABLE';
-                
+
                 if (score > 2.0) { color = '#ef4444'; label = 'CHAOTIC'; }
                 else if (score > 0.5) { color = '#f59e0b'; label = 'ACTIVE'; }
                 else if (score < 0.1) { color = '#22c55e'; label = 'SETTLED'; }
 
                 stabilityRef.current.innerText = label;
                 stabilityRef.current.style.color = color;
+            }
+
+            // Sample object transform data (first object in scene)
+            if (samplePosRef.current) {
+                if (data.samplePosition) {
+                    const pos = data.samplePosition;
+                    samplePosRef.current.innerText = `X:${pos.x.toFixed(2)} Y:${pos.y.toFixed(2)} Z:${pos.z.toFixed(2)}`;
+                } else {
+                    samplePosRef.current.innerText = '--';
+                }
+            }
+
+            if (sampleQuatRef.current) {
+                if (data.sampleQuaternion) {
+                    const q = data.sampleQuaternion;
+                    sampleQuatRef.current.innerText = `X:${q.x.toFixed(2)} Y:${q.y.toFixed(2)} Z:${q.z.toFixed(2)} W:${q.w.toFixed(2)}`;
+                } else {
+                    sampleQuatRef.current.innerText = '--';
+                }
+            }
+
+            if (sampleVelRef.current) {
+                if (data.sampleVelocity) {
+                    const vel = data.sampleVelocity;
+                    sampleVelRef.current.innerText = `X:${vel.x.toFixed(2)} Y:${vel.y.toFixed(2)} Z:${vel.z.toFixed(2)}`;
+                } else {
+                    sampleVelRef.current.innerText = '--';
+                }
             }
 
             requestAnimationFrame(update);
@@ -1372,11 +1405,22 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
     }, []);
 
     return (
-        <div className="grid grid-cols-2 gap-2">
-            <TelemetryBoxRaw label="KINETIC ENERGY" ref={keRef} />
-            <TelemetryBoxRaw label="MEAN VELOCITY" ref={velRef} />
-            <TelemetryBoxRaw label="ENTITIES" ref={countRef} />
-            <TelemetryBoxRaw label="SYSTEM STATE" ref={stabilityRef} />
+        <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+                <TelemetryBoxRaw label="KINETIC ENERGY" ref={keRef} />
+                <TelemetryBoxRaw label="MEAN VELOCITY" ref={velRef} />
+                <TelemetryBoxRaw label="ENTITIES" ref={countRef} />
+                <TelemetryBoxRaw label="SYSTEM STATE" ref={stabilityRef} />
+            </div>
+
+            <div className="border-t border-white/10 pt-3">
+                <div className="text-[8px] font-bold text-cyan-400 tracking-widest uppercase mb-2">SAMPLE OBJECT (First Entity)</div>
+                <div className="space-y-2">
+                    <TelemetryBoxRaw label="POSITION (m)" ref={samplePosRef} />
+                    <TelemetryBoxRaw label="QUATERNION (x,y,z,w)" ref={sampleQuatRef} />
+                    <TelemetryBoxRaw label="VELOCITY (m/s)" ref={sampleVelRef} />
+                </div>
+            </div>
         </div>
     );
 };

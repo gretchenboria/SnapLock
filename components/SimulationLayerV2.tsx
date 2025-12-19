@@ -748,6 +748,23 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 
         const physicsStats = physicsEngineRef.current.getStatistics();
 
+        // Capture first object's transform data for UI display
+        let samplePos: Vector3Data | undefined;
+        let sampleQuat: { x: number; y: number; z: number; w: number } | undefined;
+        let sampleVel: Vector3Data | undefined;
+
+        if (activeParticles > 0) {
+            // First particle (index 0)
+            const i3 = 0;
+            samplePos = { x: pos[0], y: pos[1], z: pos[2] };
+            sampleVel = { x: vel[0], y: vel[1], z: vel[2] };
+
+            // Convert Euler angles to quaternion
+            const euler = new THREE.Euler(rot[i3], rot[i3+1], rot[i3+2], 'XYZ');
+            const quaternion = new THREE.Quaternion().setFromEuler(euler);
+            sampleQuat = { x: quaternion.x, y: quaternion.y, z: quaternion.z, w: quaternion.w };
+        }
+
         telemetryRef.current = {
             fps: 1 / dt,
             particleCount: activeParticles,
@@ -758,7 +775,10 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
             simTime: time,
             isWarmup: false, // NO MORE WARMUP HACK!
             activeCollisions: physicsStats?.activeCollisions || 0,
-            physicsSteps: physicsStats?.frameCount || 0
+            physicsSteps: physicsStats?.frameCount || 0,
+            samplePosition: samplePos,
+            sampleQuaternion: sampleQuat,
+            sampleVelocity: sampleVel
         };
     }
   });

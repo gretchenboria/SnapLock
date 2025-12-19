@@ -60,6 +60,11 @@ const App: React.FC = () => {
   const [recordedFrameCount, setRecordedFrameCount] = useState(0);
   const recordingIntervalRef = useRef<number | null>(null);
 
+  // Video Recording State
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const videoChunksRef = useRef<Blob[]>([]);
+  const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
+
   // VR Hands State (keyboard-controlled for testing)
   const [vrHands, setVRHands] = useState<VRHand[]>([]);
 
@@ -400,7 +405,44 @@ const App: React.FC = () => {
       setIsRecording(true);
       MLExportService.clearBuffer();
       setRecordedFrameCount(0);
+      setRecordedVideoBlob(null); // Clear previous video
       addLog('Started ML sequence recording (30 FPS)', 'info');
+
+      // Start video recording from canvas
+      try {
+          // Find the Three.js canvas element
+          const canvas = document.querySelector('canvas');
+          if (canvas) {
+              const stream = canvas.captureStream(30); // 30 FPS
+              const mediaRecorder = new MediaRecorder(stream, {
+                  mimeType: 'video/webm;codecs=vp9', // VP9 codec for better compression
+                  videoBitsPerSecond: 5000000 // 5 Mbps
+              });
+
+              videoChunksRef.current = [];
+
+              mediaRecorder.ondataavailable = (event) => {
+                  if (event.data.size > 0) {
+                      videoChunksRef.current.push(event.data);
+                  }
+              };
+
+              mediaRecorder.onstop = () => {
+                  const videoBlob = new Blob(videoChunksRef.current, { type: 'video/webm' });
+                  setRecordedVideoBlob(videoBlob);
+                  addLog('Video recording saved', 'success');
+              };
+
+              mediaRecorder.start(100); // Capture in 100ms chunks
+              mediaRecorderRef.current = mediaRecorder;
+              addLog('Video capture started', 'info');
+          } else {
+              addLog('Canvas not found for video recording', 'warning');
+          }
+      } catch (error) {
+          console.error('Video recording error:', error);
+          addLog('Video recording failed (metadata-only recording continues)', 'warning');
+      }
 
       // Record at 30 FPS (every ~33ms)
       recordingIntervalRef.current = window.setInterval(() => {
@@ -414,17 +456,24 @@ const App: React.FC = () => {
               console.error('Recording frame error:', error);
           }
       }, 33); // ~30 FPS
-  }, []);
+  }, [addLog]);
 
   const handleStopRecording = useCallback(() => {
       if (recordingIntervalRef.current) {
           clearInterval(recordingIntervalRef.current);
           recordingIntervalRef.current = null;
       }
+
+      // Stop video recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+          mediaRecorderRef.current = null;
+      }
+
       setIsRecording(false);
       const frameCount = MLExportService.getBufferSize();
       addLog(`Stopped recording. ${frameCount} frames captured.`, 'success');
-  }, []);
+  }, [addLog]);
 
   const handleExportCOCO = useCallback(() => {
       try {
@@ -498,6 +547,27 @@ const App: React.FC = () => {
   const handleExportPhysics = useCallback(() => {
       addLog('Physics ground truth export coming soon - will export complete physics state for validation', 'info');
   }, [addLog]);
+
+  const handleDownloadVideo = useCallback(() => {
+      if (!recordedVideoBlob) {
+          addLog('No video recording available. Record first, then download.', 'warning');
+          return;
+      }
+
+      try {
+          const url = URL.createObjectURL(recordedVideoBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `snaplock_recording_${Date.now()}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          addLog('Video downloaded successfully', 'success');
+      } catch (error) {
+          addLog(`Video download failed: ${(error as Error).message}`, 'error');
+      }
+  }, [recordedVideoBlob, addLog]);
 
   const handleOpenMLExportModal = useCallback(() => {
       setShowMLExportModal(true);
@@ -888,6 +958,8 @@ const App: React.FC = () => {
         isRecording={isRecording}
         onStartRecording={handleStartRecording}
         onStopRecording={handleStopRecording}
+        recordedVideoBlob={recordedVideoBlob}
+        onDownloadVideo={handleDownloadVideo}
       />
 
       {/* Snappy AI Chatbot - PRIMARY PROMPT INTERFACE */}

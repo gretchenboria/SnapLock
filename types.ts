@@ -241,6 +241,11 @@ export interface TelemetryData {
   isWarmup: boolean; // DEPRECATED - will be removed
   activeCollisions: number; // Number of collision pairs
   physicsSteps: number; // Actual physics steps taken
+
+  // Sample object transform (first object in scene)
+  samplePosition?: Vector3Data; // Position of first object
+  sampleQuaternion?: { x: number; y: number; z: number; w: number }; // Full quaternion with W
+  sampleVelocity?: Vector3Data; // Velocity of first object
 }
 
 export interface LogEntry {

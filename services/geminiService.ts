@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAction, DisturbanceType, PhysicsParams, TelemetryData, AssetGroup, Vector3Data } from "../types";
+import { AnalysisResponse, SpawnMode, ShapeType, MovementBehavior, AdversarialAction, DisturbanceType, PhysicsParams, TelemetryData, AssetGroup, Vector3Data, RigidBodyType } from "../types";
 import { MOCK_ANALYSIS_RESPONSE, MOCK_ADVERSARIAL_ACTION, MOCK_CREATIVE_PROMPT, MOCK_HTML_REPORT } from "./mockData";
 import { AIValidationService } from "./aiValidationService";
 
@@ -153,6 +153,14 @@ function generateFallbackScene(prompt: string): AnalysisResponse {
   // Check for each object type
   for (const [keyword, config] of Object.entries(objectKeywords)) {
     if (lowerPrompt.includes(keyword)) {
+      // Determine rigid body type based on object role
+      let rigidBodyType = RigidBodyType.DYNAMIC; // Default
+      if (keyword === 'table' || keyword === 'floor' || keyword === 'platform') {
+        rigidBodyType = RigidBodyType.STATIC; // Surfaces don't move
+      } else if (keyword === 'robot') {
+        rigidBodyType = RigidBodyType.KINEMATIC; // Robots follow programmed paths
+      }
+
       assetGroups.push({
         id: `${keyword}_group`,
         name: keyword.charAt(0).toUpperCase() + keyword.slice(1),
@@ -161,6 +169,7 @@ function generateFallbackScene(prompt: string): AnalysisResponse {
         color: config.color,
         spawnMode: isZeroG ? SpawnMode.FLOAT : (keyword === 'table' || keyword === 'floor' || keyword === 'platform') ? SpawnMode.GRID : SpawnMode.PILE,
         scale: config.scale,
+        rigidBodyType: rigidBodyType,
         mass: config.mass,
         restitution: config.restitution,
         friction: config.friction,
@@ -216,6 +225,7 @@ function generateFallbackScene(prompt: string): AnalysisResponse {
         color: '#f59e0b',
         spawnMode: isZeroG ? SpawnMode.FLOAT : SpawnMode.GRID,
         scale: 1.5,
+        rigidBodyType: RigidBodyType.DYNAMIC,
         mass: 8.0,
         restitution: 0.5,
         friction: 0.5,
@@ -229,6 +239,7 @@ function generateFallbackScene(prompt: string): AnalysisResponse {
         color: '#22d3ee',
         spawnMode: SpawnMode.PILE,
         scale: 0.6,
+        rigidBodyType: RigidBodyType.DYNAMIC,
         mass: 2.0,
         restitution: 0.6,
         friction: 0.5,
@@ -359,6 +370,34 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
         If no scene type mentioned, use LOUNGE as default.
 
         REQUIREMENTS:
+
+        0. RIGID BODY TYPES (CRITICAL FOR SYNTHETIC DATA GENERATION)
+           Assign rigidBodyType to EVERY object based on its role:
+
+           STATIC: Fixed objects that never move (critical for surgical/industrial simulations)
+           - Operating tables, floors, walls, platforms, fixtures
+           - Organs/tissues being operated on (heart, brain, liver)
+           - Industrial workbenches, assembly fixtures, mounting plates
+           - Use when: Object provides reference frame for manipulation tasks
+
+           KINEMATIC: Precisely controlled motion, NOT affected by physics forces
+           - Robotic arms (surgical robots, industrial manipulators)
+           - Gantry systems, CNC machines, automated stages
+           - VR hand controllers, teleoperated devices
+           - Use when: Object follows programmed trajectories, not physics
+
+           DYNAMIC: Normal physics simulation (default if not specified)
+           - Surgical instruments (forceps, needles, scalpels)
+           - Parts being assembled, packages, containers
+           - Objects that collide, fall, bounce naturally
+           - Use when: Object should respond to forces and collisions
+
+           EXAMPLE - Surgical Robot Scene:
+           - operating_table: STATIC
+           - heart_model: STATIC
+           - da_vinci_arm: KINEMATIC
+           - suture_needle: DYNAMIC (held by kinematic arm)
+           - forceps: DYNAMIC
 
         1. SHAPE MAPPING
            - Flat surfaces (tables, floors, platforms) -> PLATE
@@ -497,12 +536,13 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                     color: { type: Type.STRING },
                     spawnMode: { type: Type.STRING, enum: Object.values(SpawnMode) },
                     scale: { type: Type.NUMBER },
+                    rigidBodyType: { type: Type.STRING, enum: Object.values(RigidBodyType) },
                     mass: { type: Type.NUMBER },
                     restitution: { type: Type.NUMBER },
                     friction: { type: Type.NUMBER },
                     drag: { type: Type.NUMBER },
                     },
-                    required: ["id", "name", "count", "shape", "color", "spawnMode", "scale", "mass", "restitution", "friction", "drag"]
+                    required: ["id", "name", "count", "shape", "color", "spawnMode", "scale", "rigidBodyType", "mass", "restitution", "friction", "drag"]
                 }
                 },
                 joints: {

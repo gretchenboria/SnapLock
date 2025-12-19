@@ -25,6 +25,16 @@ export enum MovementBehavior {
   LINEAR_FLOW = 'LINEAR_FLOW'
 }
 
+/**
+ * Rigid Body Type for Synthetic Data Generation
+ * CRITICAL for surgical simulations and robotics training data
+ */
+export enum RigidBodyType {
+  DYNAMIC = 'DYNAMIC',       // Affected by forces (instruments, tools, objects)
+  KINEMATIC = 'KINEMATIC',   // Controlled motion, not affected by physics (robot arms)
+  STATIC = 'STATIC'          // Fixed in place (heart, organs, operating table)
+}
+
 export enum ShapeType {
   CUBE = 'CUBE',
   SPHERE = 'SPHERE',
@@ -62,6 +72,9 @@ export interface AssetGroup {
   color: string;
   spawnMode: SpawnMode;
   scale: number;
+
+  // Physics Body Type - CRITICAL for synthetic data generation
+  rigidBodyType?: RigidBodyType; // Defaults to DYNAMIC if not specified
 
   // Physics Material
   restitution: number;

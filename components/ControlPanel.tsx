@@ -474,9 +474,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   {isAnalyzing ? (
                     <Activity className="w-3 h-3 animate-spin" />
                   ) : (
-                    <Database className="w-3 h-3" />
+                    <Sparkles className="w-3 h-3" />
                   )}
-                  <span>RUN</span>
+                  <span>{isAnalyzing ? 'GENERATING...' : 'GENERATE'}</span>
                 </button>
               </div>
             </div>
@@ -544,24 +544,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             )}
           </div>
 
-          {/* Auto-Spawn Toggle - Compact Design */}
-          <button
-             onClick={toggleAutoSpawn}
-             className={`h-9 px-3 flex items-center justify-center gap-1.5 rounded-lg transition-all border font-bold whitespace-nowrap group relative ${
-                 isAutoSpawn
-                 ? 'bg-purple-600/20 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
-                 : 'bg-black/40 border-white/20 text-gray-400 hover:text-purple-300 hover:border-purple-500/50 hover:bg-purple-600/10'
-             }`}
-             title={isAutoSpawn ? "Auto-Spawn Active (15s intervals)" : "Enable Auto-Spawn Mode"}
-          >
-             <Wand2 size={14} className={isAutoSpawn ? "animate-pulse" : "group-hover:scale-110 transition-transform"} />
-             <span className="text-[10px] tracking-wider font-bold">AUTO SPAWN</span>
-             {isAutoSpawn && (
-               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500/50 rounded-full overflow-hidden">
-                 <div className="h-full bg-purple-400 animate-[progress_15s_linear_infinite]" />
-               </div>
-             )}
-          </button>
+          {/* Auto-Spawn Toggle - REMOVED (confusing UX) */}
         </div>
 
         {/* Right: View Controls & AI Director */}
@@ -667,7 +650,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     ) : (
                       <div className="flex items-center gap-2 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded">
                           <Sparkles className="w-4 h-4 text-yellow-400" />
-                          <span className="text-xs text-yellow-200">No groups yet - Enable Auto-Spawn or add manually</span>
+                          <span className="text-xs text-yellow-200">No groups yet - Type a prompt and click GENERATE or add manually</span>
                       </div>
                     )}
                  </div>
@@ -679,7 +662,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   <Wand2 className="w-12 h-12 text-gray-600 mb-4" />
                   <h3 className="text-sm font-bold text-gray-400 mb-2">No Asset Groups</h3>
                   <p className="text-xs text-gray-500 mb-4 max-w-xs">
-                    Start with a prompt using Auto-Spawn, or manually add an asset group below.
+                    Type a prompt and click GENERATE, or manually add an asset group below.
                   </p>
                   <button
                     onClick={addAssetGroup}
@@ -1059,7 +1042,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                      <Section title="API CONFIGURATION">
                         <div className="space-y-3">
                            <p className="text-[10px] text-gray-400">
-                              Configure your Gemini API key for AI features like Auto-Spawn and prompt enhancement.
+                              Configure your Gemini API key for AI-powered scene generation from prompts.
                            </p>
                            <button
                               onClick={() => setShowApiKeyModal(true)}
@@ -1267,8 +1250,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             }`}
             title="Execute Prompt"
           >
-            {isAnalyzing ? <Activity className="w-3.5 h-3.5 animate-spin"/> : <Database className="w-3.5 h-3.5"/>}
-            {isAnalyzing ? 'RUNNING' : 'RUN'}
+            {isAnalyzing ? <Activity className="w-3.5 h-3.5 animate-spin"/> : <Sparkles className="w-3.5 h-3.5"/>}
+            {isAnalyzing ? 'GENERATING...' : 'GENERATE'}
           </button>
 
           {/* Separator */}

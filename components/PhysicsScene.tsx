@@ -54,13 +54,70 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
     }
   }));
 
+  // WebGL Context Loss Recovery
+  const [contextLost, setContextLost] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      console.error('[PhysicsScene] WebGL context lost!');
+      setContextLost(true);
+    };
+
+    const handleContextRestored = () => {
+      console.log('[PhysicsScene] WebGL context restored');
+      setContextLost(false);
+      // Force full reset
+      window.location.reload();
+    };
+
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      canvas.addEventListener('webglcontextlost', handleContextLost);
+      canvas.addEventListener('webglcontextrestored', handleContextRestored);
+    }
+
+    return () => {
+      if (canvas) {
+        canvas.removeEventListener('webglcontextlost', handleContextLost);
+        canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+      }
+    };
+  }, []);
+
+  if (contextLost) {
+    return (
+      <div className="w-full h-full bg-red-900 flex items-center justify-center">
+        <div className="text-center text-white">
+          <h2 className="text-2xl font-bold mb-4">WebGL Context Lost</h2>
+          <p className="mb-4">Your GPU stopped responding. This usually happens due to:</p>
+          <ul className="list-disc list-inside mb-4 text-left max-w-md mx-auto">
+            <li>Too many particles/objects</li>
+            <li>GPU driver crash</li>
+            <li>Browser tab running too long</li>
+          </ul>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 rounded font-bold"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full bg-slate-900 relative">
       <Canvas
         gl={{ preserveDrawingBuffer: true, antialias: true }}
         camera={{ position: [10, 8, 10], fov: 40 }}
         shadows
-        dpr={[1, 2]} 
+        dpr={[1, 2]}
+        onCreated={(state) => {
+          console.log('[PhysicsScene] Canvas created successfully');
+          console.log('[PhysicsScene] WebGL Renderer:', state.gl.info.render);
+        }}
       >
         <color attach="background" args={[viewMode === ViewMode.LIDAR ? '#000000' : '#0a0e1a']} />
         

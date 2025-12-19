@@ -20,6 +20,7 @@ import { GuidedTour } from './components/GuidedTour';
 import { FloatingCharacters } from './components/FloatingCharacters';
 import { SnappyChatbot } from './components/SnappyChatbot';
 import { ChaosActivityPanel } from './components/ChaosActivityPanel';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const App: React.FC = () => {
   // State
@@ -37,11 +38,11 @@ const App: React.FC = () => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.RGB);
   
-  // Auto Spawn State - DEFAULT OFF for manual workflow
+  // Auto Spawn State - DISABLED (confusing UX, user always wants specific prompts)
   const [isAutoSpawn, setIsAutoSpawn] = useState(false);
-  const isAutoSpawnRef = useRef(false); // Ref to track state inside async closures
+  const isAutoSpawnRef = useRef(false);
   const autoSpawnTimerRef = useRef<number | null>(null);
-  const isAnalyzingRef = useRef(false); // Ref to avoid stale closure in intervals
+  const isAnalyzingRef = useRef(false);
 
   // Chaos Mode State
   const [isChaosActive, setIsChaosActive] = useState(false);
@@ -582,75 +583,26 @@ const App: React.FC = () => {
       };
   }, []);
 
-  // --- AUTO SPAWN LOOP ---
-  // Auto-spawn generates scene variations from the SAME prompt for synthetic dataset generation
-  // It does NOT change the prompt - that stays fixed until user changes it manually
+  // --- AUTO SPAWN LOOP DISABLED ---
+  // UX DECISION: User always wants specific prompts, not random generation
+  // Auto-spawn is now hidden from UI. If re-enabled, it REQUIRES a prompt.
   useEffect(() => {
+    // SAFETY: Auto-spawn disabled entirely
+    if (autoSpawnTimerRef.current) {
+      window.clearInterval(autoSpawnTimerRef.current);
+      autoSpawnTimerRef.current = null;
+    }
+
+    // Force disable if somehow enabled
     if (isAutoSpawn) {
-        if (!autoSpawnTimerRef.current) {
-            addLog("Auto Spawn: Active - generating procedural room variations for dataset", "info");
-        }
-
-        const spawnCycle = () => {
-            if (!isAutoSpawnRef.current) return;
-
-            // If user has entered a prompt, use AI to generate objects from that prompt
-            // Otherwise, use random procedural generation
-            if (prompt.trim()) {
-                // AI generation from user's prompt
-                addLog(`Auto Spawn: Generating from prompt "${prompt}"`, 'info');
-                executeAnalysis(prompt, 'AUTO');
-            } else {
-                // Random procedural room generation
-                const templates = Object.values(SceneTemplate);
-                const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
-
-                const roomSizes: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
-                const densities: Array<'sparse' | 'medium' | 'dense'> = ['sparse', 'medium', 'dense'];
-                const themes: Array<'vibrant' | 'pastel' | 'neon' | 'natural'> = ['vibrant', 'pastel', 'neon', 'natural'];
-
-                const randomRoomSize = roomSizes[Math.floor(Math.random() * roomSizes.length)];
-                const randomDensity = densities[Math.floor(Math.random() * densities.length)];
-                const randomTheme = themes[Math.floor(Math.random() * themes.length)];
-
-                try {
-                    const generatedParams = ProceduralSceneGenerator.generateScene({
-                        template: randomTemplate,
-                        roomSize: randomRoomSize,
-                        objectDensity: randomDensity,
-                        colorTheme: randomTheme
-                    });
-
-                    // Add VR hands if they exist
-                    generatedParams.vrHands = vrHands.length > 0 ? vrHands : undefined;
-
-                    setParams(generatedParams);
-                    setShouldReset(true);
-
-                    addLog(`Auto Spawn: ${randomTemplate} (${randomRoomSize}, ${randomDensity}, ${randomTheme})`, 'success');
-                } catch (error) {
-                    addLog(`Auto Spawn failed: ${(error as Error).message}`, 'error');
-                }
-            }
-        };
-
-        // Initial run if not already running
-        if (!autoSpawnTimerRef.current) {
-             spawnCycle();
-        }
-
-        autoSpawnTimerRef.current = window.setInterval(spawnCycle, 15000) as unknown as number;
-    } else {
-        if (autoSpawnTimerRef.current) {
-            window.clearInterval(autoSpawnTimerRef.current);
-            autoSpawnTimerRef.current = null;
-            addLog("Auto Spawn: Disabled", "info");
-        }
+      setIsAutoSpawn(false);
+      addLog("Auto-spawn has been disabled. Use GENERATE SCENE button with your prompt.", "info");
     }
+
     return () => {
-        if (autoSpawnTimerRef.current) window.clearInterval(autoSpawnTimerRef.current);
-    }
-  }, [isAutoSpawn, vrHands, addLog, prompt, executeAnalysis]); 
+      if (autoSpawnTimerRef.current) window.clearInterval(autoSpawnTimerRef.current);
+    };
+  }, [isAutoSpawn, addLog]); 
 
   // --- CHAOS MODE LOOP ---
   useEffect(() => {
@@ -889,6 +841,7 @@ const App: React.FC = () => {
   }, [vrHands]);
 
   return (
+    <ErrorBoundary>
     <div ref={canvasRef} className="relative h-screen w-screen bg-slate-900 text-white overflow-hidden">
       
       {/* Test Dashboard Overlay */}
@@ -925,8 +878,8 @@ const App: React.FC = () => {
         toggleChaos={() => setIsChaosActive(!isChaosActive)}
         viewMode={viewMode}
         setViewMode={setViewMode}
-        isAutoSpawn={isAutoSpawn}
-        toggleAutoSpawn={() => setIsAutoSpawn(!isAutoSpawn)}
+        isAutoSpawn={false} // DISABLED - confusing UX
+        toggleAutoSpawn={() => {}} // NO-OP - disabled
         telemetryRef={telemetryRef}
         onDownloadCSV={handleDownloadCSV}
         onGenerateReport={handleGenerateReport}
@@ -1031,6 +984,7 @@ const App: React.FC = () => {
         <GuidedTour onComplete={() => setShowGuidedTour(false)} />
       )}
     </div>
+    </ErrorBoundary>
   );
 };
 

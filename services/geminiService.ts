@@ -603,23 +603,39 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
         const aiResponse = JSON.parse(jsonText) as AnalysisResponse;
 
-        // POST-PROCESSING #1: NO 3D MODELS (NVIDIA Domain Randomization Approach)
-        // Using geometric primitives with randomized materials is the industry standard
-        // for synthetic data generation. Complex 3D models are NOT needed and often
-        // cause rendering failures. Domain randomization with simple shapes generalizes better.
-        console.log('[GeminiService] Using geometric primitives with domain randomization (NVIDIA approach)');
+        // POST-PROCESSING #1: TRY OPEN-SOURCE MODELS, FALLBACK TO DOMAIN RANDOMIZATION
+        // Best of both worlds:
+        // 1. Try to load industry-standard models (YCB robotics dataset, Poly Haven)
+        // 2. If model fails or not found → Use domain randomization (NVIDIA approach)
+        console.log('[GeminiService] Attempting to match objects to open-source 3D models...');
 
-        // Domain randomization: Add random material variation to each object
+        const { findOpenSourceModel } = await import('./openSourceModels');
+
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
-          // Add small random variation to material properties (±20%)
+          // Try to find matching open-source model
+          const modelMatch = findOpenSourceModel(group.name, group.semanticLabel);
+
+          // Add domain randomization to material properties (±20%)
           const materialVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-          return {
-            ...group,
-            restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
-            friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
-            // Color variation: randomize hue slightly while keeping material identity
-            color: group.color, // Keep base color for now, will add hue variation later
-          };
+
+          if (modelMatch.modelUrl) {
+            console.log(`[GeminiService] ✓ Assigned ${modelMatch.source} model to "${group.name}"`);
+            return {
+              ...group,
+              modelUrl: modelMatch.modelUrl,
+              // Still apply material randomization for variety
+              restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
+              friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
+            };
+          } else {
+            console.log(`[GeminiService] ○ No model for "${group.name}", using domain randomization`);
+            return {
+              ...group,
+              // Domain randomization: vary material properties
+              restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
+              friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
+            };
+          }
         });
 
         // POST-PROCESSING #2: Set default rigidBodyType if missing

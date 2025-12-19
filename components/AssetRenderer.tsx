@@ -9,40 +9,47 @@ interface AssetRendererProps {
     viewMode: ViewMode;
 }
 
-// Component for rendering GLB Models - Encapsulates the hook
+// Component for rendering 3D Models with Error Handling
 const ModelAsset: React.FC<AssetRendererProps> = ({ group, meshRef, viewMode }) => {
-    // We assume this component is only mounted when group.modelUrl exists.
-    // Call hook unconditionally to satisfy React Rules of Hooks.
-    // The parent AssetRenderer component handles the conditional mounting.
-    const url = group.modelUrl!; 
-    const { nodes } = useGLTF(url);
-    
+    const [loadError, setLoadError] = React.useState(false);
+    const url = group.modelUrl!;
+
+    // Try to load model, catch errors gracefully
+    let gltf;
+    try {
+        gltf = useGLTF(url);
+    } catch (error) {
+        console.warn(`[AssetRenderer] Failed to load model ${url}, falling back to primitive`, error);
+        setLoadError(true);
+    }
+
+    // If model loading failed, fall back to primitive with domain randomization
+    if (loadError || !gltf) {
+        console.log(`[AssetRenderer] Using domain randomization fallback for "${group.name}"`);
+        return <PrimitiveAsset group={group} meshRef={meshRef} viewMode={viewMode} />;
+    }
+
+    const { nodes } = gltf;
+
     let gltfGeometry: THREE.BufferGeometry | null = null;
     const firstMesh = Object.values(nodes).find((n: any) => n.isMesh) as THREE.Mesh;
     if (firstMesh) {
         gltfGeometry = firstMesh.geometry;
     }
 
-    // Fallback if geometry loading failed
+    // Fallback if geometry extraction failed
     if (!gltfGeometry) {
-        return (
-            <instancedMesh 
-                ref={meshRef} 
-                args={[undefined, undefined, group.count]} 
-                castShadow 
-                receiveShadow
-            >
-                <boxGeometry args={[1, 1, 1]} />
-                <Material group={group} viewMode={viewMode} />
-            </instancedMesh>
-        );
+        console.warn(`[AssetRenderer] No geometry found in model, using primitive for "${group.name}"`);
+        return <PrimitiveAsset group={group} meshRef={meshRef} viewMode={viewMode} />;
     }
 
+    console.log(`[AssetRenderer] ✓ Successfully loaded 3D model for "${group.name}"`);
+
     return (
-        <instancedMesh 
-            ref={meshRef} 
-            args={[gltfGeometry, undefined, group.count]} 
-            castShadow 
+        <instancedMesh
+            ref={meshRef}
+            args={[gltfGeometry, undefined, group.count]}
+            castShadow
             receiveShadow
         >
             <Material group={group} viewMode={viewMode} />

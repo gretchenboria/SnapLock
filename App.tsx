@@ -583,26 +583,56 @@ const App: React.FC = () => {
       };
   }, []);
 
-  // --- AUTO SPAWN LOOP DISABLED ---
-  // UX DECISION: User always wants specific prompts, not random generation
-  // Auto-spawn is now hidden from UI. If re-enabled, it REQUIRES a prompt.
+  // --- DATASET MODE (AUTO-GENERATE VARIATIONS) ---
+  // Purpose: Generate many variations of the SAME prompt for ML training datasets
+  // CRITICAL: This is the core feature for synthetic data generation
+  // REQUIREMENT: Must have a prompt - no random generation allowed
   useEffect(() => {
-    // SAFETY: Auto-spawn disabled entirely
-    if (autoSpawnTimerRef.current) {
-      window.clearInterval(autoSpawnTimerRef.current);
-      autoSpawnTimerRef.current = null;
-    }
-
-    // Force disable if somehow enabled
     if (isAutoSpawn) {
-      setIsAutoSpawn(false);
-      addLog("Auto-spawn has been disabled. Use GENERATE SCENE button with your prompt.", "info");
+      // SAFETY CHECK: Require prompt for dataset mode
+      if (!prompt.trim()) {
+        setIsAutoSpawn(false);
+        addLog("⚠️ Dataset Mode requires a prompt. Type your scene description first.", "warning");
+        return;
+      }
+
+      if (!autoSpawnTimerRef.current) {
+        addLog(`🔄 Dataset Mode: Generating variations of "${prompt}" every 15s`, "info");
+      }
+
+      const generateVariation = () => {
+        if (!isAutoSpawnRef.current) return;
+        if (!prompt.trim()) {
+          setIsAutoSpawn(false);
+          addLog("Dataset Mode disabled - prompt was cleared", "warning");
+          return;
+        }
+
+        // ALWAYS use user's prompt, AI generates spatial variations
+        addLog(`Dataset Mode: Generating variation ${Date.now() % 1000} of "${prompt}"`, 'info');
+        executeAnalysis(prompt, 'AUTO');
+      };
+
+      // Initial generation
+      if (!autoSpawnTimerRef.current) {
+        generateVariation();
+      }
+
+      // Generate variations every 15 seconds
+      autoSpawnTimerRef.current = window.setInterval(generateVariation, 15000) as unknown as number;
+    } else {
+      // Stop dataset mode
+      if (autoSpawnTimerRef.current) {
+        window.clearInterval(autoSpawnTimerRef.current);
+        autoSpawnTimerRef.current = null;
+        addLog("Dataset Mode: Stopped", "info");
+      }
     }
 
     return () => {
       if (autoSpawnTimerRef.current) window.clearInterval(autoSpawnTimerRef.current);
     };
-  }, [isAutoSpawn, addLog]); 
+  }, [isAutoSpawn, prompt, executeAnalysis, addLog]); 
 
   // --- CHAOS MODE LOOP ---
   useEffect(() => {
@@ -878,8 +908,15 @@ const App: React.FC = () => {
         toggleChaos={() => setIsChaosActive(!isChaosActive)}
         viewMode={viewMode}
         setViewMode={setViewMode}
-        isAutoSpawn={false} // DISABLED - confusing UX
-        toggleAutoSpawn={() => {}} // NO-OP - disabled
+        isAutoSpawn={isAutoSpawn} // DATASET MODE - generates variations of YOUR prompt
+        toggleAutoSpawn={() => {
+          if (!prompt.trim() && !isAutoSpawn) {
+            addLog("⚠️ Enter a prompt before enabling Dataset Mode", "warning");
+            return;
+          }
+          setIsAutoSpawn(!isAutoSpawn);
+          isAutoSpawnRef.current = !isAutoSpawn;
+        }}
         telemetryRef={telemetryRef}
         onDownloadCSV={handleDownloadCSV}
         onGenerateReport={handleGenerateReport}

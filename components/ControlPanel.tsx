@@ -295,41 +295,39 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
         {/* Prompt moved to bottom center - see floating prompt bar below */}
 
-        {/* AUTO-SPAWN TOGGLE - SIMPLE AND CLEAR */}
-        <div className="flex items-center gap-3 px-4 py-2 bg-black/40 border-2 border-green-500/50 rounded-lg pointer-events-auto">
-            <Database size={20} className={isAutoSpawn ? "text-green-400 animate-bounce" : "text-gray-500"} />
-            <div className="flex-1">
-              <div className="text-sm font-bold text-white tracking-wide">AUTO-SPAWN</div>
-              <div className="text-[10px] text-gray-400">Dataset Mode - Scene Variations</div>
-            </div>
-            <button
-              onClick={toggleAutoSpawn}
-              disabled={!prompt.trim() && !isAutoSpawn}
-              className={`relative w-14 h-7 rounded-full transition-all ${
-                isAutoSpawn
-                  ? 'bg-green-500 shadow-[0_0_20px_rgba(34,197,94,0.5)]'
-                  : !prompt.trim()
-                  ? 'bg-gray-700 cursor-not-allowed'
-                  : 'bg-gray-600 hover:bg-gray-500'
-              }`}
-              title={
-                isAutoSpawn
-                ? "ACTIVE - Generating variations every 15s"
-                : !prompt.trim()
-                ? "Enter a prompt first"
-                : "Click to enable auto-spawn"
-              }
-            >
-              <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-all ${
-                isAutoSpawn ? 'left-7' : 'left-0.5'
-              }`} />
-            </button>
-            {isAutoSpawn && (
-              <span className="text-[9px] px-2 py-1 bg-green-500/30 text-green-200 border border-green-400/50 rounded-full animate-pulse">
-                ACTIVE
-              </span>
-            )}
+        {/* AUTO-SPAWN TOGGLE - Compact Style */}
+        <button
+          onClick={toggleAutoSpawn}
+          disabled={!prompt.trim() && !isAutoSpawn}
+          title={
+            isAutoSpawn
+            ? "Auto-Spawn Active - Click to disable"
+            : !prompt.trim()
+            ? "Enter a prompt first to enable auto-spawn"
+            : "Enable Auto-Spawn - Generate scene variations"
+          }
+          className={`h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group pointer-events-auto ${
+            isAutoSpawn
+              ? 'bg-green-500/20 border-green-500/50 hover:bg-green-500/30'
+              : !prompt.trim()
+              ? 'bg-black/40 border-gray-600 cursor-not-allowed opacity-50'
+              : 'bg-black/40 border-white/20 hover:border-green-500/50 hover:bg-white/5'
+          }`}
+        >
+          <Database size={14} className={`transition-colors ${
+            isAutoSpawn ? 'text-green-400' : !prompt.trim() ? 'text-gray-600' : 'text-gray-400 group-hover:text-green-400'
+          }`} />
+          <div className="flex flex-col items-start">
+            <span className={`font-bold text-[10px] tracking-wider transition-colors ${
+              isAutoSpawn ? 'text-green-400' : !prompt.trim() ? 'text-gray-600' : 'text-gray-400 group-hover:text-green-400'
+            }`}>
+              AUTO-SPAWN
+            </span>
           </div>
+          {isAutoSpawn && (
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+          )}
+        </button>
 
           {/* VIDEO RECORDING CONTROLS - MAKE THEM OBVIOUS! */}
           <div className="flex items-center gap-2 border-l border-white/10 pl-3">

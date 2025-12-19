@@ -32,6 +32,8 @@ interface ControlPanelProps {
   onRunDiagnostics: () => void;
   isSnappyEnabled: boolean;
   toggleSnappy: () => void;
+  showTelemetry?: boolean;
+  toggleTelemetry?: () => void;
   // ML Ground Truth Export
   onCaptureMLFrame?: () => void;
   onStartRecording?: () => void;
@@ -67,6 +69,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onRunDiagnostics,
   isSnappyEnabled,
   toggleSnappy,
+  showTelemetry = true,
+  toggleTelemetry,
   // ML Export props
   onCaptureMLFrame,
   onStartRecording,
@@ -80,6 +84,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [latestChaosLog, setLatestChaosLog] = useState<LogEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showHierarchy, setShowHierarchy] = useState(false);
+  const [showManualControls, setShowManualControls] = useState(false);
 
   // Preset State
   const [presets, setPresets] = useState<MaterialPreset[]>(DEFAULT_MATERIAL_PRESETS);
@@ -415,6 +421,53 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     </span>
                 </div>
              </button>
+
+             {/* TELEMETRY TOGGLE BUTTON */}
+             {toggleTelemetry && (
+               <button
+                  onClick={toggleTelemetry}
+                  title={showTelemetry ? "Hide Live Telemetry" : "Show Live Telemetry"}
+                  className="h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group bg-black/40 border-white/20 hover:border-cyan-500/50 hover:bg-white/5"
+               >
+                  <Activity size={14} className={`transition-colors ${showTelemetry ? 'text-cyan-400' : 'text-gray-400 group-hover:text-cyan-400'}`} />
+                  <div className="flex flex-col items-start">
+                      <span className={`font-bold text-[10px] tracking-wider transition-colors ${showTelemetry ? 'text-cyan-400' : 'text-gray-400 group-hover:text-cyan-400'}`}>
+                          TELEMETRY
+                      </span>
+                  </div>
+                  {showTelemetry && (
+                      <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                  )}
+               </button>
+             )}
+
+             {/* HIERARCHY TOGGLE BUTTON */}
+             <button
+                onClick={() => setShowHierarchy(!showHierarchy)}
+                title={showHierarchy ? "Hide Hierarchy Panel" : "Show Hierarchy Panel"}
+                className="h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group bg-black/40 border-white/20 hover:border-purple-500/50 hover:bg-white/5"
+             >
+                <Layers size={14} className={`transition-colors ${showHierarchy ? 'text-purple-400' : 'text-gray-400 group-hover:text-purple-400'}`} />
+                <div className="flex flex-col items-start">
+                    <span className={`font-bold text-[10px] tracking-wider transition-colors ${showHierarchy ? 'text-purple-400' : 'text-gray-400 group-hover:text-purple-400'}`}>
+                        HIERARCHY
+                    </span>
+                </div>
+             </button>
+
+             {/* MANUAL CONTROLS TOGGLE BUTTON */}
+             <button
+                onClick={() => setShowManualControls(!showManualControls)}
+                title={showManualControls ? "Hide Manual Controls" : "Show Manual Controls"}
+                className="h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group bg-black/40 border-white/20 hover:border-orange-500/50 hover:bg-white/5"
+             >
+                <Settings size={14} className={`transition-colors ${showManualControls ? 'text-orange-400' : 'text-gray-400 group-hover:text-orange-400'}`} />
+                <div className="flex flex-col items-start">
+                    <span className={`font-bold text-[10px] tracking-wider transition-colors ${showManualControls ? 'text-orange-400' : 'text-gray-400 group-hover:text-orange-400'}`}>
+                        CONTROLS
+                    </span>
+                </div>
+             </button>
         </div>
 
         {/* CHAOS notification removed - will show in 3D scene with floating skull */}
@@ -703,6 +756,17 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
               {activeTab === 'SETTINGS' && (
                   <>
+                     {/* Back Button */}
+                     <div className="mb-4">
+                        <button
+                           onClick={() => setActiveTab('ASSETS')}
+                           className="flex items-center gap-2 text-xs text-gray-400 hover:text-cyan-400 transition-colors"
+                        >
+                           <ChevronRight className="w-4 h-4 rotate-180" />
+                           <span>Back to Assets</span>
+                        </button>
+                     </div>
+
                      {/* Authentication Section */}
                      <Section title="ACCOUNT">
                         <AuthSection />
@@ -860,8 +924,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         {/* --- SPACER TO REVEAL VIEWPORT --- */}
         <div className="flex-1 min-w-0"></div>
 
-        {/* --- RIGHT PANEL (Scene Graph) --- HIDDEN FOR CLEAN UI */}
-        <div className="hidden w-64 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex-col pointer-events-auto p-4 space-y-4">
+        {/* --- RIGHT PANEL (Scene Graph) --- TOGGLEABLE */}
+        {showHierarchy && (
+        <div className="w-64 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex flex-col pointer-events-auto p-4 space-y-4">
            
            {/* Header with Add Action */}
            <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
@@ -968,9 +1033,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
            </div>
 
         </div>
+        )}
 
-        {/* --- RIGHT PANEL: MANUAL CONTROLS --- HIDDEN FOR CLEAN UI */}
-        <div className="hidden w-80 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex-col pointer-events-auto overflow-y-auto custom-scrollbar">
+        {/* --- RIGHT PANEL: MANUAL CONTROLS --- TOGGLEABLE */}
+        {showManualControls && (
+        <div className="w-80 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex flex-col pointer-events-auto overflow-y-auto custom-scrollbar">
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-2 border-b border-white/10 pb-3">
               <Settings className="w-5 h-5 text-cyan-400" />
@@ -1095,6 +1162,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             )}
           </div>
         </div>
+        )}
 
       </div>
 

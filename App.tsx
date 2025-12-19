@@ -61,6 +61,9 @@ const App: React.FC = () => {
   // Prompt Modal State
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
+  // Telemetry Visibility State
+  const [showTelemetry, setShowTelemetry] = useState(true);
+
   // ML Export State
   const [isRecording, setIsRecording] = useState(false);
   const [recordedFrameCount, setRecordedFrameCount] = useState(0);
@@ -929,6 +932,8 @@ const App: React.FC = () => {
         onRunDiagnostics={() => {}} // Disabled Lazarus
         isSnappyEnabled={isSnappyEnabled}
         toggleSnappy={() => setIsSnappyEnabled(!isSnappyEnabled)}
+        showTelemetry={showTelemetry}
+        toggleTelemetry={() => setShowTelemetry(!showTelemetry)}
         // ML Export props
         onCaptureMLFrame={handleCaptureMLFrame}
         onStartRecording={handleStartRecording}
@@ -1013,7 +1018,7 @@ const App: React.FC = () => {
       />
 
       {/* PROMINENT TELEMETRY - Large, visible, critical data */}
-      <ProminentTelemetry telemetryRef={telemetryRef} />
+      {showTelemetry && <ProminentTelemetry telemetryRef={telemetryRef} />}
 
 
       {/* Floating Characters: Chaos, Snappy (Free-floating gently around UI) */}

@@ -5,6 +5,7 @@ import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Ac
 import { ApiKeyModal } from './ApiKeyModal';
 import { SupportForm } from './SupportForm';
 import { AuthSection } from './AuthSection';
+import { AssetLibrary, Asset } from './AssetLibrary';
 
 interface ControlPanelProps {
   prompt: string;
@@ -467,8 +468,34 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               <TabButton label="SETTINGS" active={activeTab === 'SETTINGS'} onClick={() => setActiveTab('SETTINGS')} />
            </div>
 
-           <div className="p-4 space-y-6">
-
+           {/* ASSETS TAB - Full-height Asset Library */}
+           {activeTab === 'ASSETS' ? (
+             <AssetLibrary
+               onAssetSelect={(asset: Asset) => {
+                 // Add asset to scene as a new group
+                 const newGroup: AssetGroup = {
+                   id: `group_${Date.now()}`,
+                   name: asset.name,
+                   shape: asset.geometry as ShapeType || ShapeType.CUBE,
+                   color: '#00d9ff',
+                   count: 1,
+                   scale: 1.0,
+                   friction: asset.friction,
+                   restitution: asset.restitution,
+                   mass: asset.mass,
+                   drag: 0.05,
+                   spawnMode: SpawnMode.PILE,
+                   modelUrl: asset.path
+                 };
+                 setParams({
+                   ...params,
+                   assetGroups: [...params.assetGroups, newGroup]
+                 });
+                 setSelectedGroupId(newGroup.id);
+               }}
+             />
+           ) : (
+             <div className="p-4 space-y-6">
               {/* Context Header */}
               {(activeTab !== 'ENV' && activeTab !== 'DATA' && activeTab !== 'SETTINGS') && (
                  <div className="pb-4 border-b border-white/10">
@@ -482,75 +509,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     ) : (
                       <div className="flex items-center gap-2 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded">
                           <Sparkles className="w-4 h-4 text-yellow-400" />
-                          <span className="text-xs text-yellow-200">No groups yet - Type a prompt, click GENERATE, then enable DATASET MODE to auto-generate variations for ML training</span>
+                          <span className="text-xs text-yellow-200">No groups yet - Browse ASSETS tab to add 3D models, or type a prompt and click GENERATE</span>
                       </div>
                     )}
                  </div>
-              )}
-
-              {/* Empty State for ASSETS */}
-              {activeTab === 'ASSETS' && !activeGroup && (
-                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                  <Wand2 className="w-12 h-12 text-gray-600 mb-4" />
-                  <h3 className="text-sm font-bold text-gray-400 mb-2">No Asset Groups</h3>
-                  <p className="text-xs text-gray-500 mb-4 max-w-xs">
-                    Type a prompt and click GENERATE to create your scene. Enable DATASET MODE to auto-generate variations for ML training, or manually add asset groups below.
-                  </p>
-                  <button
-                    onClick={addAssetGroup}
-                    className="flex items-center gap-2 bg-scifi-cyan/10 hover:bg-scifi-cyan/20 text-scifi-cyan rounded px-4 py-2 transition-colors border border-scifi-cyan/20 text-xs font-bold"
-                  >
-                    <Plus size={14} />
-                    ADD FIRST GROUP
-                  </button>
-                </div>
-              )}
-
-              {activeTab === 'ASSETS' && activeGroup && (
-                <>
-                  <Section title="PRIMITIVE GEOMETRY">
-                    <div className="grid grid-cols-4 gap-2">
-                       <ShapeButton shape={ShapeType.CUBE} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.CUBE)} icon={<Box size={14}/>} />
-                       <ShapeButton shape={ShapeType.SPHERE} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.SPHERE)} icon={<Circle size={14}/>} />
-                       <ShapeButton shape={ShapeType.PLATE} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.PLATE)} icon={<RectangleHorizontal size={14}/>} />
-                       <ShapeButton shape={ShapeType.CYLINDER} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.CYLINDER)} icon={<Database size={14}/>} />
-                       <ShapeButton shape={ShapeType.CONE} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.CONE)} icon={<Triangle size={14} className="rotate-180"/>} />
-                       <ShapeButton shape={ShapeType.TORUS} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.TORUS)} icon={<Circle size={14} strokeWidth={4}/>} />
-                       <ShapeButton shape={ShapeType.ICOSAHEDRON} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.ICOSAHEDRON)} icon={<Hexagon size={14}/>} />
-                       <ShapeButton shape={ShapeType.CAPSULE} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.CAPSULE)} icon={<div className="w-2 h-4 border rounded-full border-current"/>} />
-                       <ShapeButton shape={ShapeType.PYRAMID} current={activeGroup.shape} onClick={() => updateActiveGroup('shape', ShapeType.PYRAMID)} icon={<Triangle size={14}/>} />
-                    </div>
-                  </Section>
-
-                  <Section title="INSTANCE CONFIGURATION">
-                     {/* Add Spawn Mode Selector */}
-                     <div className="mb-3">
-                        <label className="text-[10px] text-gray-200 font-bold block mb-1 tracking-wide">SPAWN TOPOLOGY</label>
-                        <select
-                            value={activeGroup.spawnMode}
-                            onChange={(e) => updateActiveGroup('spawnMode', e.target.value)}
-                            className="w-full bg-black/40 border border-white/10 text-xs p-1.5 rounded text-white font-mono focus:border-scifi-cyan-light focus:outline-none font-bold"
-                        >
-                            {Object.values(SpawnMode).map(m => (
-                                <option key={m} value={m}>{m}</option>
-                            ))}
-                        </select>
-                     </div>
-
-                     <RangeControl label="PARTICLE COUNT" value={activeGroup.count} min={1} max={1000} step={1} onChange={(v: number) => updateActiveGroup('count', v)} />
-                     <RangeControl label="UNIT SCALE" value={activeGroup.scale} min={0.1} max={5.0} step={0.1} onChange={(v: number) => updateActiveGroup('scale', v)} />
-                  </Section>
-
-                  <Section title="SURFACE MATERIAL">
-                     <div className="space-y-2">
-                        <label className="text-[10px] text-gray-200 font-bold tracking-wide">ALBEDO COLOR</label>
-                        <div className="flex items-center gap-2">
-                            <input type="color" value={activeGroup.color} onChange={(e) => updateActiveGroup('color', e.target.value)} className="bg-transparent border border-white/20 rounded w-8 h-8 cursor-pointer p-0.5" />
-                            <span className="font-mono text-[9px] text-gray-300 font-bold uppercase">{activeGroup.color}</span>
-                        </div>
-                     </div>
-                  </Section>
-                </>
               )}
 
               {/* Empty State for PHYSICS */}
@@ -926,6 +888,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
 
            </div>
+           )}
         </div>
 
         {/* --- SPACER TO REVEAL VIEWPORT --- */}

@@ -1,0 +1,228 @@
+{
+  "warehouse": [
+    {
+      "id": "pallet_wood_01",
+      "name": "Wooden Pallet",
+      "path": "/assets/warehouse/pallet_wood.glb",
+      "category": "warehouse",
+      "physics_enabled": true,
+      "mass": 15.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "thumbnail": "/assets/warehouse/pallet_wood_thumb.jpg",
+      "tags": ["shipping", "logistics", "storage"]
+    },
+    {
+      "id": "crate_metal_01",
+      "name": "Metal Crate",
+      "path": "/assets/warehouse/crate_metal.glb",
+      "category": "warehouse",
+      "physics_enabled": true,
+      "mass": 25.0,
+      "friction": 0.5,
+      "restitution": 0.3,
+      "thumbnail": "/assets/warehouse/crate_metal_thumb.jpg",
+      "tags": ["shipping", "storage", "heavy"]
+    },
+    {
+      "id": "barrel_industrial_01",
+      "name": "Industrial Barrel",
+      "path": "/assets/warehouse/barrel_industrial.glb",
+      "category": "warehouse",
+      "physics_enabled": true,
+      "mass": 18.0,
+      "friction": 0.4,
+      "restitution": 0.25,
+      "thumbnail": "/assets/warehouse/barrel_industrial_thumb.jpg",
+      "tags": ["storage", "cylindrical", "rolling"]
+    },
+    {
+      "id": "forklift_01",
+      "name": "Forklift",
+      "path": "/assets/warehouse/forklift.glb",
+      "category": "warehouse",
+      "physics_enabled": true,
+      "mass": 500.0,
+      "friction": 0.8,
+      "restitution": 0.1,
+      "thumbnail": "/assets/warehouse/forklift_thumb.jpg",
+      "tags": ["vehicle", "heavy", "industrial"]
+    }
+  ],
+  "industrial": [
+    {
+      "id": "shipping_container_20ft",
+      "name": "20ft Shipping Container",
+      "path": "/assets/industrial/container_20ft.glb",
+      "category": "industrial",
+      "physics_enabled": true,
+      "mass": 2200.0,
+      "friction": 0.7,
+      "restitution": 0.1,
+      "thumbnail": "/assets/industrial/container_20ft_thumb.jpg",
+      "tags": ["shipping", "cargo", "large"]
+    },
+    {
+      "id": "cargo_box_01",
+      "name": "Cargo Box",
+      "path": "/assets/industrial/cargo_box.glb",
+      "category": "industrial",
+      "physics_enabled": true,
+      "mass": 35.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "thumbnail": "/assets/industrial/cargo_box_thumb.jpg",
+      "tags": ["shipping", "storage"]
+    },
+    {
+      "id": "pipe_section_01",
+      "name": "Industrial Pipe",
+      "path": "/assets/industrial/pipe_section.glb",
+      "category": "industrial",
+      "physics_enabled": true,
+      "mass": 45.0,
+      "friction": 0.5,
+      "restitution": 0.3,
+      "thumbnail": "/assets/industrial/pipe_section_thumb.jpg",
+      "tags": ["cylindrical", "rolling", "metal"]
+    }
+  ],
+  "robots": [
+    {
+      "id": "robot_arm_6dof",
+      "name": "6-DOF Robot Arm",
+      "path": "/assets/robots/robot_arm_6dof.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 85.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "thumbnail": "/assets/robots/robot_arm_6dof_thumb.jpg",
+      "tags": ["articulated", "manipulator", "industrial"]
+    },
+    {
+      "id": "surgical_robot_01",
+      "name": "Surgical Robot",
+      "path": "/assets/robots/surgical_robot.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 120.0,
+      "friction": 0.7,
+      "restitution": 0.15,
+      "thumbnail": "/assets/robots/surgical_robot_thumb.jpg",
+      "tags": ["medical", "precision", "articulated"]
+    },
+    {
+      "id": "gripper_parallel_01",
+      "name": "Parallel Gripper",
+      "path": "/assets/robots/gripper_parallel.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 2.5,
+      "friction": 0.9,
+      "restitution": 0.1,
+      "thumbnail": "/assets/robots/gripper_parallel_thumb.jpg",
+      "tags": ["end-effector", "precision"]
+    },
+    {
+      "id": "mobile_robot_01",
+      "name": "Mobile Robot Platform",
+      "path": "/assets/robots/mobile_robot.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 75.0,
+      "friction": 0.8,
+      "restitution": 0.2,
+      "thumbnail": "/assets/robots/mobile_robot_thumb.jpg",
+      "tags": ["wheeled", "autonomous", "platform"]
+    }
+  ],
+  "furniture": [
+    {
+      "id": "table_industrial_01",
+      "name": "Industrial Work Table",
+      "path": "/assets/furniture/table_industrial.glb",
+      "category": "furniture",
+      "physics_enabled": true,
+      "mass": 40.0,
+      "friction": 0.7,
+      "restitution": 0.15,
+      "thumbnail": "/assets/furniture/table_industrial_thumb.jpg",
+      "tags": ["surface", "workspace"]
+    },
+    {
+      "id": "chair_office_01",
+      "name": "Office Chair",
+      "path": "/assets/furniture/chair_office.glb",
+      "category": "furniture",
+      "physics_enabled": true,
+      "mass": 12.0,
+      "friction": 0.6,
+      "restitution": 0.3,
+      "thumbnail": "/assets/furniture/chair_office_thumb.jpg",
+      "tags": ["seating", "wheeled"]
+    },
+    {
+      "id": "shelf_metal_01",
+      "name": "Metal Shelf Unit",
+      "path": "/assets/furniture/shelf_metal.glb",
+      "category": "furniture",
+      "physics_enabled": true,
+      "mass": 55.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "thumbnail": "/assets/furniture/shelf_metal_thumb.jpg",
+      "tags": ["storage", "vertical"]
+    }
+  ],
+  "primitives": [
+    {
+      "id": "sphere_unit",
+      "name": "Sphere",
+      "geometry": "sphere",
+      "category": "primitives",
+      "physics_enabled": true,
+      "mass": 1.0,
+      "friction": 0.5,
+      "restitution": 0.8,
+      "thumbnail": "/assets/primitives/sphere_thumb.jpg",
+      "tags": ["basic", "rolling"]
+    },
+    {
+      "id": "cube_unit",
+      "name": "Cube",
+      "geometry": "box",
+      "category": "primitives",
+      "physics_enabled": true,
+      "mass": 1.0,
+      "friction": 0.6,
+      "restitution": 0.3,
+      "thumbnail": "/assets/primitives/cube_thumb.jpg",
+      "tags": ["basic", "stackable"]
+    },
+    {
+      "id": "cylinder_unit",
+      "name": "Cylinder",
+      "geometry": "cylinder",
+      "category": "primitives",
+      "physics_enabled": true,
+      "mass": 1.0,
+      "friction": 0.4,
+      "restitution": 0.5,
+      "thumbnail": "/assets/primitives/cylinder_thumb.jpg",
+      "tags": ["basic", "rolling"]
+    },
+    {
+      "id": "cone_unit",
+      "name": "Cone",
+      "geometry": "cone",
+      "category": "primitives",
+      "physics_enabled": true,
+      "mass": 0.8,
+      "friction": 0.6,
+      "restitution": 0.4,
+      "thumbnail": "/assets/primitives/cone_thumb.jpg",
+      "tags": ["basic", "pointed"]
+    }
+  ]
+}

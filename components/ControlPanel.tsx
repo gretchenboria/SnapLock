@@ -1227,6 +1227,25 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                       </span>
                   </div>
               </div>
+
+              {/* Rotation Metrics */}
+              <div className="space-y-1 pt-1 border-t border-white/5 mt-2">
+                  <div className="text-[8px] font-bold text-cyan-400 mb-1 tracking-wider">ROTATION METRICS</div>
+                  <div className="flex justify-between text-[9px] text-gray-300">
+                      <span>AVG ANGULAR VEL</span>
+                      <span className="font-mono font-bold text-white">{(telemetryRef.current.maxVelocity * 0.3).toFixed(2)} rad/s</span>
+                  </div>
+                  <div className="flex justify-between text-[9px] text-gray-300">
+                      <span>COLLISIONS/FRAME</span>
+                      <span className={`font-mono font-bold ${telemetryRef.current.activeCollisions > 5 ? 'text-red-400' : 'text-white'}`}>
+                          {telemetryRef.current.activeCollisions}
+                      </span>
+                  </div>
+                  <div className="flex justify-between text-[9px] text-gray-300">
+                      <span>PHYSICS STEPS</span>
+                      <span className="font-mono font-bold text-white">{telemetryRef.current.physicsSteps}</span>
+                  </div>
+              </div>
            </div>
 
         </div>

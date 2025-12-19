@@ -9,25 +9,36 @@ interface AssetRendererProps {
     viewMode: ViewMode;
 }
 
+// Error Boundary for Model Loading
+class ModelErrorBoundary extends React.Component<
+    { children: React.ReactNode; fallback: React.ReactNode },
+    { hasError: boolean }
+> {
+    constructor(props: any) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error: Error) {
+        console.warn('[AssetRenderer] Model loading failed, using fallback:', error.message);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return this.props.fallback;
+        }
+        return this.props.children;
+    }
+}
+
 // Component for rendering 3D Models with Error Handling
-const ModelAsset: React.FC<AssetRendererProps> = ({ group, meshRef, viewMode }) => {
-    const [loadError, setLoadError] = React.useState(false);
+const ModelAssetInner: React.FC<AssetRendererProps> = ({ group, meshRef, viewMode }) => {
     const url = group.modelUrl!;
-
-    // Try to load model, catch errors gracefully
-    let gltf;
-    try {
-        gltf = useGLTF(url);
-    } catch (error) {
-        console.warn(`[AssetRenderer] Failed to load model ${url}, falling back to primitive`, error);
-        setLoadError(true);
-    }
-
-    // If model loading failed, fall back to primitive with domain randomization
-    if (loadError || !gltf) {
-        console.log(`[AssetRenderer] Using domain randomization fallback for "${group.name}"`);
-        return <PrimitiveAsset group={group} meshRef={meshRef} viewMode={viewMode} />;
-    }
+    const gltf = useGLTF(url);
 
     const { nodes } = gltf;
 
@@ -54,6 +65,18 @@ const ModelAsset: React.FC<AssetRendererProps> = ({ group, meshRef, viewMode }) 
         >
             <Material group={group} viewMode={viewMode} />
         </instancedMesh>
+    );
+};
+
+// Wrapper with error boundary
+const ModelAsset: React.FC<AssetRendererProps> = (props) => {
+    const fallback = <PrimitiveAsset {...props} />;
+    return (
+        <ModelErrorBoundary fallback={fallback}>
+            <React.Suspense fallback={fallback}>
+                <ModelAssetInner {...props} />
+            </React.Suspense>
+        </ModelErrorBoundary>
     );
 };
 

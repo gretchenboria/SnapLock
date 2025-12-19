@@ -287,7 +287,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
 
         {/* Center: SIMPLE PROMPT INPUT - ALWAYS VISIBLE */}
-        <div className="flex-1 flex items-center gap-3 max-w-4xl mx-auto pointer-events-auto">
+        <div className="flex-1 flex items-center gap-3 max-w-4xl mx-auto pointer-events-auto relative z-[9999]">
           <input
             type="text"
             value={prompt}
@@ -299,7 +299,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               }
             }}
             placeholder="Type your scene prompt here (e.g., surgical robot, robotic arm, metal sphere on table)..."
-            className="flex-1 h-10 px-4 bg-white/10 border-2 border-cyan-500/50 rounded-lg text-white text-base font-mono placeholder-gray-400 focus:outline-none focus:border-cyan-400 focus:bg-white/20"
+            className="flex-1 h-10 px-4 bg-white/10 border-2 border-cyan-500/50 rounded-lg text-white text-base font-mono placeholder-gray-400 focus:outline-none focus:border-cyan-400 focus:bg-white/20 pointer-events-auto"
+            autoFocus
           />
           <button
             onClick={() => {

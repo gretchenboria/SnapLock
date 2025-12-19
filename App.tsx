@@ -1012,13 +1012,13 @@ const App: React.FC = () => {
       <ProminentTelemetry telemetryRef={telemetryRef} />
 
 
-      {/* Floating Characters: Chaos, Lazarus, Snappy (Free-floating gently around UI) - DISABLED */}
-      {/* <FloatingCharacters
+      {/* Floating Characters: Chaos, Lazarus, Snappy (Free-floating gently around UI) */}
+      <FloatingCharacters
         isChaosActive={isChaosActive}
         onChaosClick={() => setIsChaosActive(!isChaosActive)}
         onLazarusClick={handleLazarusClick}
         onSnappyClick={() => setIsSnappyEnabled(true)}
-      /> */}
+      />
 
       {/* Guided Tour */}
       {showGuidedTour && (

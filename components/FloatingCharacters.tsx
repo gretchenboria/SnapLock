@@ -61,10 +61,10 @@ export function FloatingCharacters({
         </div>
       </button>
 
-      {/* Snappy Eyes - Bottom center (moved away from telemetry panel) */}
+      {/* Snappy Eyes - Top right (kawaii floating chatbot) */}
       <button
         onClick={onSnappyClick}
-        className="absolute bottom-32 right-1/3 pointer-events-auto transition-all duration-300 hover:scale-110 group"
+        className="absolute top-24 right-16 pointer-events-auto transition-all duration-300 hover:scale-110 group"
         style={{
           animation: 'float 8s ease-in-out infinite',
           animationDelay: '2s'

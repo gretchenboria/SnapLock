@@ -1033,10 +1033,10 @@ const App: React.FC = () => {
         <GuidedTour onComplete={() => setShowGuidedTour(false)} />
       )}
 
-      {/* Floating Prompt Button - Bottom Left */}
+      {/* Floating Prompt Button - Bottom Center */}
       <button
         onClick={() => setIsPromptModalOpen(true)}
-        className="fixed bottom-8 left-8 z-[9997] w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full shadow-[0_0_40px_rgba(34,211,238,0.6)] hover:scale-110 transition-all duration-300 flex items-center justify-center group pointer-events-auto"
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9997] w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full shadow-[0_0_40px_rgba(34,211,238,0.6)] hover:scale-110 transition-all duration-300 flex items-center justify-center group pointer-events-auto"
         title="Open AI Scene Generator"
       >
         <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

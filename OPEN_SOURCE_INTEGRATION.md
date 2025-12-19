@@ -1,14 +1,47 @@
 # Open-Source 3D Model Integration
 
-**SnapLock now uses REAL industry-standard datasets with intelligent fallback**
+**Current Status: Using NVIDIA Domain Randomization (Geometric Primitives)**
 
 ---
 
-## Hybrid Approach: Models + Domain Randomization
+## Current Approach: Pure Domain Randomization
 
-### Smart System:
-1. ✅ **Try to load open-source 3D model** (YCB, Poly Haven, Khronos)
-2. ✅ **If model loads**: Use it with domain randomization on materials
+### Why Domain Randomization Only (For Now):
+
+**CRITICAL ISSUE IDENTIFIED**: YCB models are OBJ format, but `useGLTF` only supports glTF/GLB
+- YCB URLs: `http://ycb-benchmarks.s3.amazonaws.com/.../textured.obj`
+- useGLTF hook from `@react-three/drei` cannot load OBJ files
+- Attempting to load causes **"I.refCleanup is not a function"** crash
+
+**TEMPORARY SOLUTION**: Disabled 3D model loading
+- Using pure domain randomization (NVIDIA Isaac Sim approach)
+- Geometric primitives with PBR material variation
+- 100% stable, never crashes
+- Still produces high-quality training data
+
+### Next Steps: Implement Multi-Format Loader
+
+**Option 1**: Use OBJLoader for YCB models
+```typescript
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+// Load OBJ files properly
+```
+
+**Option 2**: Find glTF/GLB versions of YCB dataset
+- Some YCB mirrors may have converted formats
+- Khronos models are already glTF
+
+**Option 3**: Convert OBJ → glTF pipeline
+- Use gltf-pipeline or obj2gltf
+- Pre-convert YCB models to glTF format
+
+---
+
+## Future Hybrid Approach: Models + Domain Randomization
+
+### Smart System (When Implemented):
+1. ⏳ **Try to load open-source 3D model** (YCB OBJ, Poly Haven glTF, Khronos glTF)
+2. ⏳ **If model loads**: Use it with domain randomization on materials
 3. ✅ **If model fails**: Fall back to geometric primitive with domain randomization
 4. ✅ **Never crash**: Renderer-stable at all times
 

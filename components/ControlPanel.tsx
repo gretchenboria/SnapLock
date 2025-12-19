@@ -655,7 +655,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                                     <span className="text-[10px] font-bold text-gray-300">SEQUENCE RECORDING</span>
                                     {isRecording && (
                                         <span className="text-[9px] px-2 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded animate-pulse">
-                                            ● REC {recordedFrameCount} frames
+                                            REC {recordedFrameCount} frames
                                         </span>
                                     )}
                                 </div>
@@ -1152,7 +1152,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
             {params.assetGroups.length === 0 && (
               <div className="mt-4 text-center text-gray-400 text-xs py-4 bg-yellow-900/10 border border-yellow-500/20 rounded">
-                💡 Add assets from left panel to enable controls
+                Add assets from left panel to enable controls
               </div>
             )}
           </div>
@@ -1275,7 +1275,7 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
             </div>
 
             <div className="border-t border-white/10 pt-3">
-                <div className="text-[8px] font-bold text-green-400 tracking-widest uppercase mb-2">🎯 VR/ROBOTICS TRACKING (Object #1)</div>
+                <div className="text-[8px] font-bold text-green-400 tracking-widest uppercase mb-2">VR/ROBOTICS TRACKING (Object #1)</div>
                 <div className="space-y-2">
                     <TelemetryBoxRaw label="POSITION (m)" ref={samplePosRef} />
                     <TelemetryBoxRaw label="QUATERNION ORIENTATION" ref={sampleQuatRef} />

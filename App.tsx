@@ -227,8 +227,8 @@ const App: React.FC = () => {
       setShouldReset(true);
       setIsPaused(false);
 
-      addLog(`✓ Spawned ${validatedParams.assetGroups.length} groups - ${result.explanation}`, 'success');
-      setStatusMessage(`✓ Scene generated: ${validatedParams.assetGroups.length} object groups created`);
+      addLog(`Spawned ${validatedParams.assetGroups.length} groups - ${result.explanation}`, 'success');
+      setStatusMessage(`Scene generated: ${validatedParams.assetGroups.length} object groups created`);
 
     } catch (error) {
       const errorMsg = (error as Error).message;
@@ -605,12 +605,12 @@ const App: React.FC = () => {
       // SAFETY CHECK: Require prompt for dataset mode
       if (!prompt.trim()) {
         setIsAutoSpawn(false);
-        addLog("⚠️ Dataset Mode requires a prompt. Type your scene description first.", "warning");
+        addLog("Dataset Mode requires a prompt. Type your scene description first.", "warning");
         return;
       }
 
       if (!autoSpawnTimerRef.current) {
-        addLog(`🔄 Dataset Mode: Generating variations of "${prompt}" every 15s`, "info");
+        addLog(`Dataset Mode: Generating variations of "${prompt}" every 15s`, "info");
       }
 
       const generateVariation = () => {
@@ -924,7 +924,7 @@ const App: React.FC = () => {
         isAutoSpawn={isAutoSpawn} // DATASET MODE - generates variations of YOUR prompt
         toggleAutoSpawn={() => {
           if (!prompt.trim() && !isAutoSpawn) {
-            addLog("⚠️ Enter a prompt before enabling Dataset Mode", "warning");
+            addLog("Enter a prompt before enabling Dataset Mode", "warning");
             return;
           }
           setIsAutoSpawn(!isAutoSpawn);

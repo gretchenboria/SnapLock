@@ -511,38 +511,41 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             )}
           </div>
 
-          {/* DATASET MODE - PROMINENT BUTTON */}
-          <button
-             onClick={toggleAutoSpawn}
-             disabled={!prompt.trim() && !isAutoSpawn}
-             className={`h-10 px-5 flex items-center justify-center gap-2 rounded-lg transition-all border-2 font-bold whitespace-nowrap group relative shadow-lg ${
-                 isAutoSpawn
-                 ? 'bg-green-600/30 border-green-500 text-green-200 shadow-[0_0_25px_rgba(34,197,94,0.4)] animate-pulse'
-                 : !prompt.trim()
-                 ? 'bg-black/20 border-white/10 text-gray-600 cursor-not-allowed'
-                 : 'bg-green-950/30 border-green-700/50 text-green-400 hover:text-green-200 hover:border-green-500 hover:bg-green-600/20 hover:shadow-[0_0_20px_rgba(34,197,94,0.3)]'
-             }`}
-             title={
-               isAutoSpawn
-               ? "DATASET MODE ACTIVE - Generating variations every 15s for ML training"
-               : !prompt.trim()
-               ? "Enter a prompt first to enable Dataset Mode"
-               : "Enable Dataset Mode - Auto-generates scene variations for synthetic training data"
-             }
-          >
-             <Database size={18} className={isAutoSpawn ? "animate-bounce" : "group-hover:scale-110 transition-transform"} />
-             <span className="text-[11px] tracking-widest font-extrabold">AUTO-SPAWN DATASET MODE</span>
-             {isAutoSpawn && (
-               <>
-                 <span className="text-[9px] px-2 py-0.5 bg-green-500/30 text-green-200 border border-green-400/50 rounded-full animate-pulse ml-1">
-                   RECORDING
-                 </span>
-                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-green-500/50 rounded-full overflow-hidden">
-                   <div className="h-full bg-green-400 animate-[progress_15s_linear_infinite]" />
-                 </div>
-               </>
-             )}
-          </button>
+          {/* AUTO-SPAWN TOGGLE - SIMPLE AND CLEAR */}
+          <div className="flex items-center gap-3 px-4 py-2 bg-black/40 border-2 border-green-500/50 rounded-lg">
+            <Database size={20} className={isAutoSpawn ? "text-green-400 animate-bounce" : "text-gray-500"} />
+            <div className="flex-1">
+              <div className="text-sm font-bold text-white tracking-wide">AUTO-SPAWN</div>
+              <div className="text-[10px] text-gray-400">Dataset Mode - Scene Variations</div>
+            </div>
+            <button
+              onClick={toggleAutoSpawn}
+              disabled={!prompt.trim() && !isAutoSpawn}
+              className={`relative w-14 h-7 rounded-full transition-all ${
+                isAutoSpawn
+                  ? 'bg-green-500 shadow-[0_0_20px_rgba(34,197,94,0.5)]'
+                  : !prompt.trim()
+                  ? 'bg-gray-700 cursor-not-allowed'
+                  : 'bg-gray-600 hover:bg-gray-500'
+              }`}
+              title={
+                isAutoSpawn
+                ? "ACTIVE - Generating variations every 15s"
+                : !prompt.trim()
+                ? "Enter a prompt first"
+                : "Click to enable auto-spawn"
+              }
+            >
+              <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-all ${
+                isAutoSpawn ? 'left-7' : 'left-0.5'
+              }`} />
+            </button>
+            {isAutoSpawn && (
+              <span className="text-[9px] px-2 py-1 bg-green-500/30 text-green-200 border border-green-400/50 rounded-full animate-pulse">
+                ACTIVE
+              </span>
+            )}
+          </div>
 
           {/* VIDEO RECORDING CONTROLS - MAKE THEM OBVIOUS! */}
           <div className="flex items-center gap-2 border-l border-white/10 pl-3">

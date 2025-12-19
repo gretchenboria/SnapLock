@@ -21,6 +21,7 @@ import { FloatingCharacters } from './components/FloatingCharacters';
 import { SnappyChatbot } from './components/SnappyChatbot';
 import { ChaosActivityPanel } from './components/ChaosActivityPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ProminentTelemetry } from './components/ProminentTelemetry';
 
 const App: React.FC = () => {
   // State
@@ -952,18 +953,18 @@ const App: React.FC = () => {
         onDownloadVideo={handleDownloadVideo}
       />
 
-      {/* Snappy AI Chatbot - PRIMARY PROMPT INTERFACE */}
-      <SnappyChatbot
+      {/* Snappy AI Chatbot - DISABLED - blocking critical telemetry data */}
+      {/* <SnappyChatbot
         isOpen={isSnappyEnabled}
         onClose={() => setIsSnappyEnabled(false)}
         onGenerateScene={(scenePrompt) => {
           setPrompt(scenePrompt);
           executeAnalysis(scenePrompt, 'MANUAL');
         }}
-      />
+      /> */}
 
-      {/* Snappy Kawaii Robot Eyes - PRIMARY INTERFACE */}
-      {!isSnappyEnabled && (
+      {/* Snappy Kawaii Robot Eyes - DISABLED */}
+      {false && !isSnappyEnabled && (
         <button
           onClick={() => setIsSnappyEnabled(true)}
           className="fixed bottom-8 right-8 z-[9999] pointer-events-auto group"
@@ -1006,6 +1007,9 @@ const App: React.FC = () => {
         isActive={isChaosActive}
         currentActivity={chaosActivity}
       />
+
+      {/* PROMINENT TELEMETRY - Large, visible, critical data */}
+      <ProminentTelemetry telemetryRef={telemetryRef} />
 
 
       {/* Floating Characters: Chaos, Lazarus, Snappy (Free-floating gently around UI) - DISABLED */}

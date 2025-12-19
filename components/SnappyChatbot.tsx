@@ -1,7 +1,7 @@
 /**
  * SNAPPY AI CHATBOT
  *
- * Real LLM-powered assistant that helps users with AtomCam.
+ * Real LLM-powered assistant that helps users with SnapLock.
  * Uses Gemini API to answer questions about physics simulations, features, and troubleshooting.
  */
 

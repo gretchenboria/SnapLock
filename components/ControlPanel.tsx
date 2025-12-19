@@ -84,8 +84,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [latestChaosLog, setLatestChaosLog] = useState<LogEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showHierarchy, setShowHierarchy] = useState(false);
-  const [showManualControls, setShowManualControls] = useState(false);
+  const [showHierarchy, setShowHierarchy] = useState(true);
+  const [showManualControls, setShowManualControls] = useState(true);
 
   // Preset State
   const [presets, setPresets] = useState<MaterialPreset[]>(DEFAULT_MATERIAL_PRESETS);
@@ -283,23 +283,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       <div className="w-full bg-scifi-900 border-b border-white/10 p-2 pointer-events-auto flex items-center gap-3 shadow-xl z-50 h-12 relative">
         {/* Left: Branding */}
         <div className="flex items-center gap-2 px-3 border-r border-white/10 h-full">
-          {/* Atom + Camera Logo */}
-          <div className="relative w-8 h-8 flex items-center justify-center">
-            {/* Atom orbits */}
-            <svg className="absolute inset-0 w-8 h-8" viewBox="0 0 32 32">
-              {/* Electron orbits */}
-              <ellipse cx="16" cy="16" rx="14" ry="6" fill="none" stroke="rgba(34,211,238,0.4)" strokeWidth="1.5" />
-              <ellipse cx="16" cy="16" rx="14" ry="6" fill="none" stroke="rgba(34,211,238,0.4)" strokeWidth="1.5" transform="rotate(60 16 16)" />
-              <ellipse cx="16" cy="16" rx="14" ry="6" fill="none" stroke="rgba(34,211,238,0.4)" strokeWidth="1.5" transform="rotate(120 16 16)" />
-              {/* Nucleus */}
-              <circle cx="16" cy="16" r="3" fill="#22d3ee" />
-            </svg>
-            {/* Camera lens overlay */}
-            <Camera className="w-4 h-4 text-cyan-400 relative z-10" strokeWidth={2.5} />
-          </div>
+          <Lock className="w-6 h-6 text-cyan-400" strokeWidth={2.5} />
           <div className="flex flex-col justify-center">
-            <span className="text-sm font-bold tracking-wider text-white">ATOMCAM</span>
-            <span className="text-[9px] text-cyan-400/80 tracking-wide">Physics • Vision • ML</span>
+            <span className="text-sm font-bold tracking-wider text-white">SNAPLOCK</span>
+            <span className="text-[9px] text-cyan-400/80 tracking-wide">Lock physics, snap reality</span>
           </div>
         </div>
 
@@ -1172,11 +1159,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
         )}
 
+        {/* API Key Configuration Modal */}
+        <ApiKeyModal isOpen={showApiKeyModal} onClose={() => setShowApiKeyModal(false)} />
+
       </div>
-
-      {/* API Key Configuration Modal */}
-      <ApiKeyModal isOpen={showApiKeyModal} onClose={() => setShowApiKeyModal(false)} />
-
     </div>
   );
 };

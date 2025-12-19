@@ -101,7 +101,7 @@ const FALLBACK_PROMPTS = [
  */
 function generateFallbackScene(prompt: string): AnalysisResponse {
   const lowerPrompt = prompt.toLowerCase();
-  const assetGroups: AssetGroup[] = [];
+  let assetGroups: AssetGroup[] = [];
 
   // Detect gravity environment
   const isZeroG = lowerPrompt.includes('zero') || lowerPrompt.includes('orbit') || lowerPrompt.includes('space') || lowerPrompt.includes('weightless');
@@ -248,15 +248,34 @@ function generateFallbackScene(prompt: string): AnalysisResponse {
     );
   }
 
-  // NO 3D MODELS - Use geometric primitives with domain randomization (NVIDIA approach)
-  console.log('[GeminiService/Fallback] Using geometric primitives (no 3D models)');
+  // Try to integrate 3D models from library
+  const { findModelForObject, getModelScale } = require('./modelLibrary');
+
+  assetGroups = assetGroups.map(group => {
+    const modelUrl = findModelForObject(group.name, group.id);
+
+    if (modelUrl) {
+      const modelScale = getModelScale(modelUrl);
+      console.log(`[GeminiService/Fallback] Using 3D model for "${group.name}"`);
+      return {
+        ...group,
+        shape: ShapeType.MODEL,
+        modelUrl,
+        scale: modelScale * group.scale
+      };
+    }
+
+    return group; // Keep geometric primitive if no model found
+  });
+
+  console.log('[GeminiService/Fallback] Scene generated with domain randomization (mix of 3D models and geometric primitives)');
 
   return {
     movementBehavior,
     gravity,
     wind,
     assetGroups,
-    explanation: `Fallback scene generated from keyword parsing (API quota exceeded). Detected: ${assetGroups.map(g => g.name).join(', ')}. Using geometric primitives with domain randomization.`
+    explanation: `Fallback scene generated from keyword parsing (API quota exceeded). Detected: ${assetGroups.map(g => g.name).join(', ')}. Using available 3D models with geometric primitive fallbacks.`
   };
 }
 
@@ -603,23 +622,42 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
         const aiResponse = JSON.parse(jsonText) as AnalysisResponse;
 
-        // POST-PROCESSING #1: DOMAIN RANDOMIZATION (NVIDIA Isaac Sim Approach)
-        // NOTE: 3D model loading temporarily disabled due to format incompatibility
-        // - YCB models are OBJ format, but useGLTF only supports glTF/GLB
-        // - Need to implement OBJLoader or find glTF versions of models
-        // Using pure domain randomization until proper loader implemented
-        console.log('[GeminiService] Using domain randomization with geometric primitives (NVIDIA approach)');
+        // POST-PROCESSING #1: 3D MODEL INTEGRATION
+        // Try to find 3D models for each asset group from the model library
+        const { findModelForObject, getModelScale } = await import('./modelLibrary');
 
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
-          // Add domain randomization to material properties (±20%)
-          const materialVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+          // Try to find a 3D model for this object
+          const modelUrl = findModelForObject(group.name, group.id);
 
-          return {
-            ...group,
-            // Domain randomization: vary material properties for training diversity
-            restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
-            friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
-          };
+          if (modelUrl) {
+            // Found a 3D model! Use it instead of geometric primitive
+            const modelScale = getModelScale(modelUrl);
+            console.log(`[GeminiService] ✓ Using 3D model for "${group.name}": ${modelUrl}`);
+
+            // Add domain randomization to material properties (±20%)
+            const materialVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+
+            return {
+              ...group,
+              shape: ShapeType.MODEL, // Switch from geometric primitive to MODEL
+              modelUrl: modelUrl,
+              scale: modelScale * group.scale, // Combine AI scale with model-specific scale
+              // Domain randomization: vary material properties for training diversity
+              restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
+              friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
+            };
+          } else {
+            // No model found - use geometric primitive with domain randomization
+            console.log(`[GeminiService] Using geometric primitive for "${group.name}" (no model match)`);
+
+            const materialVariation = 0.8 + Math.random() * 0.4;
+            return {
+              ...group,
+              restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
+              friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
+            };
+          }
         });
 
         // POST-PROCESSING #2: Set default rigidBodyType if missing

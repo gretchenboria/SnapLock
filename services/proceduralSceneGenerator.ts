@@ -96,6 +96,15 @@ export class ProceduralSceneGenerator {
         ({ assetGroups, joints } = this.generateLounge(roomSize, objectDensity, colorTheme));
     }
 
+    // Apply spatial positioning to prevent random falling (P0 CRITICAL FIX)
+    try {
+      const { calculateSpatialPositions } = require('./spatialPositioning');
+      assetGroups = calculateSpatialPositions(assetGroups);
+      console.log('[ProceduralSceneGenerator] Applied spatial positioning to', assetGroups.length, 'asset groups');
+    } catch (error) {
+      console.error('[ProceduralSceneGenerator] Failed to apply spatial positioning:', error);
+    }
+
     return {
       gravity: { x: 0, y: -9.81, z: 0 },
       wind: { x: 0, y: 0, z: 0 },

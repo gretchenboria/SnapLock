@@ -60,20 +60,20 @@ const getModelForTask = (task: 'reasoning' | 'vision' | 'creative' | 'image' | '
     return 'gemini-2.5-flash';
   }
 
-  // API key available - use BEST models
+  // API key available - use BEST models (corrected to valid model names)
   switch (task) {
     case 'reasoning':
-      return 'gemini-3-pro-preview'; // Best for physics reasoning
+      return 'gemini-1.5-pro'; // Best stable model for physics reasoning
     case 'vision':
-      return 'gemini-3-pro-preview'; // Best for chaos mode
+      return 'gemini-1.5-pro'; // Best for chaos mode (vision capabilities)
     case 'creative':
-      return 'gemini-3-pro-preview'; // Best for creative prompts too
+      return 'gemini-1.5-pro'; // Best for creative prompts
     case 'image':
-      return 'gemini-3-pro-image-preview'; // Best for image generation
+      return 'gemini-2.0-flash-exp-image-generation'; // Experimental image generation
     case 'video':
-      return 'veo-3.1-generate-preview'; // Best for video
+      return 'gemini-1.5-pro'; // Video generation not natively supported, use text model
     default:
-      return 'gemini-3-pro-preview';
+      return 'gemini-1.5-pro';
   }
 };
 
@@ -269,6 +269,15 @@ function generateFallbackScene(prompt: string): AnalysisResponse {
   });
 
   console.log('[GeminiService/Fallback] Scene generated with domain randomization (mix of 3D models and geometric primitives)');
+
+  // Apply spatial positioning to prevent random falling (P0 CRITICAL FIX)
+  try {
+    const { calculateSpatialPositions } = require('./spatialPositioning');
+    assetGroups = calculateSpatialPositions(assetGroups);
+    console.log('[GeminiService/Fallback] Applied spatial positioning to fallback scene');
+  } catch (error) {
+    console.error('[GeminiService/Fallback] Failed to apply spatial positioning:', error);
+  }
 
   return {
     movementBehavior,

@@ -6,7 +6,29 @@
  */
 
 import { Scene, SceneObject, RigidBodyType, ShapeType, Vector3Data } from '../types';
-import { Asset } from './assetLibraryService';
+
+export interface Asset {
+  id: string;
+  name: string;
+  path?: string;
+  url?: string;  // URL to 3D model (GLB/GLTF)
+  geometry?: string;  // For procedural primitives
+  category: string;
+  physics_enabled?: boolean;
+  mass?: number;
+  friction?: number;
+  restitution?: number;
+  thumbnail?: string;
+  tags?: string[];
+  metadata?: {
+    scale?: number;
+    color?: string;
+    graspable?: boolean;
+    manipulable?: boolean;
+    semanticLabel?: string;
+    [key: string]: any;
+  };
+}
 
 export interface SceneAssemblyConfig {
   assets: Asset[];
@@ -112,17 +134,36 @@ export class SceneAssembler {
     const isGraspable = asset.metadata?.graspable !== false;
     const isManipulable = asset.metadata?.manipulable !== false;
 
+    // Use geometry if it's a primitive, otherwise use mesh
+    const type: 'mesh' | 'primitive' = asset.geometry ? 'primitive' : 'mesh';
+    const modelUrl = asset.url || asset.path;
+
+    // Map geometry string to ShapeType
+    let shape: ShapeType | undefined;
+    if (asset.geometry) {
+      const geometryMap: Record<string, ShapeType> = {
+        'sphere': ShapeType.SPHERE,
+        'box': ShapeType.CUBE,
+        'cube': ShapeType.CUBE,
+        'cylinder': ShapeType.CYLINDER,
+        'cone': ShapeType.CONE,
+        'capsule': ShapeType.CAPSULE
+      };
+      shape = geometryMap[asset.geometry.toLowerCase()] || ShapeType.CUBE;
+    }
+
     return {
       id: `${asset.id}_${index}`,
       name: asset.name,
-      type: 'mesh',
-      modelUrl: asset.url,
-      scale: asset.metadata?.scale || 1.0,
+      type,
+      shape: type === 'primitive' ? shape : undefined,
+      modelUrl: type === 'mesh' ? modelUrl : undefined,
+      scale: asset.metadata?.scale || asset.mass || 1.0,
       color: asset.metadata?.color || '#FFFFFF',
       rigidBodyType: RigidBodyType.DYNAMIC,
-      mass: asset.metadata?.mass || 0.5,
-      restitution: asset.metadata?.restitution || 0.4,
-      friction: asset.metadata?.friction || 0.6,
+      mass: asset.mass || asset.metadata?.mass || 0.5,
+      restitution: asset.restitution || asset.metadata?.restitution || 0.4,
+      friction: asset.friction || asset.metadata?.friction || 0.6,
       drag: 0.05,
       position,
       rotation: { x: 0, y: 0, z: 0 },

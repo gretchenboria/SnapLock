@@ -6,6 +6,7 @@ import { ApiKeyModal } from './ApiKeyModal';
 import { SupportForm } from './SupportForm';
 import { AuthSection } from './AuthSection';
 import { AssetLibrary, Asset } from './AssetLibrary';
+import { SceneAssembler } from '../services/sceneAssembler';
 
 interface ControlPanelProps {
   prompt: string;
@@ -521,6 +522,26 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                    assetGroups: [...params.assetGroups, newGroup]
                  });
                  setSelectedGroupId(newGroup.id);
+               }}
+               onAssembleScene={(assets, layout) => {
+                 // Assemble scene from selected assets
+                 const scene = SceneAssembler.assembleFromAssets({
+                   assets,
+                   layout,
+                   includeGround: true,
+                   includeRobot: false,
+                   spacing: 0.3
+                 });
+
+                 // Update params with assembled scene
+                 setParams({
+                   ...params,
+                   assetGroups: [],  // Clear old groups
+                   scene: scene       // Use new scene
+                 });
+
+                 // Trigger reset to apply new scene
+                 onReset();
                }}
              />
            ) : (

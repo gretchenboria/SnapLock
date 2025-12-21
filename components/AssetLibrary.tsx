@@ -22,13 +22,15 @@ export interface Asset {
 
 interface AssetLibraryProps {
   onAssetSelect: (asset: Asset) => void;
+  onAssembleScene?: (assets: Asset[], layout: 'tabletop' | 'warehouse_shelf' | 'surgical_table' | 'grid' | 'pile') => void;
 }
 
-export function AssetLibrary({ onAssetSelect }: AssetLibraryProps) {
+export function AssetLibrary({ onAssetSelect, onAssembleScene }: AssetLibraryProps) {
   const [assets, setAssets] = useState<Record<string, Asset[]>>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedLayout, setSelectedLayout] = useState<'tabletop' | 'warehouse_shelf' | 'surgical_table' | 'grid' | 'pile'>('tabletop');
 
   useEffect(() => {
     // Load asset registry
@@ -143,6 +145,31 @@ export function AssetLibrary({ onAssetSelect }: AssetLibraryProps) {
           </button>
         ))}
       </div>
+
+      {/* Assemble Scene Button */}
+      {onAssembleScene && filteredAssets().length > 0 && (
+        <div className="p-3 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 to-blue-500/10">
+          <div className="flex items-center gap-2 mb-2">
+            <select
+              value={selectedLayout}
+              onChange={(e) => setSelectedLayout(e.target.value as any)}
+              className="flex-1 px-3 py-2 bg-black/60 border border-white/20 rounded text-white text-xs focus:outline-none focus:border-cyan-400"
+            >
+              <option value="tabletop">Tabletop Layout</option>
+              <option value="warehouse_shelf">Warehouse Shelf</option>
+              <option value="surgical_table">Surgical Table</option>
+              <option value="grid">Grid Layout</option>
+              <option value="pile">Pile/Clutter</option>
+            </select>
+          </div>
+          <button
+            onClick={() => onAssembleScene(filteredAssets(), selectedLayout)}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-black font-bold rounded text-sm transition-all transform hover:scale-[1.02]"
+          >
+            ASSEMBLE SCENE ({filteredAssets().length} assets)
+          </button>
+        </div>
+      )}
 
       {/* Asset Grid */}
       <div className="flex-1 overflow-y-auto p-3">

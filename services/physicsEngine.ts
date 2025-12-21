@@ -67,10 +67,16 @@ export class PhysicsEngine {
   ): void {
     if (!this.world) throw new Error('Physics engine not initialized');
 
-    // Clear existing bodies
+    // Clear existing bodies - collect handles first to avoid iterator invalidation
     this.bodies.clear();
-    for (let i = this.world.bodies.len() - 1; i >= 0; i--) {
+    const bodyHandles: number[] = [];
+    for (let i = 0; i < this.world.bodies.len(); i++) {
       const body = this.world.bodies.get(i);
+      if (body) bodyHandles.push(body.handle);
+    }
+    // Now remove them
+    for (const handle of bodyHandles) {
+      const body = this.world.getRigidBody(handle);
       if (body) this.world.removeRigidBody(body);
     }
 
@@ -110,12 +116,12 @@ export class PhysicsEngine {
           bodyDesc.setAngularDamping(group.drag * 3.0);
         }
 
-        const body = this.world!.createRigidBody(bodyDesc);
+        const body = this.world.createRigidBody(bodyDesc);
 
         // Create collider based on shape
         const colliderDesc = this.createColliderDesc(group);
 
-        if (colliderDesc && this.world) {
+        if (colliderDesc) {
           colliderDesc.setMass(group.mass);
           colliderDesc.setRestitution(Math.min(group.restitution, 1.0)); // Clamp to physical range
           colliderDesc.setFriction(group.friction);
@@ -770,22 +776,29 @@ export class PhysicsEngine {
 
     if (this.world) {
       try {
-        // Remove all bodies before freeing world to prevent memory access errors
-        const bodyCount = this.world.bodies.len();
-        for (let i = bodyCount - 1; i >= 0; i--) {
+        // Collect handles first to avoid iterator invalidation
+        const bodyHandles: number[] = [];
+        for (let i = 0; i < this.world.bodies.len(); i++) {
           const body = this.world.bodies.get(i);
-          if (body) {
-            this.world.removeRigidBody(body);
-          }
+          if (body) bodyHandles.push(body.handle);
+        }
+
+        const colliderHandles: number[] = [];
+        for (let i = 0; i < this.world.colliders.len(); i++) {
+          const collider = this.world.colliders.get(i);
+          if (collider) colliderHandles.push(collider.handle);
+        }
+
+        // Remove all bodies
+        for (const handle of bodyHandles) {
+          const body = this.world.getRigidBody(handle);
+          if (body) this.world.removeRigidBody(body);
         }
 
         // Remove all colliders
-        const colliderCount = this.world.colliders.len();
-        for (let i = colliderCount - 1; i >= 0; i--) {
-          const collider = this.world.colliders.get(i);
-          if (collider) {
-            this.world.removeCollider(collider, true);
-          }
+        for (const handle of colliderHandles) {
+          const collider = this.world.getCollider(handle);
+          if (collider) this.world.removeCollider(collider, true);
         }
 
         // Now safe to free the world

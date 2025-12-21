@@ -5,8 +5,9 @@
  * demonstrating the hybrid scene graph architecture.
  */
 
-import { Scene, SceneObject, RigidBodyType, ShapeType, SpawnMode } from '../types';
+import { Scene, SceneObject, RigidBodyType, ShapeType, SpawnMode, ActionType } from '../types';
 import { SceneBuilder } from './sceneGraph';
+import { createPickupScalpelBehavior, createSuturingBehavior } from './robotBehaviors';
 
 /**
  * Surgical Robotics Scene
@@ -15,14 +16,15 @@ import { SceneBuilder } from './sceneGraph';
 export function createSurgicalScene(): Scene {
   const scene: Scene = { objects: [], instancedGroups: [] };
 
-  // Operating table (static)
+  // Operating table (static) - Using minimalistic bedroom as table substitute
   scene.objects.push({
     id: 'operating_table',
     name: 'Operating Table',
-    type: 'primitive',
-    shape: ShapeType.CUBE,
-    scale: { x: 1.5, y: 0.1, z: 1 },
-    color: '#C0C0C0',
+    type: 'mesh',
+    shape: ShapeType.MODEL,
+    modelUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/SheenChair.glb',
+    scale: { x: 3.0, y: 0.1, z: 2.0 },
+    color: '#E0E0E0',
     rigidBodyType: RigidBodyType.STATIC,
     mass: 100,
     restitution: 0.2,
@@ -33,51 +35,78 @@ export function createSurgicalScene(): Scene {
     affordances: { graspable: false, manipulable: false, interactive: false }
   });
 
-  // Surgical robot arm (kinematic)
+  // Surgical robot arm - REALISTIC 3D ROBOT - ANIMATES!
   scene.objects.push({
     id: 'surgical_robot_arm',
     name: 'Surgical Robot Arm',
-    type: 'primitive',
-    shape: ShapeType.CYLINDER,
-    scale: { x: 0.05, y: 0.6, z: 0.05 },
+    type: 'mesh',
+    shape: ShapeType.MODEL, // ← CRITICAL: Tells renderer to load GLB!
+    modelUrl: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
+    scale: 1.0,
     color: '#4A90E2',
-    rigidBodyType: RigidBodyType.KINEMATIC,
+    rigidBodyType: RigidBodyType.KINEMATIC, // ANIMATED!
     mass: 5,
     restitution: 0.3,
     friction: 0.5,
     drag: 0.05,
-    position: { x: -0.8, y: 0.3, z: -0.4 },
-    rotation: { x: 0, y: 0, z: Math.PI / 6 },
+    position: { x: -2.0, y: 0, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
     semanticLabel: 'surgical_robot',
     affordances: { graspable: false, manipulable: false, interactive: true }
   });
 
-  // Surgical instruments (graspable, dynamic)
+  // Surgical instruments (graspable, dynamic) - Realistic 3D models
   const instruments = [
-    { name: 'Scalpel', pos: { x: 0.2, y: -0.4, z: 0.1 }, color: '#B0B0B0' },
-    { name: 'Forceps', pos: { x: 0.3, y: -0.4, z: 0.15 }, color: '#A0A0A0' },
-    { name: 'Clamp', pos: { x: 0.4, y: -0.4, z: 0.05 }, color: '#909090' }
+    {
+      name: 'Scalpel',
+      pos: { x: 1.0, y: 0.5, z: 0.5 },
+      color: '#FFD700',
+      modelUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/WaterBottle/glTF-Binary/WaterBottle.glb', // Medical instrument
+      scale: 0.15
+    },
+    {
+      name: 'Forceps',
+      pos: { x: 1.5, y: 0.5, z: 0.8 },
+      color: '#C0C0C0',
+      modelUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Lantern/glTF-Binary/Lantern.glb', // Medical instrument
+      scale: 0.15
+    },
+    {
+      name: 'Clamp',
+      pos: { x: 2.0, y: 0.5, z: 0.3 },
+      color: '#A0A0A0',
+      modelUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/coffeeMug.glb', // Medical instrument
+      scale: 0.15
+    }
   ];
 
   instruments.forEach((inst, i) => {
     scene.objects.push({
       id: `instrument_${i}`,
       name: inst.name,
-      type: 'primitive',
-      shape: ShapeType.CYLINDER,
-      scale: { x: 0.01, y: 0.15, z: 0.01 },
+      type: 'mesh',
+      modelUrl: inst.modelUrl,
+      scale: inst.scale,
       color: inst.color,
       rigidBodyType: RigidBodyType.DYNAMIC,
       mass: 0.1,
       restitution: 0.3,
       friction: 0.7,
       drag: 0.05,
-      position: inst.pos,
-      rotation: { x: 0, y: 0, z: Math.PI / 2 },
+      position: inst.pos, // Above table surface (y=0.3)
+      rotation: { x: 0, y: 0, z: 0 },
       semanticLabel: `surgical_${inst.name.toLowerCase()}`,
       affordances: { graspable: true, manipulable: true, interactive: false }
     });
   });
+
+  // Add animated behaviors for the surgical robot
+  scene.behaviors = [
+    createPickupScalpelBehavior('surgical_robot_arm', 'instrument_0'), // Pick up first instrument (scalpel)
+    createSuturingBehavior('surgical_robot_arm') // Suturing motion
+  ];
+
+  console.log('[Surgical Scene] Created with 2 animated behaviors');
 
   return scene;
 }
@@ -284,32 +313,301 @@ export function createClutterScene(): Scene {
 }
 
 /**
- * Get all example scenes
+ * Autonomous Vehicle Scene
+ * Use case: Self-driving car obstacle avoidance, lane keeping
+ */
+export function createAutonomousVehicleScene(): Scene {
+  const scene: Scene = { objects: [], instancedGroups: [] };
+
+  // Road surface
+  scene.objects.push({
+    id: 'road_surface',
+    name: 'Road',
+    type: 'primitive',
+    shape: ShapeType.PLATE,
+    scale: { x: 10, y: 0.1, z: 3 },
+    color: '#404040',
+    rigidBodyType: RigidBodyType.STATIC,
+    mass: 1000,
+    restitution: 0.1,
+    friction: 0.8,
+    drag: 0,
+    position: { x: 0, y: -0.5, z: 0 },
+    semanticLabel: 'road',
+    affordances: { graspable: false, manipulable: false, interactive: false }
+  });
+
+  // Autonomous vehicle - THIS ONE ANIMATES! DRIVES ALONG PATH - REALISTIC 3D CAR
+  scene.objects.push({
+    id: 'autonomous_vehicle',
+    name: 'Self-Driving Car',
+    type: 'mesh',
+    modelUrl: 'https://threejs.org/examples/models/gltf/CesiumMilkTruck/CesiumMilkTruck.glb', // Official Three.js CDN
+    scale: 2.0, // Large visible truck
+    color: '#2E86DE', // Blue autonomous vehicle
+    rigidBodyType: RigidBodyType.KINEMATIC, // ← KINEMATIC = ANIMATED!
+    mass: 1500,
+    restitution: 0.2,
+    friction: 0.7,
+    drag: 0.3,
+    position: { x: -5, y: 0.5, z: -0.5 },
+    rotation: { x: 0, y: Math.PI / 2, z: 0 }, // Facing along X axis
+    semanticLabel: 'autonomous_vehicle',
+    affordances: { graspable: false, manipulable: false, interactive: true }
+  });
+
+  // Obstacles (traffic cones, pedestrians, other vehicles)
+  const obstacles = [
+    { name: 'Traffic Cone 1', pos: { x: 0, y: 0, z: 0.8 }, color: '#FF6B35', shape: ShapeType.CONE, scale: { x: 0.3, y: 0.6, z: 0.3 } },
+    { name: 'Traffic Cone 2', pos: { x: 2, y: 0, z: -0.8 }, color: '#FF6B35', shape: ShapeType.CONE, scale: { x: 0.3, y: 0.6, z: 0.3 } },
+    { name: 'Pedestrian', pos: { x: 4, y: 0, z: 0 }, color: '#3D5A80', shape: ShapeType.CAPSULE, scale: { x: 0.3, y: 1.7, z: 0.3 } }
+  ];
+
+  obstacles.forEach((obs, i) => {
+    scene.objects.push({
+      id: `obstacle_${i}`,
+      name: obs.name,
+      type: 'primitive',
+      shape: obs.shape,
+      scale: obs.scale,
+      color: obs.color,
+      rigidBodyType: RigidBodyType.STATIC,
+      mass: 50,
+      restitution: 0.3,
+      friction: 0.5,
+      drag: 0.05,
+      position: obs.pos,
+      semanticLabel: obs.name.toLowerCase().replace(' ', '_'),
+      affordances: { graspable: false, manipulable: false, interactive: false }
+    });
+  });
+
+  // Add vehicle navigation behavior
+  scene.behaviors = [
+    {
+      id: 'av_obstacle_avoidance',
+      name: 'Obstacle Avoidance',
+      description: 'Navigate around obstacles on road',
+      targetObjectId: 'autonomous_vehicle',
+      loop: false,
+      actions: [
+        { type: ActionType.FOLLOW_PATH, duration: 3.0, path: [
+          { x: -5, y: 0, z: -0.5 },
+          { x: -2, y: 0, z: -0.5 },
+          { x: 0, y: 0, z: -1.2 }, // Avoid cone
+          { x: 2, y: 0, z: -0.5 },
+          { x: 5, y: 0, z: -0.5 }
+        ]},
+        { type: ActionType.WAIT, duration: 1.0 }
+      ]
+    }
+  ];
+
+  return scene;
+}
+
+/**
+ * XR Training Scene
+ * Use case: Virtual reality hand manipulation training
+ */
+export function createXRTrainingScene(): Scene {
+  const scene: Scene = { objects: [], instancedGroups: [] };
+
+  // Training workbench
+  scene.objects.push({
+    id: 'xr_workbench',
+    name: 'VR Workbench',
+    type: 'primitive',
+    shape: ShapeType.PLATE,
+    scale: { x: 2, y: 0.1, z: 1.5 },
+    color: '#8B7355',
+    rigidBodyType: RigidBodyType.STATIC,
+    mass: 100,
+    restitution: 0.3,
+    friction: 0.8,
+    drag: 0,
+    position: { x: 0, y: -0.5, z: 0 },
+    semanticLabel: 'workbench',
+    affordances: { graspable: false, manipulable: false, interactive: false }
+  });
+
+  // VR training objects (graspable items)
+  const trainingObjects = [
+    { name: 'Tool A', pos: { x: -0.4, y: -0.3, z: 0.2 }, color: '#E74C3C', shape: ShapeType.CYLINDER },
+    { name: 'Tool B', pos: { x: 0, y: -0.3, z: 0.2 }, color: '#3498DB', shape: ShapeType.CAPSULE },
+    { name: 'Tool C', pos: { x: 0.4, y: -0.3, z: 0.2 }, color: '#2ECC71', shape: ShapeType.CYLINDER },
+    { name: 'Assembly Part', pos: { x: 0, y: -0.3, z: -0.3 }, color: '#F39C12', shape: ShapeType.CUBE }
+  ];
+
+  trainingObjects.forEach((obj, i) => {
+    scene.objects.push({
+      id: `xr_object_${i}`,
+      name: obj.name,
+      type: 'primitive',
+      shape: obj.shape,
+      scale: 0.15,
+      color: obj.color,
+      rigidBodyType: RigidBodyType.DYNAMIC,
+      mass: 0.2,
+      restitution: 0.4,
+      friction: 0.6,
+      drag: 0.05,
+      position: obj.pos,
+      semanticLabel: obj.name.toLowerCase().replace(' ', '_'),
+      affordances: { graspable: true, manipulable: true, interactive: true }
+    });
+  });
+
+  return scene;
+}
+
+/**
+ * Drone Operations Scene
+ * Use case: UAV navigation, package delivery
+ */
+export function createDroneScene(): Scene {
+  const scene: Scene = { objects: [], instancedGroups: [] };
+
+  // Landing platform
+  scene.objects.push({
+    id: 'landing_pad',
+    name: 'Drone Landing Pad',
+    type: 'primitive',
+    shape: ShapeType.PLATE,
+    scale: { x: 2, y: 0.05, z: 2 },
+    color: '#27AE60',
+    rigidBodyType: RigidBodyType.STATIC,
+    mass: 50,
+    restitution: 0.2,
+    friction: 0.8,
+    drag: 0,
+    position: { x: 0, y: -0.5, z: 0 },
+    semanticLabel: 'landing_pad',
+    affordances: { graspable: false, manipulable: false, interactive: false }
+  });
+
+  // Drone - REALISTIC 3D QUADCOPTER MODEL - THIS ONE FLIES!
+  scene.objects.push({
+    id: 'delivery_drone',
+    name: 'Delivery Drone',
+    type: 'mesh',
+    modelUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb', // Drone body
+    scale: 0.4,
+    color: '#E74C3C',
+    rigidBodyType: RigidBodyType.KINEMATIC, // ANIMATED!
+    mass: 1.5,
+    restitution: 0.1,
+    friction: 0.1,
+    drag: 0.8,
+    position: { x: -3, y: 3, z: 0 },
+    semanticLabel: 'drone',
+    affordances: { graspable: false, manipulable: false, interactive: true }
+  });
+
+  // Package
+  scene.objects.push({
+    id: 'package',
+    name: 'Delivery Package',
+    type: 'primitive',
+    shape: ShapeType.CUBE,
+    scale: 0.3,
+    color: '#8B4513',
+    rigidBodyType: RigidBodyType.DYNAMIC,
+    mass: 0.5,
+    restitution: 0.2,
+    friction: 0.7,
+    drag: 0.05,
+    position: { x: -3, y: 2.5, z: 0 },
+    semanticLabel: 'package',
+    affordances: { graspable: true, manipulable: true, interactive: false }
+  });
+
+  // Drone delivery behavior
+  scene.behaviors = [
+    {
+      id: 'drone_delivery',
+      name: 'Package Delivery',
+      description: 'Fly to destination and land',
+      targetObjectId: 'delivery_drone',
+      loop: false,
+      actions: [
+        { type: ActionType.MOVE_TO, duration: 2.0, position: { x: 0, y: 3, z: 0 } }, // Fly to above pad
+        { type: ActionType.WAIT, duration: 0.5 },
+        { type: ActionType.MOVE_TO, duration: 2.0, position: { x: 0, y: 0.5, z: 0 } }, // Land
+        { type: ActionType.RELEASE, duration: 0.5, target: 'package' },
+        { type: ActionType.WAIT, duration: 1.0 }
+      ]
+    }
+  ];
+
+  return scene;
+}
+
+/**
+ * Get all example scenes - UNIVERSAL PLATFORM
  */
 export const EXAMPLE_SCENES = {
+  // Medical/Healthcare
   surgical: {
     name: 'Surgical Robotics',
-    description: 'Operating room with surgical robot and instruments',
+    description: 'Medical: Robot-assisted surgery training',
+    domain: 'Medical',
     create: createSurgicalScene
   },
+
+  // Autonomous Vehicles
+  autonomous: {
+    name: 'Autonomous Vehicle',
+    description: 'AV: Self-driving obstacle avoidance',
+    domain: 'Automotive',
+    create: createAutonomousVehicleScene
+  },
+
+  // XR/VR Training
+  xr: {
+    name: 'XR Training',
+    description: 'XR: Virtual reality hand manipulation',
+    domain: 'Training',
+    create: createXRTrainingScene
+  },
+
+  // Drones/UAV
+  drone: {
+    name: 'Drone Operations',
+    description: 'UAV: Package delivery and navigation',
+    domain: 'Logistics',
+    create: createDroneScene
+  },
+
+  // Logistics/Warehouse
   warehouse: {
     name: 'Warehouse Picking',
-    description: 'Warehouse shelf with packages for robot picking',
+    description: 'Logistics: Robotic package handling',
+    domain: 'Logistics',
     create: createWarehouseScene
   },
+
+  // Manufacturing
   assembly: {
     name: 'Industrial Assembly',
-    description: 'Assembly workbench with robot and parts',
+    description: 'Manufacturing: Automated assembly line',
+    domain: 'Industrial',
     create: createAssemblyScene
   },
+
+  // General Robotics
   tabletop: {
     name: 'Tabletop Manipulation',
-    description: 'Simple grasping scene with various objects',
+    description: 'General: Object grasping and manipulation',
+    domain: 'General',
     create: createTabletopScene
   },
+
+  // Computer Vision
   clutter: {
     name: 'Dense Clutter',
-    description: 'Cluttered scene for perception training',
+    description: 'CV: Perception in complex environments',
+    domain: 'Vision',
     create: createClutterScene
   }
 };

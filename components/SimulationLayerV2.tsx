@@ -24,7 +24,7 @@ interface SimulationLayerProps {
 }
 
 const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps>(({
-  params,
+  params: rawParams,
   isPaused,
   shouldReset,
   onResetComplete,
@@ -32,6 +32,10 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
   viewMode,
   telemetryRef
 }, ref) => {
+  // Normalize params to support hybrid scene architecture
+  // If scene is provided, convert it to assetGroups format
+  const params = useMemo(() => PhysicsEngine.normalizePhysicsParams(rawParams), [rawParams]);
+
   const meshRefs = useRef<(THREE.InstancedMesh | null)[]>([]);
   const { camera, gl } = useThree();
   const frameCountRef = useRef(0);

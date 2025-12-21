@@ -7,8 +7,9 @@
 
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
-import { PhysicsParams, AssetGroup, ShapeType, SpawnMode, MovementBehavior, JointConfig, JointType, ObjectState, ObjectStateData, VRHand } from '../types';
+import { PhysicsParams, AssetGroup, ShapeType, SpawnMode, MovementBehavior, JointConfig, JointType, ObjectState, ObjectStateData, VRHand, Scene } from '../types';
 import { VRHandPhysics } from './handPhysics';
+import { SceneGraph } from './sceneGraph';
 
 export interface RigidBodyData {
   handle: number;
@@ -54,6 +55,28 @@ export class PhysicsEngine {
 
     // Initialize VR hand physics
     this.handPhysics = new VRHandPhysics(this.world);
+  }
+
+  /**
+   * Normalize PhysicsParams to support hybrid scene architecture
+   * Converts Scene objects to AssetGroups for backward compatibility
+   */
+  static normalizePhysicsParams(params: PhysicsParams): PhysicsParams {
+    // If scene is provided, convert it to assetGroups
+    if (params.scene && params.scene.objects.length > 0) {
+      console.log('[PhysicsEngine] Using Scene architecture - converting to physics format');
+      const convertedGroups = SceneGraph.sceneToLegacyFormat(params.scene);
+
+      return {
+        ...params,
+        assetGroups: convertedGroups,
+        // Keep scene reference for metadata
+        scene: params.scene
+      };
+    }
+
+    // No scene provided, use assetGroups as-is
+    return params;
   }
 
   /**

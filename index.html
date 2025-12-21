@@ -3,42 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>SnapLock // Lock physics, snap reality</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script>
       // Polyfill process for browser environment to prevent crash on access
       window.process = window.process || { env: {} };
-
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              mono: ['JetBrains Mono', 'monospace'],
-            },
-            colors: {
-              scifi: {
-                900: '#0f172a', // Deep slate
-                800: '#1e293b',
-                700: '#334155',
-                cyan: '#22d3ee',
-                accent: '#f472b6', // Pink
-              }
-            },
-            keyframes: {
-                progress: {
-                    '0%': { width: '0%' },
-                    '100%': { width: '100%' },
-                },
-                shimmer: {
-                    '0%': { transform: 'translateX(-100%)' },
-                    '100%': { transform: 'translateX(100%)' },
-                }
-            }
-          }
-        }
-      }
     </script>
     <style>
       body {

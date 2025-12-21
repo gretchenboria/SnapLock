@@ -27,6 +27,7 @@ export class PhysicsEngine {
   private readonly fixedTimeStep: number = 1 / 120; // 120Hz physics
   private frameCount: number = 0;
   private disposed: boolean = false;
+  private isUpdating: boolean = false;
 
   // Collision tracking for ML annotations
   private collisionPairs: Set<string> = new Set();
@@ -67,19 +68,42 @@ export class PhysicsEngine {
   ): void {
     if (!this.world) throw new Error('Physics engine not initialized');
     if (this.disposed) throw new Error('Physics engine already disposed');
+    if (this.isUpdating) {
+      console.warn('[PhysicsEngine] Cannot create bodies during physics update');
+      return;
+    }
 
     try {
       // Clear existing state
       this.bodies.clear();
 
-      // Recreate world to avoid Rapier borrow checker issues
-      // This is safer than trying to remove individual objects
-      this.world.free();
-      const gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
-      this.world = new RAPIER.World(gravity);
-      this.world.integrationParameters.dt = this.fixedTimeStep;
-      this.world.integrationParameters.numSolverIterations = 8;
-      this.world.integrationParameters.numInternalPgsIterations = 1;
+      // Simple approach: Remove all bodies (colliders auto-remove)
+      // Don't try to iterate - just keep removing until empty
+      while (this.world.bodies.len() > 0) {
+        const body = this.world.bodies.get(0);
+        if (body) {
+          this.world.removeRigidBody(body);
+        } else {
+          break;
+        }
+      }
+
+      // Remove any orphaned colliders (ground plane)
+      while (this.world.colliders.len() > 0) {
+        const collider = this.world.colliders.get(0);
+        if (collider) {
+          try {
+            this.world.removeCollider(collider, false);
+          } catch (e) {
+            break; // Already removed
+          }
+        } else {
+          break;
+        }
+      }
+
+      // Update gravity in case it changed
+      this.world.gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
 
       // Create ground plane
       const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)
@@ -573,45 +597,50 @@ export class PhysicsEngine {
     let stepsThisFrame = 0;
     const maxStepsPerFrame = 5;
 
-    while (this.accumulator >= this.fixedTimeStep && stepsThisFrame < maxStepsPerFrame) {
-      // Update gravity
-      this.world.gravity = new RAPIER.Vector3(
-        params.gravity.x,
-        params.gravity.y,
-        params.gravity.z
-      );
+    this.isUpdating = true;
+    try {
+      while (this.accumulator >= this.fixedTimeStep && stepsThisFrame < maxStepsPerFrame) {
+        // Update gravity
+        this.world.gravity = new RAPIER.Vector3(
+          params.gravity.x,
+          params.gravity.y,
+          params.gravity.z
+        );
 
-      // Apply wind forces
-      if (params.wind.x !== 0 || params.wind.y !== 0 || params.wind.z !== 0) {
-        this.bodies.forEach((bodyData) => {
-          const body = this.world!.getRigidBody(bodyData.handle);
-          if (body && body.bodyType() === RAPIER.RigidBodyType.Dynamic) {
-            body.addForce(new RAPIER.Vector3(params.wind.x, params.wind.y, params.wind.z), true);
-          }
-        });
+        // Apply wind forces
+        if (params.wind.x !== 0 || params.wind.y !== 0 || params.wind.z !== 0) {
+          this.bodies.forEach((bodyData) => {
+            const body = this.world!.getRigidBody(bodyData.handle);
+            if (body && body.bodyType() === RAPIER.RigidBodyType.Dynamic) {
+              body.addForce(new RAPIER.Vector3(params.wind.x, params.wind.y, params.wind.z), true);
+            }
+          });
+        }
+
+        // Update kinematic bodies (scripted motion)
+        if (params.movementBehavior !== MovementBehavior.PHYSICS_GRAVITY) {
+          this.updateKinematicBodies(params, initialPositions, meta, elapsedTime);
+        }
+
+        // Step the simulation
+        this.world.step();
+        this.frameCount++;
+
+        // Update joint states for VR training
+        this.updateJointStates(elapsedTime);
+
+        this.accumulator -= this.fixedTimeStep;
+        stepsThisFrame++;
       }
 
-      // Update kinematic bodies (scripted motion)
-      if (params.movementBehavior !== MovementBehavior.PHYSICS_GRAVITY) {
-        this.updateKinematicBodies(params, initialPositions, meta, elapsedTime);
-      }
+      // Read back state from physics engine
+      this.syncStateFromPhysics(positions, velocities, rotations);
 
-      // Step the simulation
-      this.world.step();
-      this.frameCount++;
-
-      // Update joint states for VR training
-      this.updateJointStates(elapsedTime);
-
-      this.accumulator -= this.fixedTimeStep;
-      stepsThisFrame++;
+      // Track collisions for ML annotations
+      this.updateCollisionTracking();
+    } finally {
+      this.isUpdating = false;
     }
-
-    // Read back state from physics engine
-    this.syncStateFromPhysics(positions, velocities, rotations);
-
-    // Track collisions for ML annotations
-    this.updateCollisionTracking();
   }
 
   /**

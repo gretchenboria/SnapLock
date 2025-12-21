@@ -673,9 +673,17 @@ export class PhysicsEngine {
           this.updateKinematicBodies(params, initialPositions, meta, elapsedTime);
         }
 
-        // Step the simulation
-        this.world.step();
-        this.frameCount++;
+        // Step the simulation with WASM error protection
+        try {
+          this.world.step();
+          this.frameCount++;
+        } catch (error) {
+          console.error('[PhysicsEngine] Simulation step failed (WASM error):', error);
+          console.log('[PhysicsEngine] Stopping simulation. Reset/regenerate to recover.');
+          // Break out of simulation loop - world is corrupted
+          // Next reset will recreate world via createBodies error recovery
+          break;
+        }
 
         // Update joint states for VR training
         this.updateJointStates(elapsedTime);
@@ -684,11 +692,21 @@ export class PhysicsEngine {
         stepsThisFrame++;
       }
 
-      // Read back state from physics engine
-      this.syncStateFromPhysics(positions, velocities, rotations);
+      // Read back state from physics engine with error protection
+      try {
+        this.syncStateFromPhysics(positions, velocities, rotations);
+      } catch (error) {
+        console.error('[PhysicsEngine] State sync failed (WASM error):', error);
+        // Continue - positions may be stale but simulation can recover
+      }
 
       // Track collisions for ML annotations
-      this.updateCollisionTracking();
+      try {
+        this.updateCollisionTracking();
+      } catch (error) {
+        console.error('[PhysicsEngine] Collision tracking failed (WASM error):', error);
+        // Continue - collision data may be stale but simulation can recover
+      }
     } finally {
       this.isUpdating = false;
     }

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { X, Sparkles, Loader2, Play, Pause, RefreshCw, Database } from 'lucide-react';
+import { X, Sparkles, Loader2, Play, Pause, RefreshCw } from 'lucide-react';
 
 interface PromptModalProps {
   isOpen: boolean;
@@ -16,7 +16,6 @@ interface PromptModalProps {
   isPaused: boolean;
   togglePause: () => void;
   onReset: () => void;
-  onExportCOCO?: () => void;
 }
 
 export function PromptModal({
@@ -28,8 +27,7 @@ export function PromptModal({
   isAnalyzing,
   isPaused,
   togglePause,
-  onReset,
-  onExportCOCO
+  onReset
 }: PromptModalProps) {
   if (!isOpen) return null;
 
@@ -133,14 +131,6 @@ export function PromptModal({
               title="Reset Simulation"
             >
               <RefreshCw size={18}/>
-            </button>
-
-            <button
-              onClick={onExportCOCO}
-              className="h-12 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 border border-white/20 rounded-xl text-white transition-all"
-              title="Export ML Dataset"
-            >
-              <Database size={18}/>
             </button>
           </div>
         </div>

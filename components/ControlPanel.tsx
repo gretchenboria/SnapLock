@@ -40,6 +40,7 @@ interface ControlPanelProps {
   onStopRecording?: () => void;
   onExportCOCO?: () => void;
   onExportYOLO?: () => void;
+  onOpenMLExportModal?: () => void;
   isRecording?: boolean;
   recordedFrameCount?: number;
 }
@@ -77,6 +78,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onStopRecording,
   onExportCOCO,
   onExportYOLO,
+  onOpenMLExportModal,
   isRecording = false,
   recordedFrameCount = 0
 }) => {
@@ -326,37 +328,50 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           )}
         </button>
 
-          {/* VIDEO RECORDING CONTROLS - MAKE THEM OBVIOUS! */}
+          {/* DATA CAPTURE CONTROLS - Recording & Export */}
           <div className="flex items-center gap-2 border-l border-white/10 pl-3">
+            {/* Record Button */}
             {!isRecording ? (
               <button
                 onClick={onStartRecording}
                 disabled={!onStartRecording}
-                className="h-10 px-5 flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 border-2 border-red-500/50 hover:border-red-500 text-red-300 hover:text-red-200 rounded-lg text-[11px] font-extrabold transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]"
-                title="Start Recording Video Sequence"
+                className="h-10 w-10 flex items-center justify-center bg-red-600/20 hover:bg-red-600/30 border-2 border-red-500/50 hover:border-red-500 text-red-300 hover:text-red-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]"
+                title="Start Recording (30 FPS)"
               >
-                <Video size={18} />
-                <span className="tracking-widest">START RECORDING</span>
+                <div className="w-4 h-4 bg-red-500 rounded-full" />
               </button>
             ) : (
               <button
                 onClick={onStopRecording}
-                className="h-10 px-5 flex items-center gap-2 bg-red-500/30 hover:bg-red-500/40 border-2 border-red-500 text-red-200 rounded-lg text-[11px] font-extrabold transition-all animate-pulse shadow-[0_0_25px_rgba(239,68,68,0.5)]"
+                className="h-10 w-10 flex items-center justify-center bg-red-500/30 hover:bg-red-500/40 border-2 border-red-500 text-red-200 rounded-lg transition-all animate-pulse shadow-[0_0_25px_rgba(239,68,68,0.5)] relative"
                 title="Stop Recording"
               >
-                <StopCircle size={18} className="animate-pulse" />
-                <span className="tracking-widest">STOP • {recordedFrameCount} FRAMES</span>
+                <div className="w-4 h-4 bg-red-500 rounded-sm" />
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{recordedFrameCount}</span>
               </button>
             )}
 
+            {/* Snap Button */}
             <button
               onClick={onCaptureMLFrame}
               disabled={!onCaptureMLFrame || isRecording}
-              className="h-10 px-4 flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/30 border-2 border-cyan-500/50 hover:border-cyan-500 text-cyan-300 hover:text-cyan-200 rounded-lg text-[10px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="h-10 w-10 flex items-center justify-center bg-cyan-500/20 hover:bg-cyan-500/30 border-2 border-cyan-500/50 hover:border-cyan-500 text-cyan-300 hover:text-cyan-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               title="Capture Single Frame"
             >
-              <Camera size={16} />
-              <span className="tracking-wider">SNAP</span>
+              <Camera size={20} />
+            </button>
+
+            {/* Export Button */}
+            <button
+              onClick={onOpenMLExportModal}
+              disabled={recordedFrameCount === 0}
+              className="h-10 w-10 flex items-center justify-center bg-blue-600/20 hover:bg-blue-600/30 border-2 border-blue-500/50 hover:border-blue-500 text-blue-300 hover:text-blue-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed relative"
+              title={recordedFrameCount > 0 ? `Export ${recordedFrameCount} frames to COCO/YOLO` : "Record frames first to enable export"}
+            >
+              <Download size={20} />
+              {recordedFrameCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{recordedFrameCount}</span>
+              )}
             </button>
           </div>
 

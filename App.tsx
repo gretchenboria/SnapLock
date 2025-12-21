@@ -945,6 +945,7 @@ const App: React.FC = () => {
         onStopRecording={handleStopRecording}
         onExportCOCO={handleOpenMLExportModal}
         onExportYOLO={handleExportYOLO}
+        onOpenMLExportModal={handleOpenMLExportModal}
         isRecording={isRecording}
         recordedFrameCount={recordedFrameCount}
       />
@@ -1061,7 +1062,6 @@ const App: React.FC = () => {
         isPaused={isPaused}
         togglePause={() => setIsPaused(!isPaused)}
         onReset={handleReset}
-        onExportCOCO={handleExportCOCO}
       />
     </div>
     </ErrorBoundary>

@@ -26,6 +26,7 @@ export class PhysicsEngine {
   private accumulator: number = 0;
   private readonly fixedTimeStep: number = 1 / 120; // 120Hz physics
   private frameCount: number = 0;
+  private disposed: boolean = false;
 
   // Collision tracking for ML annotations
   private collisionPairs: Set<string> = new Set();
@@ -761,11 +762,44 @@ export class PhysicsEngine {
    * Cleanup
    */
   dispose(): void {
+    if (this.disposed) {
+      return; // Already disposed, prevent double-free
+    }
+
+    this.disposed = true;
+
     if (this.world) {
-      this.world.free();
-      this.world = null;
+      try {
+        // Remove all bodies before freeing world to prevent memory access errors
+        const bodyCount = this.world.bodies.len();
+        for (let i = bodyCount - 1; i >= 0; i--) {
+          const body = this.world.bodies.get(i);
+          if (body) {
+            this.world.removeRigidBody(body);
+          }
+        }
+
+        // Remove all colliders
+        const colliderCount = this.world.colliders.len();
+        for (let i = colliderCount - 1; i >= 0; i--) {
+          const collider = this.world.colliders.get(i);
+          if (collider) {
+            this.world.removeCollider(collider, true);
+          }
+        }
+
+        // Now safe to free the world
+        this.world.free();
+      } catch (error) {
+        console.warn('[PhysicsEngine] Error during disposal:', error);
+      } finally {
+        this.world = null;
+      }
     }
     this.bodies.clear();
     this.collisionPairs.clear();
+    this.joints.clear();
+    this.jointConfigs.clear();
+    this.objectStates.clear();
   }
 }

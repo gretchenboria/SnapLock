@@ -95,20 +95,31 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 
   // --- INITIALIZE PHYSICS ENGINE ---
   useEffect(() => {
+    let disposed = false;
+
     const initPhysics = async () => {
-      if (!physicsEngineRef.current) {
+      if (!physicsEngineRef.current && !disposed) {
         physicsEngineRef.current = new PhysicsEngine();
         await physicsEngineRef.current.initialize();
-        setPhysicsReady(true);
+        if (!disposed) {
+          setPhysicsReady(true);
+        }
       }
     };
 
     initPhysics();
 
     return () => {
+      disposed = true;
       if (physicsEngineRef.current) {
-        physicsEngineRef.current.dispose();
-        physicsEngineRef.current = null;
+        try {
+          physicsEngineRef.current.dispose();
+        } catch (error) {
+          console.warn('[SimulationLayerV2] Cleanup error:', error);
+        } finally {
+          physicsEngineRef.current = null;
+          setPhysicsReady(false);
+        }
       }
     };
   }, []);

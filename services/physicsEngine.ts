@@ -128,12 +128,34 @@ export class PhysicsEngine {
       // Update gravity in case it changed
       this.world.gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
 
-      // Create ground plane
-      const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)
-        .setTranslation(0, -5.1, 0)
-        .setFriction(0.7)
-        .setRestitution(0.3);
-      this.world.createCollider(groundColliderDesc);
+      // Create ground plane with defensive error handling
+      try {
+        const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)
+          .setTranslation(0, -5.1, 0)
+          .setFriction(0.7)
+          .setRestitution(0.3);
+        this.world.createCollider(groundColliderDesc);
+      } catch (error) {
+        console.error('[PhysicsEngine] Failed to create ground plane, recreating world:', error);
+        // World is corrupted, recreate it
+        try {
+          this.world.free();
+        } catch (e) {
+          // Ignore if already freed
+        }
+        const gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
+        this.world = new RAPIER.World(gravity);
+        this.world.integrationParameters.dt = this.fixedTimeStep;
+        this.world.integrationParameters.numSolverIterations = 8;
+        this.world.integrationParameters.numInternalPgsIterations = 1;
+
+        // Try ground plane again with fresh world
+        const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)
+          .setTranslation(0, -5.1, 0)
+          .setFriction(0.7)
+          .setRestitution(0.3);
+        this.world.createCollider(groundColliderDesc);
+      }
 
       // Two-pass approach to avoid Rapier borrow conflicts
       // Pass 1: Create all rigid bodies

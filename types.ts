@@ -110,6 +110,86 @@ export interface AssetGroup {
   spawnPosition?: Vector3Data;    // Initial position calculated from spatial constraints
 }
 
+// --- HYBRID SCENE ARCHITECTURE FOR ML TRAINING DATA ---
+
+/**
+ * SceneObject: Individual unique object with full property control
+ * Use for: robots, furniture, tools, graspable objects, hero objects
+ */
+export interface SceneObject {
+  id: string;                     // Unique identifier (e.g., "robot_arm_1", "surgical_tool_3")
+  name: string;                   // Human-readable name
+  type: 'mesh' | 'primitive';     // Mesh (GLB) or primitive geometry
+
+  // Geometry
+  shape?: ShapeType;              // For primitives
+  modelUrl?: string;              // For meshes (GLB/GLTF)
+  scale: Vector3Data | number;    // Per-axis or uniform scale
+
+  // Appearance
+  color?: string;                 // Hex color (for primitives or override)
+  material?: {
+    metalness?: number;
+    roughness?: number;
+    emissive?: string;
+    opacity?: number;
+  };
+
+  // Physics
+  rigidBodyType: RigidBodyType;
+  mass: number;
+  restitution: number;
+  friction: number;
+  drag: number;
+
+  // Transform
+  position: Vector3Data;
+  rotation?: Vector3Data;         // Euler angles in radians
+  velocity?: Vector3Data;         // Initial velocity
+
+  // ML/Semantic
+  semanticLabel: string;          // Category for ML (e.g., "robot", "cup", "table")
+  affordances?: {
+    graspable: boolean;
+    manipulable: boolean;
+    interactive: boolean;
+    graspPoints?: Vector3Data[];
+  };
+
+  // Relationships
+  parentId?: string;              // Parent object ID for hierarchy
+  spatialConstraint?: {
+    type: 'on_surface' | 'attached_to' | 'inside' | 'none';
+    offset?: Vector3Data;
+  };
+
+  // State
+  visible?: boolean;              // Visibility toggle
+  metadata?: Record<string, any>; // Custom metadata for ML annotations
+}
+
+/**
+ * InstancedGroup: High-performance instanced rendering for bulk objects
+ * Use for: debris, particles, background clutter, repetitive elements
+ * This is the old AssetGroup renamed for clarity
+ */
+export type InstancedGroup = AssetGroup;
+
+/**
+ * Scene: Hybrid container for ML training data generation
+ * Combines individual scene objects with optional instanced groups
+ */
+export interface Scene {
+  objects: SceneObject[];         // Individual unique objects
+  instancedGroups?: InstancedGroup[]; // Optional instanced bulk objects
+  joints?: JointConfig[];         // Joint constraints between objects
+  environment?: {
+    lighting?: 'studio' | 'outdoor' | 'indoor' | 'warehouse';
+    ambientIntensity?: number;
+    groundPlane?: boolean;
+  };
+}
+
 // --- VR JOINT & CONSTRAINT SYSTEM ---
 
 export enum JointType {
@@ -225,7 +305,14 @@ export interface PhysicsParams {
   wind: Vector3Data;
   movementBehavior: MovementBehavior;
   environmentUrl?: string; // Optional URL for HDRI
+
+  // HYBRID ARCHITECTURE: Support both approaches
+  // Legacy: assetGroups (for backward compatibility and instanced rendering)
   assetGroups: AssetGroup[];
+
+  // NEW: Scene-based architecture (optional, takes precedence if present)
+  scene?: Scene;
+
   joints?: JointConfig[];     // VR: Joint constraints for interactive objects
   vrHands?: VRHand[];         // VR: Virtual hand models
 }

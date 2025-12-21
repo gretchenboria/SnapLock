@@ -1199,6 +1199,12 @@ export const generateSimulationReport = async (params: PhysicsParams, telemetry:
     if (isTestMode()) return MOCK_HTML_REPORT;
 
     try {
+        // Check if API key is available
+        if (!hasApiKey()) {
+            console.error("[Report] No API key configured");
+            return "<h1>API Key Required</h1><p>Please configure your Gemini API key in Settings to generate reports.</p>";
+        }
+
         const dataContext = JSON.stringify({
             params,
             telemetry: {
@@ -1209,12 +1215,17 @@ export const generateSimulationReport = async (params: PhysicsParams, telemetry:
             }
         });
 
+        console.log("[Report] Generating simulation report...");
+
         return await withRetry(async () => {
             const ai = getAI();
+            const model = getModelForTask('reasoning');
+            console.log("[Report] Using model:", model);
+
             const response = await ai.models.generateContent({
-                model: getModelForTask('reasoning'),
+                model,
                 contents: `Generate a professional Technical Simulation Report (HTML format) based on the following JSON data context.
-                
+
                 DATA CONTEXT: ${dataContext}
 
                 REQUIREMENTS:
@@ -1224,22 +1235,39 @@ export const generateSimulationReport = async (params: PhysicsParams, telemetry:
                    - HEADER: "SNAPLOCK // SIMULATION AUDIT REPORT", Date, Simulation ID.
                    - EXECUTIVE SUMMARY: Brief natural language description of the scene and its complexity.
                    - CONFIGURATION MATRIX: Table showing gravity, wind, and asset groups.
-                   - TELEMETRY ANALYSIS: Interpret the Energy/Velocity data. 
+                   - TELEMETRY ANALYSIS: Interpret the Energy/Velocity data.
                      * STABILITY SCORE (StdDev Velocity): If < 0.1, system is Stable/Settled. If > 2.0, system is Chaotic/Explosive.
                    - REAL-WORLD TESTING RECOMMENDATIONS: Identify 3-4 specific physical tests to validate this sim in a real lab.
                      * Example: "Verify friction coefficient of [Material X] on concrete."
                      * Example: "Calibrate LIDAR sensor for high-velocity particle tracking."
-                
+
                 TONE: Technical Product Manager / Research Scientist.`,
             });
 
-            const html = response.text || "<h1>Report Generation Failed</h1>";
+            console.log("[Report] Response received:", !!response);
+            console.log("[Report] Response text exists:", !!response.text);
+
+            if (!response.text) {
+                const candidate = response.candidates?.[0];
+                const finishReason = candidate?.finishReason;
+                console.error("[Report] No text in response. Finish reason:", finishReason);
+
+                if (finishReason && finishReason !== 'STOP') {
+                    throw new Error(`Report generation blocked by AI safety filters. Reason: ${finishReason}`);
+                }
+                throw new Error("Empty response from AI service");
+            }
+
+            const html = response.text;
+            console.log("[Report] Generated HTML length:", html.length);
+
             // Clean markdown if present
             return html.replace(/```html/g, '').replace(/```/g, '');
         });
 
     } catch (error) {
-        console.error("Report Gen Error:", error);
-        return "<h1>Error Generating Report</h1><p>The AI service was unable to compile the analysis.</p>";
+        console.error("[Report] Generation error:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return `<h1>Error Generating Report</h1><p>${errorMessage}</p><p>Please check the browser console for details.</p>`;
     }
 };

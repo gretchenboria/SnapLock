@@ -69,13 +69,13 @@ export class PhysicsEngine {
 
     // Clear existing bodies - collect handles first to avoid iterator invalidation
     this.bodies.clear();
-    const bodyHandles: number[] = [];
+    const oldBodyHandles: number[] = [];
     for (let i = 0; i < this.world.bodies.len(); i++) {
       const body = this.world.bodies.get(i);
-      if (body) bodyHandles.push(body.handle);
+      if (body) oldBodyHandles.push(body.handle);
     }
     // Now remove them
-    for (const handle of bodyHandles) {
+    for (const handle of oldBodyHandles) {
       const body = this.world.getRigidBody(handle);
       if (body) this.world.removeRigidBody(body);
     }

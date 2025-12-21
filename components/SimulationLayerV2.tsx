@@ -12,6 +12,7 @@ import { PhysicsParams, ShapeType, MovementBehavior, SpawnMode, ViewMode, Teleme
 import { AssetRenderer } from './AssetRenderer';
 import { PhysicsEngine } from '../services/physicsEngine';
 import { VRHandRenderer } from './VRHandRenderer';
+import { AnimationEngine } from '../services/animationEngine';
 
 interface SimulationLayerProps {
   params: PhysicsParams;
@@ -43,6 +44,9 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
   // Physics engine instance
   const physicsEngineRef = useRef<PhysicsEngine | null>(null);
   const [physicsReady, setPhysicsReady] = useState(false);
+
+  // Animation engine instance
+  const animationEngineRef = useRef<AnimationEngine | null>(null);
 
   // VR Hand state tracking
   const [graspedObjects, setGraspedObjects] = useState<Map<string, string>>(new Map());
@@ -97,7 +101,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const tempColor = useMemo(() => new THREE.Color(), []);
 
-  // --- INITIALIZE PHYSICS ENGINE ---
+  // --- INITIALIZE PHYSICS & ANIMATION ENGINES ---
   useEffect(() => {
     let disposed = false;
 
@@ -111,10 +115,38 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
       }
     };
 
+    // Initialize animation engine
+    if (!animationEngineRef.current) {
+      animationEngineRef.current = new AnimationEngine();
+      console.log('[SimulationLayerV2] Animation engine initialized');
+    }
+
     initPhysics();
 
     return () => {
       disposed = true;
+
+      // Clean up mesh refs to prevent React Three Fiber cleanup errors
+      if (meshRefs.current) {
+        meshRefs.current.forEach((mesh) => {
+          if (mesh) {
+            try {
+              if (mesh.geometry) mesh.geometry.dispose();
+              if (mesh.material) {
+                if (Array.isArray(mesh.material)) {
+                  mesh.material.forEach(mat => mat.dispose());
+                } else {
+                  mesh.material.dispose();
+                }
+              }
+            } catch (error) {
+              console.warn('[SimulationLayerV2] Mesh cleanup error:', error);
+            }
+          }
+        });
+        meshRefs.current = [];
+      }
+
       if (physicsEngineRef.current) {
         try {
           physicsEngineRef.current.dispose();
@@ -125,6 +157,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
           setPhysicsReady(false);
         }
       }
+      animationEngineRef.current = null;
     };
   }, []);
 
@@ -360,6 +393,29 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
           engineVersion: 'SnapLock-v2.0-Rapier'
         }
       };
+    },
+
+    // Animation controls
+    pauseAnimations: () => {
+      if (animationEngineRef.current) {
+        animationEngineRef.current.pause();
+      }
+    },
+
+    resumeAnimations: () => {
+      if (animationEngineRef.current) {
+        animationEngineRef.current.resume();
+      }
+    },
+
+    stopAllAnimations: () => {
+      if (animationEngineRef.current) {
+        animationEngineRef.current.stopAll();
+      }
+    },
+
+    isAnimationPlaying: () => {
+      return animationEngineRef.current?.isPlaying() || false;
     }
   }));
 
@@ -372,8 +428,21 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
     velocityHistoryRef.current = [];
     simulationIdRef.current = `sim_${Date.now()}`;
 
-    // Clean up mesh refs
-    meshRefs.current = meshRefs.current.slice(0, groupStructure.length);
+    // Clean up mesh refs properly to avoid React Three Fiber cleanup errors
+    meshRefs.current.forEach((mesh, index) => {
+      if (index >= groupStructure.length && mesh) {
+        // Dispose geometry and material if they exist
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.material) {
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(mat => mat.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      }
+    });
+    meshRefs.current = meshRefs.current.slice(0, groupStructure.length).map(() => null);
 
     // Resize buffers
     if (positions.current.length !== totalParticles * 3) {
@@ -562,14 +631,50 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
         }
     });
 
-    // Initialize physics bodies
+    // Initialize physics bodies with error handling
     if (physicsEngineRef.current) {
-      physicsEngineRef.current.createBodies(params, groupStructure, pos, vel, rot);
-      // Create joints for VR interactive objects
-      physicsEngineRef.current.createJoints(params);
-      // Create VR hand bodies if present
-      if (params.vrHands && params.vrHands.length > 0) {
-        physicsEngineRef.current.createHandBodies(params.vrHands);
+      try {
+        physicsEngineRef.current.createBodies(params, groupStructure, pos, vel, rot);
+        // Create joints for VR interactive objects
+        if (params.joints) {
+          physicsEngineRef.current.createJoints(params);
+        }
+        // Create VR hand bodies if present
+        if (params.vrHands && params.vrHands.length > 0) {
+          physicsEngineRef.current.createHandBodies(params.vrHands);
+        }
+        console.log('[SimulationLayerV2] Physics initialization successful', {
+          objectCount: groupStructure.reduce((acc, g) => acc + (g.end - g.start), 0),
+          groups: groupStructure.length
+        });
+      } catch (error) {
+        console.error('[SimulationLayerV2] Physics initialization failed:', error);
+        // Re-throw to trigger error boundary
+        throw new Error(`Physics initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    // Register and start animations/behaviors from scene
+    if (animationEngineRef.current && rawParams.scene) {
+      // Register animations
+      if (rawParams.scene.animations) {
+        rawParams.scene.animations.forEach(clip => {
+          animationEngineRef.current!.registerClip(clip);
+          console.log(`[SimulationLayerV2] Registered animation: ${clip.name}`);
+        });
+      }
+
+      // Register behaviors
+      if (rawParams.scene.behaviors && rawParams.scene.behaviors.length > 0) {
+        rawParams.scene.behaviors.forEach(behavior => {
+          animationEngineRef.current!.registerBehavior(behavior);
+          console.log(`[SimulationLayerV2] Registered behavior: ${behavior.name}`);
+        });
+
+        // Auto-start first behavior
+        const firstBehavior = rawParams.scene.behaviors[0];
+        animationEngineRef.current!.startBehavior(firstBehavior.id);
+        console.log(`[SimulationLayerV2] ✨ Started behavior: ${firstBehavior.name}`);
       }
     }
 
@@ -615,6 +720,24 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
     let activeParticles = 0;
 
     const isDynamicColorMode = viewMode === ViewMode.DEPTH || viewMode === ViewMode.LIDAR;
+
+    // Update animations ALWAYS (independent of physics pause)
+    // This allows animations to continue even when physics is paused
+    if (animationEngineRef.current && physicsEngineRef.current) {
+      const animTransforms = animationEngineRef.current.update(dt);
+
+      // Apply animation transforms to kinematic objects
+      if (animTransforms.size > 0) {
+        animTransforms.forEach((transform, objectId) => {
+          physicsEngineRef.current!.updateKinematicFromAnimation(objectId, transform);
+
+          // Log progress occasionally
+          if (frameCountRef.current % 60 === 0) {
+            console.log(`[Animation] ${objectId} → physics:`, transform.position);
+          }
+        });
+      }
+    }
 
     if (!isPaused) {
         frameCountRef.current += 1;
@@ -806,7 +929,15 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
               <AssetRenderer
                  key={group.id}
                  group={group}
-                 meshRef={(el: any) => meshRefs.current[structure.index] = el}
+                 meshRef={(el: THREE.InstancedMesh | null) => {
+                   try {
+                     if (meshRefs.current) {
+                       meshRefs.current[structure.index] = el;
+                     }
+                   } catch (error) {
+                     console.warn('[SimulationLayerV2] Ref callback error:', error);
+                   }
+                 }}
                  viewMode={viewMode}
               />
           );

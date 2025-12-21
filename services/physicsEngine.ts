@@ -96,6 +96,60 @@ export class PhysicsEngine {
       return;
     }
 
+    // Handle empty configuration gracefully
+    if (groupStructure.length === 0 || params.assetGroups.length === 0) {
+      console.log('[PhysicsEngine] Empty configuration detected - creating ground plane only');
+
+      // Clear existing state
+      this.bodies.clear();
+
+      // Clean up existing bodies/colliders
+      try {
+        let cleanupAttempts = 0;
+        const maxCleanupAttempts = 1000;
+        while (this.world!.bodies.len() > 0 && cleanupAttempts < maxCleanupAttempts) {
+          const body = this.world!.bodies.get(0);
+          if (body) {
+            this.world!.removeRigidBody(body);
+          } else {
+            break;
+          }
+          cleanupAttempts++;
+        }
+
+        cleanupAttempts = 0;
+        while (this.world!.colliders.len() > 0 && cleanupAttempts < maxCleanupAttempts) {
+          const collider = this.world!.colliders.get(0);
+          if (collider) {
+            try {
+              this.world!.removeCollider(collider, false);
+            } catch (e) {
+              break;
+            }
+          } else {
+            break;
+          }
+          cleanupAttempts++;
+        }
+      } catch (cleanupError) {
+        console.warn('[PhysicsEngine] Cleanup warning (expected on first run):', cleanupError);
+      }
+
+      // Update gravity
+      this.world!.gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
+
+      // Create ground plane
+      const groundColliderDesc = RAPIER.ColliderDesc.cuboid(5, 0.05, 5)
+        .setTranslation(0, -1.5, 0)
+        .setFriction(0.7)
+        .setRestitution(0.3);
+      this.world!.createCollider(groundColliderDesc);
+
+      this.frameCount = 0;
+      console.log('[PhysicsEngine] Ground plane ready - waiting for objects');
+      return;
+    }
+
     // Validate input parameters first to prevent WASM corruption
     const validateParams = () => {
       for (let i = 0; i < positions.length; i++) {
@@ -134,43 +188,27 @@ export class PhysicsEngine {
       // Clear existing state
       this.bodies.clear();
 
-      // Clean up existing bodies/colliders with error protection
-      // If world is already corrupted, this will throw and trigger world recreation
-      try {
-        // Simple approach: Remove all bodies (colliders auto-remove)
-        // Don't try to iterate - just keep removing until empty
-        let cleanupAttempts = 0;
-        const maxCleanupAttempts = 1000; // Safety limit
-        while (this.world!.bodies.len() > 0 && cleanupAttempts < maxCleanupAttempts) {
-          const body = this.world!.bodies.get(0);
-          if (body) {
-            this.world!.removeRigidBody(body);
-          } else {
-            break;
-          }
-          cleanupAttempts++;
-        }
+      // CRITICAL: Instead of cleaning up, just recreate the entire world
+      // Rapier WASM has complex Rust borrowing rules that cause crashes during cleanup
+      // Safest approach: abandon old world, create fresh one
+      console.log('[PhysicsEngine] Recreating world for new scene (avoiding WASM cleanup issues)');
 
-        // Remove any orphaned colliders (ground plane)
-        cleanupAttempts = 0;
-        while (this.world!.colliders.len() > 0 && cleanupAttempts < maxCleanupAttempts) {
-          const collider = this.world!.colliders.get(0);
-          if (collider) {
-            try {
-              this.world!.removeCollider(collider, false);
-            } catch (e) {
-              break; // Already removed
-            }
-          } else {
-            break;
-          }
-          cleanupAttempts++;
-        }
-      } catch (cleanupError) {
-        console.warn('[PhysicsEngine] Cleanup failed (world already corrupted):', cleanupError);
-        // Rethrow to trigger world recreation
-        throw cleanupError;
+      // Don't free old world - just let GC handle it
+      this.world = null;
+
+      // Create completely fresh world
+      const gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
+      this.world = new RAPIER.World(gravity);
+      this.world.integrationParameters.dt = this.fixedTimeStep;
+      this.world.integrationParameters.numSolverIterations = 8; // Fixed typo
+      this.world.integrationParameters.numInternalPgsIterations = 1;
+
+      // Reinitialize hand physics with new world
+      if (this.handPhysics) {
+        this.handPhysics = new VRHandPhysics(this.world);
       }
+
+      console.log('[PhysicsEngine] Fresh world created successfully');
 
       // Update gravity (validate first)
       if (!isFinite(params.gravity.x) || !isFinite(params.gravity.y) || !isFinite(params.gravity.z)) {
@@ -258,19 +296,16 @@ export class PhysicsEngine {
       console.error('[PhysicsEngine] Error details:', error);
       console.log('[PhysicsEngine] Attempting world recovery...');
 
-      // World is corrupted, recreate it
-      try {
-        this.world.free();
-        console.log('[PhysicsEngine] Old world freed successfully');
-      } catch (e) {
-        console.warn('[PhysicsEngine] Could not free corrupted world (expected if WASM corrupted):', e);
-      }
+      // World is corrupted - DO NOT try to free it (causes more WASM errors)
+      // Just abandon the corrupted reference and let JS garbage collection handle it
+      console.warn('[PhysicsEngine] Abandoning corrupted world (not freeing - WASM unsafe)');
+      this.world = null; // Release reference, let GC clean up
 
       // Create fresh world
       const gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
       this.world = new RAPIER.World(gravity);
       this.world.integrationParameters.dt = this.fixedTimeStep;
-      this.world.integrationParameters.numSolverIterators = 8;
+      this.world.integrationParameters.numSolverIterations = 8; // Fixed typo
       this.world.integrationParameters.numInternalPgsIterations = 1;
 
       // Reinitialize hand physics with new world
@@ -862,6 +897,78 @@ export class PhysicsEngine {
       rotations[i3 + 1] = euler.y;
       rotations[i3 + 2] = euler.z;
     });
+  }
+
+  /**
+   * Update kinematic object transforms from animation system
+   * Call this BEFORE step() to apply animation targets
+   */
+  updateKinematicFromAnimation(
+    objectId: string,
+    transform: { position?: { x: number; y: number; z: number }; rotation?: { x: number; y: number; z: number } }
+  ): void {
+    if (!this.world) return;
+
+    // Find rigid body for this object ID
+    // Object IDs map to groupIds in our system
+    let targetBody: RAPIER.RigidBody | null = null;
+    let targetHandle: number | null = null;
+
+    this.bodies.forEach((bodyData, handle) => {
+      if (bodyData.groupId === objectId) {
+        targetBody = this.world!.getRigidBody(handle);
+        targetHandle = handle;
+      }
+    });
+
+    if (!targetBody || targetHandle === null) {
+      // Debug: Log what we're looking for vs what exists
+      if (Math.random() < 0.01) { // Log occasionally to avoid spam
+        const existingIds = Array.from(this.bodies.values()).map(b => b.groupId);
+        console.warn(`[PhysicsEngine] Animation target '${objectId}' not found. Existing bodies:`, existingIds);
+      }
+      return;
+    }
+
+    // TypeScript needs help with control flow after forEach
+    const body = targetBody as RAPIER.RigidBody;
+
+    // Only update kinematic bodies
+    if (!body.isKinematic()) {
+      if (Math.random() < 0.01) {
+        console.warn(`[PhysicsEngine] Body '${objectId}' is not kinematic, cannot animate`);
+      }
+      return;
+    }
+
+    // Update position if provided
+    if (transform.position) {
+      const newPos = new RAPIER.Vector3(
+        transform.position.x,
+        transform.position.y,
+        transform.position.z
+      );
+      body.setNextKinematicTranslation(newPos);
+
+      // Debug log successful update
+      if (Math.random() < 0.02) {
+        console.log(`[PhysicsEngine] ✅ Updated kinematic '${objectId}' position to:`, transform.position);
+      }
+    }
+
+    // Update rotation if provided
+    if (transform.rotation) {
+      const quat = new THREE.Quaternion();
+      const euler = new THREE.Euler(
+        transform.rotation.x,
+        transform.rotation.y,
+        transform.rotation.z
+      );
+      quat.setFromEuler(euler);
+
+      const rapierQuat = new RAPIER.Quaternion(quat.x, quat.y, quat.z, quat.w);
+      body.setNextKinematicRotation(rapierQuat);
+    }
   }
 
   /**

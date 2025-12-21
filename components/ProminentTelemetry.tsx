@@ -165,11 +165,11 @@ export function ProminentTelemetry({ telemetryRef }: ProminentTelemetryProps) {
           </div>
         </div>
 
-        {/* VR/Robotics Tracking */}
+        {/* 3D Pose */}
         <div className="border-t border-cyan-500/20 pt-3">
           <div className="flex items-center gap-2 mb-3">
             <Target className="w-4 h-4 text-green-400" />
-            <span className="text-sm font-bold text-green-400 tracking-wider">VR/ROBOTICS TRACKING</span>
+            <span className="text-sm font-bold text-green-400 tracking-wider">3D POSE</span>
           </div>
 
           <div className="space-y-2">

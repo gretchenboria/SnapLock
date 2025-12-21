@@ -82,7 +82,7 @@ export class SceneGraph {
         id: obj.id,
         name: obj.name,
         count: 1, // Each scene object is unique
-        shape: obj.shape || ShapeType.CUBE,
+        shape: obj.modelUrl ? ShapeType.MODEL : (obj.shape || ShapeType.CUBE), // AUTO-INFER: modelUrl → MODEL shape
         modelUrl: obj.modelUrl,
         color: obj.color || '#808080',
         spawnMode: SpawnMode.GRID, // Single object, position is fixed
@@ -96,6 +96,7 @@ export class SceneGraph {
         spawnPosition: obj.position, // Use exact position from scene object
         semanticLabel: obj.semanticLabel,
         affordances: obj.affordances,
+        deformation: obj.deformation, // Pass through mesh deformation for data augmentation
         spatialConstraint: obj.spatialConstraint ? {
           type: obj.spatialConstraint.type,
           parentGroupId: obj.parentId,

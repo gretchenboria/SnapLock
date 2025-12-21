@@ -29,11 +29,19 @@ export function PromptModal({
   togglePause,
   onReset
 }: PromptModalProps) {
+  const [errorMessage, setErrorMessage] = React.useState<string>('');
+
   if (!isOpen) return null;
 
   const handleSubmit = () => {
     if (prompt.trim() && !isAnalyzing) {
-      onAnalyze();
+      setErrorMessage(''); // Clear any previous errors
+      try {
+        onAnalyze();
+      } catch (error) {
+        setErrorMessage(`Generation failed: ${(error as Error).message}`);
+        console.error('[PromptModal] Generation error:', error);
+      }
     }
   };
 
@@ -67,6 +75,28 @@ export function PromptModal({
               <X className="w-5 h-5 text-gray-400 hover:text-white" />
             </button>
           </div>
+
+          {/* Warning Banner */}
+          <div className="mb-4 p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-lg">
+            <div className="flex items-start gap-2">
+              <div className="text-yellow-400 text-sm">
+                <strong>⚠️ Note:</strong> AI prompt generation requires a Gemini API key (click API button in top bar).
+                <br/>
+                <strong>Recommended:</strong> Use the purple <strong>SCENE</strong> button instead (top-right in Hierarchy panel) for instant scene loading.
+              </div>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded-lg">
+              <div className="text-red-400 text-sm">
+                <strong>Error:</strong> {errorMessage}
+                <br/>
+                <span className="text-xs">If you don't have an API key, use the SCENE button instead to load pre-built scenes.</span>
+              </div>
+            </div>
+          )}
 
           {/* Prompt Input */}
           <div className="mb-4">

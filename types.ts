@@ -63,6 +63,18 @@ export interface MaterialPreset {
   drag: number;
 }
 
+/**
+ * Mesh Deformation for Data Augmentation
+ * GPU shader-based vertex manipulation for generating training data diversity
+ */
+export interface MeshDeformation {
+  type: 'noise' | 'wave' | 'bulge' | 'twist';
+  intensity: number;      // 0.0 - 1.0 deformation strength (keep < 0.2 for physics accuracy)
+  frequency?: number;     // Spatial frequency for noise/wave patterns (default: 1.0)
+  seed?: number;          // Random seed for reproducible deformations
+  axis?: 'x' | 'y' | 'z'; // For directional deformations (twist, wave)
+}
+
 export interface AssetGroup {
   id: string;
   name: string;
@@ -72,6 +84,9 @@ export interface AssetGroup {
   color: string;
   spawnMode: SpawnMode;
   scale: number;
+
+  // Mesh Deformation (GPU shader-based, maintains InstancedMesh performance)
+  deformation?: MeshDeformation;
 
   // Physics Body Type - CRITICAL for synthetic data generation
   rigidBodyType?: RigidBodyType; // Defaults to DYNAMIC if not specified
@@ -135,6 +150,9 @@ export interface SceneObject {
     opacity?: number;
   };
 
+  // Mesh Deformation for Data Augmentation
+  deformation?: MeshDeformation;
+
   // Physics
   rigidBodyType: RigidBodyType;
   mass: number;
@@ -183,6 +201,8 @@ export interface Scene {
   objects: SceneObject[];         // Individual unique objects
   instancedGroups?: InstancedGroup[]; // Optional instanced bulk objects
   joints?: JointConfig[];         // Joint constraints between objects
+  animations?: AnimationClip[];   // Keyframe animations for objects
+  behaviors?: BehaviorSequence[]; // Scripted behavior sequences
   environment?: {
     lighting?: 'studio' | 'outdoor' | 'indoor' | 'warehouse';
     ambientIntensity?: number;
@@ -243,6 +263,63 @@ export interface ObjectStateData {
   jointAngle?: number;        // For doors/drawers (radians or meters)
   timeInState: number;        // How long in this state (seconds)
   lastTransition: number;     // Timestamp of last state change
+}
+
+// --- ANIMATION SYSTEM ---
+
+export interface Keyframe {
+  time: number;                    // Time in seconds from animation start
+  position?: Vector3Data;          // Target position (world space)
+  rotation?: Vector3Data;          // Target rotation (euler angles in radians)
+  scale?: Vector3Data;             // Target scale
+  jointAngles?: { [jointId: string]: number };  // Joint angles for articulated objects
+}
+
+export interface AnimationClip {
+  id: string;
+  name: string;
+  duration: number;                // Total duration in seconds
+  loop: boolean;                   // Whether to loop the animation
+  keyframes: Keyframe[];           // Keyframes defining the animation
+  targetObjectId: string;          // ID of the object to animate
+  interpolation?: 'linear' | 'cubic' | 'step';  // Interpolation method
+}
+
+export enum ActionType {
+  MOVE_TO = 'MOVE_TO',             // Move to target position
+  ROTATE_TO = 'ROTATE_TO',         // Rotate to target orientation
+  GRASP = 'GRASP',                 // Close gripper/hand around object
+  RELEASE = 'RELEASE',             // Open gripper/hand
+  FOLLOW_PATH = 'FOLLOW_PATH',     // Follow a spline path
+  WAIT = 'WAIT',                   // Pause for duration
+  CUSTOM = 'CUSTOM'                // Custom behavior
+}
+
+export interface Action {
+  type: ActionType;
+  duration: number;                // How long this action takes
+  target?: string;                 // Target object ID (for grasp/release)
+  position?: Vector3Data;          // Target position (for move)
+  rotation?: Vector3Data;          // Target rotation
+  path?: Vector3Data[];            // Waypoints for path following
+  params?: { [key: string]: any }; // Custom parameters
+}
+
+export interface BehaviorSequence {
+  id: string;
+  name: string;
+  description: string;
+  targetObjectId: string;          // Robot or agent performing the sequence
+  actions: Action[];               // Sequence of actions to perform
+  loop: boolean;                   // Whether to repeat the sequence
+}
+
+export interface AnimationState {
+  isPlaying: boolean;
+  currentTime: number;             // Current playback time
+  activeClips: string[];           // IDs of currently playing clips
+  activeBehaviors: string[];       // IDs of currently running behaviors
+  speed: number;                   // Playback speed multiplier
 }
 
 // --- VR HAND SIMULATION ---
@@ -457,6 +534,11 @@ export interface MLGroundTruthFrame {
 export interface SimulationLayerHandle {
   captureSnapshot: () => ParticleSnapshot[];
   captureMLGroundTruth: () => MLGroundTruthFrame;
+  // Animation controls
+  pauseAnimations: () => void;
+  resumeAnimations: () => void;
+  stopAllAnimations: () => void;
+  isAnimationPlaying: () => boolean;
 }
 
 // --- TESTING INTERFACES ---

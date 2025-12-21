@@ -19,6 +19,11 @@ export interface PhysicsSceneHandle {
   resetCamera: () => void;
   captureSnapshot: () => ParticleSnapshot[];
   captureMLGroundTruth: () => MLGroundTruthFrame;
+  // Animation controls
+  pauseAnimations: () => void;
+  resumeAnimations: () => void;
+  stopAllAnimations: () => void;
+  isAnimationPlaying: () => boolean;
 }
 
 const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
@@ -36,8 +41,12 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
 
   useImperativeHandle(ref, () => ({
     resetCamera: () => {
-      if (orbitRef.current) {
-        orbitRef.current.reset();
+      try {
+        if (orbitRef.current && typeof orbitRef.current.reset === 'function') {
+          orbitRef.current.reset();
+        }
+      } catch (error) {
+        console.warn('[PhysicsScene] Camera reset failed:', error);
       }
     },
     captureSnapshot: () => {
@@ -51,6 +60,25 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
         return simLayerRef.current.captureMLGroundTruth();
       }
       throw new Error('Simulation layer not initialized');
+    },
+    // Animation controls
+    pauseAnimations: () => {
+      if (simLayerRef.current) {
+        simLayerRef.current.pauseAnimations();
+      }
+    },
+    resumeAnimations: () => {
+      if (simLayerRef.current) {
+        simLayerRef.current.resumeAnimations();
+      }
+    },
+    stopAllAnimations: () => {
+      if (simLayerRef.current) {
+        simLayerRef.current.stopAllAnimations();
+      }
+    },
+    isAnimationPlaying: () => {
+      return simLayerRef.current?.isAnimationPlaying() || false;
     }
   }));
 
@@ -111,12 +139,15 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
     <div className="w-full h-full bg-slate-900 relative">
       <Canvas
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-        camera={{ position: [10, 8, 10], fov: 40 }}
+        camera={{ position: [15, 10, 15], fov: 50, near: 0.1, far: 1000 }}
         shadows
         dpr={[1, 2]}
         onCreated={(state) => {
-          console.log('[PhysicsScene] Canvas created successfully');
+          console.log('[PhysicsScene] ✅ Canvas created successfully');
+          console.log('[PhysicsScene] Camera position:', state.camera.position);
+          console.log('[PhysicsScene] Camera looking at:', state.camera.rotation);
           console.log('[PhysicsScene] WebGL Renderer:', state.gl.info.render);
+          state.camera.lookAt(0, 0, 0); // Ensure camera looks at origin
         }}
       >
         <color attach="background" args={[viewMode === ViewMode.LIDAR ? '#000000' : '#0a0e1a']} />
@@ -124,12 +155,14 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
         {/* Dynamic Environment Lighting */}
         {viewMode === ViewMode.RGB && (
           <>
-             {params.environmentUrl ? (
+             {/* Custom environment if specified (for Chaos mode) */}
+             {params.environmentUrl && (
+               <Suspense fallback={null}>
                  <Environment files={params.environmentUrl} background blur={0.2} />
-             ) : (
-                 <Environment preset="city" blur={0.5} />
+               </Suspense>
              )}
 
+            {/* Standard scene lighting (no CDN dependencies) */}
             <ambientLight intensity={1.0} />
             <directionalLight position={[10, 20, 10]} intensity={2.5} castShadow color="#ffffff" />
             <directionalLight position={[-10, 20, -10]} intensity={1.5} color="#ffffff" />
@@ -139,19 +172,47 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
           </>
         )}
 
+        {/* Realistic Lighting Setup for Photorealistic Rendering */}
+        <ambientLight intensity={0.4} />
+        <directionalLight
+          position={[10, 15, 10]}
+          intensity={1.2}
+          castShadow
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-far={50}
+          shadow-camera-left={-10}
+          shadow-camera-right={10}
+          shadow-camera-top={10}
+          shadow-camera-bottom={-10}
+        />
+        <hemisphereLight
+          args={['#ffffff', '#444444', 0.6]}
+        />
+        <spotLight
+          position={[-5, 10, 5]}
+          angle={0.3}
+          penumbra={0.5}
+          intensity={0.8}
+          castShadow
+        />
+
+        {/* HDR Environment removed - standard lighting is sufficient */}
+        {/* Scene has 6 configured lights: ambient, 2x directional, 2x point, hemisphere */}
+
         {/* Technical Grid Environment */}
-        <Grid 
-          infiniteGrid 
-          fadeDistance={50} 
-          sectionColor={viewMode === ViewMode.LIDAR ? "#111111" : "#22d3ee"} 
-          cellColor={viewMode === ViewMode.LIDAR ? "#050505" : "#1e293b"} 
+        <Grid
+          infiniteGrid
+          fadeDistance={50}
+          sectionColor={viewMode === ViewMode.LIDAR ? "#111111" : "#22d3ee"}
+          cellColor={viewMode === ViewMode.LIDAR ? "#050505" : "#1e293b"}
           position={[0, -5, 0]}
           sectionSize={5}
           cellSize={1}
           sectionThickness={1.5}
           cellThickness={0.5}
         />
-        
+
         {/* Core Simulation with Suspense for GLTF Loading */}
         {/* Using SimulationLayerV2 with Rapier physics engine */}
         <Suspense fallback={null}>
@@ -167,7 +228,7 @@ const PhysicsScene = forwardRef<PhysicsSceneHandle, PhysicsSceneProps>(({
             />
         </Suspense>
 
-        <OrbitControls ref={orbitRef} makeDefault maxPolarAngle={Math.PI / 1.8} />
+        <OrbitControls ref={orbitRef} makeDefault maxPolarAngle={Math.PI / 1.8} enableDamping={true} />
       </Canvas>
     </div>
   );

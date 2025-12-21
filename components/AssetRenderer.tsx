@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import { AssetGroup, ViewMode, ShapeType } from '../types';
+import { MeshDeformationShaders } from '../services/meshDeformationShaders';
 
 interface AssetRendererProps {
     group: AssetGroup;
@@ -156,6 +158,43 @@ const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }
     // Environment map intensity randomization (lighting variation)
     const envMapIntensity = 1.0 + Math.random() * 1.0; // 1.0 to 2.0
 
+    // GPU Shader-Based Mesh Deformation for Data Augmentation
+    // Generate custom vertex shader if deformation is specified
+    const customShader = useMemo(() => {
+        if (!group.deformation) return null;
+
+        return {
+            vertexShader: MeshDeformationShaders.generateVertexShader(group.deformation),
+            uniforms: MeshDeformationShaders.getUniforms(group.deformation)
+        };
+    }, [group.deformation]);
+
+    // Update time uniform for animated deformations (wave, etc.)
+    useFrame((state) => {
+        if (customShader?.uniforms.time) {
+            customShader.uniforms.time.value = state.clock.elapsedTime;
+        }
+    });
+
+    // Standard material without deformation
+    if (!customShader) {
+        return (
+            <meshStandardMaterial
+                color={randomizedColor}
+                wireframe={viewMode === ViewMode.WIREFRAME}
+                roughness={roughness}
+                metalness={metalness}
+                transparent={transparent}
+                opacity={opacity}
+                emissive={emissive}
+                emissiveIntensity={emissiveIntensity}
+                envMapIntensity={envMapIntensity}
+                flatShading={false}
+            />
+        );
+    }
+
+    // Custom material with GPU shader deformation
     return (
         <meshStandardMaterial
             color={randomizedColor}
@@ -166,8 +205,15 @@ const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }
             opacity={opacity}
             emissive={emissive}
             emissiveIntensity={emissiveIntensity}
-            envMapIntensity={envMapIntensity} // Randomized reflection intensity
-            flatShading={false} // Smooth shading for photorealism
+            envMapIntensity={envMapIntensity}
+            flatShading={false}
+            onBeforeCompile={(shader) => {
+                // Inject custom vertex shader for deformation
+                shader.vertexShader = customShader.vertexShader;
+
+                // Add deformation uniforms
+                Object.assign(shader.uniforms, customShader.uniforms);
+            }}
         />
     );
 };

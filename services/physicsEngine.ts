@@ -96,40 +96,89 @@ export class PhysicsEngine {
       return;
     }
 
+    // Validate input parameters first to prevent WASM corruption
+    const validateParams = () => {
+      for (let i = 0; i < positions.length; i++) {
+        if (!isFinite(positions[i]) || isNaN(positions[i])) {
+          throw new Error(`Invalid position at index ${i}: ${positions[i]}`);
+        }
+        if (!isFinite(velocities[i]) || isNaN(velocities[i])) {
+          throw new Error(`Invalid velocity at index ${i}: ${velocities[i]}`);
+        }
+        if (!isFinite(rotations[i]) || isNaN(rotations[i])) {
+          throw new Error(`Invalid rotation at index ${i}: ${rotations[i]}`);
+        }
+      }
+
+      params.assetGroups.forEach((group, idx) => {
+        if (!isFinite(group.scale) || isNaN(group.scale) || group.scale <= 0 || group.scale > 1000) {
+          throw new Error(`Invalid scale for group ${idx} (${group.id}): ${group.scale}`);
+        }
+        if (!isFinite(group.mass) || isNaN(group.mass) || group.mass <= 0 || group.mass > 10000) {
+          throw new Error(`Invalid mass for group ${idx} (${group.id}): ${group.mass}`);
+        }
+        if (!isFinite(group.restitution) || isNaN(group.restitution)) {
+          throw new Error(`Invalid restitution for group ${idx} (${group.id}): ${group.restitution}`);
+        }
+        if (!isFinite(group.friction) || isNaN(group.friction)) {
+          throw new Error(`Invalid friction for group ${idx} (${group.id}): ${group.friction}`);
+        }
+      });
+    };
+
     // Wrap entire body creation in error recovery function
     const attemptBodyCreation = () => {
+      // Validate parameters before touching WASM
+      validateParams();
+
       // Clear existing state
       this.bodies.clear();
 
-      // Simple approach: Remove all bodies (colliders auto-remove)
-      // Don't try to iterate - just keep removing until empty
-      while (this.world!.bodies.len() > 0) {
-        const body = this.world!.bodies.get(0);
-        if (body) {
-          this.world!.removeRigidBody(body);
-        } else {
-          break;
-        }
-      }
-
-      // Remove any orphaned colliders (ground plane)
-      while (this.world!.colliders.len() > 0) {
-        const collider = this.world!.colliders.get(0);
-        if (collider) {
-          try {
-            this.world!.removeCollider(collider, false);
-          } catch (e) {
-            break; // Already removed
+      // Clean up existing bodies/colliders with error protection
+      // If world is already corrupted, this will throw and trigger world recreation
+      try {
+        // Simple approach: Remove all bodies (colliders auto-remove)
+        // Don't try to iterate - just keep removing until empty
+        let cleanupAttempts = 0;
+        const maxCleanupAttempts = 1000; // Safety limit
+        while (this.world!.bodies.len() > 0 && cleanupAttempts < maxCleanupAttempts) {
+          const body = this.world!.bodies.get(0);
+          if (body) {
+            this.world!.removeRigidBody(body);
+          } else {
+            break;
           }
-        } else {
-          break;
+          cleanupAttempts++;
         }
+
+        // Remove any orphaned colliders (ground plane)
+        cleanupAttempts = 0;
+        while (this.world!.colliders.len() > 0 && cleanupAttempts < maxCleanupAttempts) {
+          const collider = this.world!.colliders.get(0);
+          if (collider) {
+            try {
+              this.world!.removeCollider(collider, false);
+            } catch (e) {
+              break; // Already removed
+            }
+          } else {
+            break;
+          }
+          cleanupAttempts++;
+        }
+      } catch (cleanupError) {
+        console.warn('[PhysicsEngine] Cleanup failed (world already corrupted):', cleanupError);
+        // Rethrow to trigger world recreation
+        throw cleanupError;
       }
 
-      // Update gravity in case it changed
+      // Update gravity (validate first)
+      if (!isFinite(params.gravity.x) || !isFinite(params.gravity.y) || !isFinite(params.gravity.z)) {
+        throw new Error(`Invalid gravity vector: ${JSON.stringify(params.gravity)}`);
+      }
       this.world!.gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
 
-      // Create ground plane
+      // Create ground plane with validated dimensions
       const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)
         .setTranslation(0, -5.1, 0)
         .setFriction(0.7)
@@ -205,13 +254,16 @@ export class PhysicsEngine {
     try {
       attemptBodyCreation();
     } catch (error) {
-      console.error('[PhysicsEngine] Body creation failed (WASM corruption detected), recreating world:', error);
+      console.error('[PhysicsEngine] Body creation failed (WASM corruption detected)');
+      console.error('[PhysicsEngine] Error details:', error);
+      console.log('[PhysicsEngine] Attempting world recovery...');
 
       // World is corrupted, recreate it
       try {
         this.world.free();
+        console.log('[PhysicsEngine] Old world freed successfully');
       } catch (e) {
-        console.warn('[PhysicsEngine] Could not free corrupted world:', e);
+        console.warn('[PhysicsEngine] Could not free corrupted world (expected if WASM corrupted):', e);
       }
 
       // Create fresh world
@@ -220,6 +272,11 @@ export class PhysicsEngine {
       this.world.integrationParameters.dt = this.fixedTimeStep;
       this.world.integrationParameters.numSolverIterators = 8;
       this.world.integrationParameters.numInternalPgsIterations = 1;
+
+      // Reinitialize hand physics with new world
+      if (this.handPhysics) {
+        this.handPhysics = new VRHandPhysics(this.world);
+      }
 
       // Retry body creation with fresh world
       try {

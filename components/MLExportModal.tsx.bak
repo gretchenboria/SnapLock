@@ -105,9 +105,9 @@ export const MLExportModal: React.FC<MLExportModalProps> = ({
 
           <div className="mt-3 text-xs text-gray-400">
             {isRecording ? (
-              <p>[!] Recording at 30 FPS. Recommended: 90-150 frames (3-5 seconds) for training data</p>
+              <p>⚠️ Recording at 30 FPS. Recommended: 90-150 frames (3-5 seconds) for training data</p>
             ) : recordedFrameCount > 0 ? (
-              <p>[OK] {recordedFrameCount} frames ready for export. Duration: ~{(recordedFrameCount / 30).toFixed(1)}s</p>
+              <p>✓ {recordedFrameCount} frames ready for export. Duration: ~{(recordedFrameCount / 30).toFixed(1)}s</p>
             ) : (
               <p>Start recording to capture frames. Let simulation run for 3-5 seconds, then stop and export.</p>
             )}
@@ -144,7 +144,7 @@ export const MLExportModal: React.FC<MLExportModalProps> = ({
             </button>
 
             <div className="mt-3 text-xs text-gray-400">
-              <p>[OK] Video recorded at 30 FPS in WebM format. Ready for download or further processing.</p>
+              <p>✓ Video recorded at 30 FPS in WebM format. Ready for download or further processing.</p>
             </div>
           </div>
         )}

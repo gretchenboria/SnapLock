@@ -54,7 +54,7 @@ const ModelAssetInner: React.FC<AssetRendererProps> = ({ group, meshRef, viewMod
         return <PrimitiveAsset group={group} meshRef={meshRef} viewMode={viewMode} />;
     }
 
-    console.log(`[AssetRenderer] [OK] Successfully loaded 3D model for "${group.name}"`);
+    console.log(`[AssetRenderer] ✓ Successfully loaded 3D model for "${group.name}"`);
 
     return (
         <instancedMesh

@@ -328,12 +328,12 @@ export class AIValidationService {
   static logValidationResults(result: AIValidationResult, prompt: string): void {
     console.group(`🔍 AI Validation Results for: "${prompt}"`);
     console.log(`Confidence: ${(result.confidence * 100).toFixed(1)}%`);
-    console.log(`Valid: ${result.isValid ? '✅' : '[X]'}`);
+    console.log(`Valid: ${result.isValid ? '✅' : '❌'}`);
 
     if (result.mismatches.length > 0) {
       console.group(`Mismatches (${result.mismatches.length})`);
       result.mismatches.forEach(mismatch => {
-        const icon = mismatch.severity === 'critical' ? '🚨' : '[!]';
+        const icon = mismatch.severity === 'critical' ? '🚨' : '⚠️';
         console.log(`${icon} [${mismatch.category}] ${mismatch.message}`);
         console.log(`   Expected: ${mismatch.expected}`);
         console.log(`   Received: ${mismatch.received}`);

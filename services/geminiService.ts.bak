@@ -633,7 +633,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
           if (modelUrl) {
             // Found a 3D model! Use it instead of geometric primitive
             const modelScale = getModelScale(modelUrl);
-            console.log(`[GeminiService] [OK] Using 3D model for "${group.name}": ${modelUrl}`);
+            console.log(`[GeminiService] ✓ Using 3D model for "${group.name}": ${modelUrl}`);
 
             // Add domain randomization to material properties (±20%)
             const materialVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
@@ -736,13 +736,13 @@ export const analyzePhysicsPrompt = async (userPrompt: string): Promise<Analysis
       // If valid or last attempt, return
       if (validationResult.isValid || attempt >= MAX_RETRIES) {
         if (!validationResult.isValid && attempt >= MAX_RETRIES) {
-          console.warn(`[!] AI validation failed after ${MAX_RETRIES} attempts. Using last response anyway.`);
+          console.warn(`⚠️ AI validation failed after ${MAX_RETRIES} attempts. Using last response anyway.`);
         }
         return response;
       }
 
       // Log retry
-      console.log(`[SYNC] Validation failed (confidence: ${(validationResult.confidence * 100).toFixed(1)}%). Retrying with enhanced prompt (attempt ${attempt + 1}/${MAX_RETRIES})...`);
+      console.log(`🔄 Validation failed (confidence: ${(validationResult.confidence * 100).toFixed(1)}%). Retrying with enhanced prompt (attempt ${attempt + 1}/${MAX_RETRIES})...`);
     }
 
     // Fallback (should never reach here)

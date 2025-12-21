@@ -42,7 +42,7 @@ export function SnappyChatbot({ isOpen, onClose, onGenerateScene }: SnappyChatbo
         // Respond to user
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `[OK] Generating simulation: "${scenePrompt}"\n\nAnalyzing prompt with AI to extract:\n• Object types and materials\n• Physics parameters (mass, friction, restitution)\n• Spatial relationships and constraints\n\nCheck the 3D viewport for spawned objects. Use "Export Dataset" to capture training data.`
+          content: `✓ Generating simulation: "${scenePrompt}"\n\nAnalyzing prompt with AI to extract:\n• Object types and materials\n• Physics parameters (mass, friction, restitution)\n• Spatial relationships and constraints\n\nCheck the 3D viewport for spawned objects. Use "Export Dataset" to capture training data.`
         }]);
       } else {
         // Normal chat
@@ -83,7 +83,7 @@ export function SnappyChatbot({ isOpen, onClose, onGenerateScene }: SnappyChatbo
           <div className="text-center text-gray-400 text-sm mt-8 space-y-3">
             <div className="text-cyan-300 font-bold">AI Assistant for Enterprise VR Simulation</div>
             <div className="text-left bg-cyan-900/20 border border-cyan-500/30 rounded p-3 space-y-2">
-              <div className="font-bold text-cyan-300">[MED] Medical & Industrial Examples:</div>
+              <div className="font-bold text-cyan-300">🏥 Medical & Industrial Examples:</div>
               <div className="text-xs space-y-1">
                 <div>• "generate surgical robot stitching heart"</div>
                 <div>• "create robotic arm grasping tools"</div>

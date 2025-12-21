@@ -67,12 +67,12 @@ export function AssetLibrary({ onAssetSelect }: AssetLibraryProps) {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'warehouse': return '[WH]';
-      case 'industrial': return '[IND]';
-      case 'robots': return '[BOT]';
-      case 'furniture': return '[FURN]';
-      case 'primitives': return '[BOX]';
-      default: return '[DIR]';
+      case 'warehouse': return '🏭';
+      case 'industrial': return '⚙️';
+      case 'robots': return '🤖';
+      case 'furniture': return '🪑';
+      case 'primitives': return '📦';
+      default: return '📁';
     }
   };
 

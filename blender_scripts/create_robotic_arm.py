@@ -165,15 +165,25 @@ bpy.context.scene.camera = camera
 # ===== EXPORT GLB =====
 output_path = "/Users/dr.gretchenboria/snaplock/public/models/robotic_arm_6axis.glb"
 
-# Select all objects
-bpy.ops.object.select_all(action='SELECT')
+# Select ONLY the robot components (not table, lights, camera)
+bpy.ops.object.select_all(action='DESELECT')
+base.select_set(True)
+joint1.select_set(True)
+link1.select_set(True)
+joint2.select_set(True)
+link2.select_set(True)
+joint3.select_set(True)
+link3.select_set(True)
+joint4.select_set(True)
+gripper.select_set(True)
 
 # Export to GLB
 bpy.ops.export_scene.gltf(
     filepath=output_path,
     export_format='GLB',
     export_animations=True,
-    export_yup=True
+    export_yup=True,
+    use_selection=True
 )
 
 print(f"✅ Created 6-Axis Industrial Robot Arm")

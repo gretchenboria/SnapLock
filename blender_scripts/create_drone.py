@@ -216,12 +216,31 @@ bpy.context.scene.camera = cam
 
 # ===== EXPORT =====
 output_path = "/Users/dr.gretchenboria/snaplock/public/models/drone_quadcopter.glb"
-bpy.ops.object.select_all(action='SELECT')
+
+# Select ONLY the drone components (not floor, shelves, lights, camera)
+bpy.ops.object.select_all(action='DESELECT')
+body.select_set(True)
+battery.select_set(True)
+camera.select_set(True)
+arm1.select_set(True)
+arm2.select_set(True)
+arm3.select_set(True)
+arm4.select_set(True)
+for motor in motors:
+    motor.select_set(True)
+for prop in propellers:
+    prop.select_set(True)
+gear1.select_set(True)
+gear2.select_set(True)
+gear3.select_set(True)
+gear4.select_set(True)
+
 bpy.ops.export_scene.gltf(
     filepath=output_path,
     export_format='GLB',
     export_animations=True,
-    export_yup=True
+    export_yup=True,
+    use_selection=True
 )
 
 print(f"✅ Created Quadcopter Drone Scene")

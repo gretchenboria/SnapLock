@@ -60,20 +60,20 @@ const getModelForTask = (task: 'reasoning' | 'vision' | 'creative' | 'image' | '
     return 'gemini-2.5-flash';
   }
 
-  // API key available - use BEST models (corrected to valid model names)
+  // API key available - use BEST models (v1beta compatible names)
   switch (task) {
     case 'reasoning':
-      return 'gemini-1.5-pro'; // Best stable model for physics reasoning
+      return 'gemini-1.5-pro-latest'; // Best stable model for physics reasoning
     case 'vision':
-      return 'gemini-1.5-pro'; // Best for chaos mode (vision capabilities)
+      return 'gemini-1.5-pro-latest'; // Best for chaos mode (vision capabilities)
     case 'creative':
-      return 'gemini-1.5-pro'; // Best for creative prompts
+      return 'gemini-1.5-pro-latest'; // Best for creative prompts
     case 'image':
       return 'gemini-2.0-flash-exp-image-generation'; // Experimental image generation
     case 'video':
-      return 'gemini-1.5-pro'; // Video generation not natively supported, use text model
+      return 'gemini-1.5-pro-latest'; // Video generation not natively supported, use text model
     default:
-      return 'gemini-1.5-pro';
+      return 'gemini-1.5-pro-latest';
   }
 };
 

@@ -193,12 +193,27 @@ camera.keyframe_insert(data_path="location", frame=total_frames)
 
 # ===== EXPORT =====
 output_path = "/Users/dr.gretchenboria/snaplock/public/models/autonomous_vehicle.glb"
-bpy.ops.object.select_all(action='SELECT')
+
+# Select ONLY the vehicle components (not road, lanes, cones, lights, camera)
+bpy.ops.object.select_all(action='DESELECT')
+car_body.select_set(True)
+hood.select_set(True)
+roof.select_set(True)
+wheel_fl.select_set(True)
+wheel_fr.select_set(True)
+wheel_rl.select_set(True)
+wheel_rr.select_set(True)
+lidar.select_set(True)
+camera_sensor.select_set(True)
+cam_left.select_set(True)
+cam_right.select_set(True)
+
 bpy.ops.export_scene.gltf(
     filepath=output_path,
     export_format='GLB',
     export_animations=True,
-    export_yup=True
+    export_yup=True,
+    use_selection=True
 )
 
 print(f"✅ Created Autonomous Vehicle Scene")

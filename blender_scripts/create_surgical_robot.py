@@ -167,12 +167,27 @@ bpy.context.scene.camera = camera
 
 # ===== EXPORT =====
 output_path = "/Users/dr.gretchenboria/snaplock/public/models/surgical_robot_davinci.glb"
-bpy.ops.object.select_all(action='SELECT')
+
+# Select ONLY the robot components (not environment, lights, camera)
+bpy.ops.object.select_all(action='DESELECT')
+base1.select_set(True)
+arm1_seg1.select_set(True)
+joint1.select_set(True)
+arm1_seg2.select_set(True)
+instrument1.select_set(True)
+tip1.select_set(True)
+base2.select_set(True)
+arm2_seg1.select_set(True)
+joint2.select_set(True)
+arm2_seg2.select_set(True)
+grasp_tool.select_set(True)
+
 bpy.ops.export_scene.gltf(
     filepath=output_path,
     export_format='GLB',
     export_animations=True,
-    export_yup=True
+    export_yup=True,
+    use_selection=True
 )
 
 print(f"✅ Created Da Vinci Style Surgical Robot")

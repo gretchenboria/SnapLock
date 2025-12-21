@@ -57,7 +57,7 @@ export class SceneAssembler {
   }
 
   /**
-   * Create ground plane
+   * Create ground plane (small - physics engine has its own)
    */
   private static createGroundPlane(): SceneObject {
     return {
@@ -65,14 +65,14 @@ export class SceneAssembler {
       name: 'Ground Plane',
       type: 'primitive',
       shape: ShapeType.CUBE,
-      scale: { x: 10, y: 0.1, z: 10 },
-      color: '#808080',
+      scale: { x: 8, y: 0.05, z: 8 },
+      color: '#505050',
       rigidBodyType: RigidBodyType.STATIC,
       mass: 1000,
       restitution: 0.3,
       friction: 0.8,
       drag: 0.05,
-      position: { x: 0, y: -1, z: 0 },
+      position: { x: 0, y: -1.2, z: 0 },
       semanticLabel: 'ground',
       affordances: { graspable: false, manipulable: false, interactive: false }
     };

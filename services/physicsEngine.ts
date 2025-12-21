@@ -178,9 +178,9 @@ export class PhysicsEngine {
       }
       this.world!.gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
 
-      // Create ground plane with validated dimensions
-      const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)
-        .setTranslation(0, -5.1, 0)
+      // Create ground plane (10x10 units, positioned below scene)
+      const groundColliderDesc = RAPIER.ColliderDesc.cuboid(5, 0.05, 5)
+        .setTranslation(0, -1.5, 0)
         .setFriction(0.7)
         .setRestitution(0.3);
       this.world!.createCollider(groundColliderDesc);

@@ -81,8 +81,8 @@ const App: React.FC = () => {
   // Prompt Modal State
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
-  // Telemetry Visibility State
-  const [showTelemetry, setShowTelemetry] = useState(true);
+  // Telemetry Visibility State (hidden by default to avoid viewport obstruction)
+  const [showTelemetry, setShowTelemetry] = useState(false);
 
   // ML Export State
   const [isRecording, setIsRecording] = useState(false);

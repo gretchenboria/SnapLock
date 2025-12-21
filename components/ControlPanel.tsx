@@ -488,10 +488,25 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 ? 'bg-cyan-500/30 border-cyan-400'
                 : 'bg-gray-800/50 border-gray-600 hover:border-cyan-500/50'
             }`}
-            title="Toggle Right Telemetry"
+            title="Toggle Panel Telemetry"
           >
             <Activity size={16} strokeWidth={2.5} className={showRightTelemetry ? 'text-cyan-300' : 'text-gray-400'} />
           </button>
+
+          {/* Toggle Live Telemetry Overlay */}
+          {toggleTelemetry && (
+          <button
+            onClick={toggleTelemetry}
+            className={`w-8 h-8 flex items-center justify-center rounded border transition-all ${
+              showTelemetry
+                ? 'bg-cyan-500/30 border-cyan-400'
+                : 'bg-gray-800/50 border-gray-600 hover:border-cyan-500/50'
+            }`}
+            title="Toggle Live Telemetry Overlay"
+          >
+            <ScanLine size={16} strokeWidth={2.5} className={showTelemetry ? 'text-cyan-300' : 'text-gray-400'} />
+          </button>
+          )}
 
           {/* Settings */}
           <button

@@ -96,28 +96,27 @@ export class PhysicsEngine {
       return;
     }
 
-    // Wrap entire body creation in error recovery function
-    const attemptBodyCreation = () => {
+    try {
       // Clear existing state
       this.bodies.clear();
 
       // Simple approach: Remove all bodies (colliders auto-remove)
       // Don't try to iterate - just keep removing until empty
-      while (this.world!.bodies.len() > 0) {
-        const body = this.world!.bodies.get(0);
+      while (this.world.bodies.len() > 0) {
+        const body = this.world.bodies.get(0);
         if (body) {
-          this.world!.removeRigidBody(body);
+          this.world.removeRigidBody(body);
         } else {
           break;
         }
       }
 
       // Remove any orphaned colliders (ground plane)
-      while (this.world!.colliders.len() > 0) {
-        const collider = this.world!.colliders.get(0);
+      while (this.world.colliders.len() > 0) {
+        const collider = this.world.colliders.get(0);
         if (collider) {
           try {
-            this.world!.removeCollider(collider, false);
+            this.world.removeCollider(collider, false);
           } catch (e) {
             break; // Already removed
           }
@@ -127,14 +126,36 @@ export class PhysicsEngine {
       }
 
       // Update gravity in case it changed
-      this.world!.gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
+      this.world.gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
 
-      // Create ground plane
-      const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)
-        .setTranslation(0, -5.1, 0)
-        .setFriction(0.7)
-        .setRestitution(0.3);
-      this.world!.createCollider(groundColliderDesc);
+      // Create ground plane with defensive error handling
+      try {
+        const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)
+          .setTranslation(0, -5.1, 0)
+          .setFriction(0.7)
+          .setRestitution(0.3);
+        this.world.createCollider(groundColliderDesc);
+      } catch (error) {
+        console.error('[PhysicsEngine] Failed to create ground plane, recreating world:', error);
+        // World is corrupted, recreate it
+        try {
+          this.world.free();
+        } catch (e) {
+          // Ignore if already freed
+        }
+        const gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
+        this.world = new RAPIER.World(gravity);
+        this.world.integrationParameters.dt = this.fixedTimeStep;
+        this.world.integrationParameters.numSolverIterations = 8;
+        this.world.integrationParameters.numInternalPgsIterations = 1;
+
+        // Try ground plane again with fresh world
+        const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)
+          .setTranslation(0, -5.1, 0)
+          .setFriction(0.7)
+          .setRestitution(0.3);
+        this.world.createCollider(groundColliderDesc);
+      }
 
       // Two-pass approach to avoid Rapier borrow conflicts
       // Pass 1: Create all rigid bodies
@@ -168,7 +189,7 @@ export class PhysicsEngine {
             bodyDesc.setAngularDamping(group.drag * 3.0);
           }
 
-          const body = this.world!.createRigidBody(bodyDesc);
+          const body = this.world.createRigidBody(bodyDesc);
           bodyHandles.push({ handle: body.handle, group, structure, i });
 
           // Store body data
@@ -186,7 +207,7 @@ export class PhysicsEngine {
 
       // Pass 2: Create all colliders
       for (const { handle, group } of bodyHandles) {
-        const body = this.world!.getRigidBody(handle);
+        const body = this.world.getRigidBody(handle);
         if (!body) continue;
 
         const colliderDesc = this.createColliderDesc(group);
@@ -194,41 +215,14 @@ export class PhysicsEngine {
           colliderDesc.setMass(group.mass);
           colliderDesc.setRestitution(Math.min(group.restitution, 1.0));
           colliderDesc.setFriction(group.friction);
-          this.world!.createCollider(colliderDesc, body);
+          this.world.createCollider(colliderDesc, body);
         }
       }
 
       this.frameCount = 0;
-    };
-
-    // Try body creation with automatic world recovery on WASM errors
-    try {
-      attemptBodyCreation();
     } catch (error) {
-      console.error('[PhysicsEngine] Body creation failed (WASM corruption detected), recreating world:', error);
-
-      // World is corrupted, recreate it
-      try {
-        this.world.free();
-      } catch (e) {
-        console.warn('[PhysicsEngine] Could not free corrupted world:', e);
-      }
-
-      // Create fresh world
-      const gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
-      this.world = new RAPIER.World(gravity);
-      this.world.integrationParameters.dt = this.fixedTimeStep;
-      this.world.integrationParameters.numSolverIterators = 8;
-      this.world.integrationParameters.numInternalPgsIterations = 1;
-
-      // Retry body creation with fresh world
-      try {
-        attemptBodyCreation();
-        console.log('[PhysicsEngine] World recovery successful - simulation restored');
-      } catch (retryError) {
-        console.error('[PhysicsEngine] World recovery failed - fatal error:', retryError);
-        throw retryError;
-      }
+      console.error('[PhysicsEngine] Error during body creation:', error);
+      throw error;
     }
   }
 

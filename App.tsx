@@ -23,6 +23,8 @@ import { ChaosActivityPanel } from './components/ChaosActivityPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProminentTelemetry } from './components/ProminentTelemetry';
 import { PromptModal } from './components/PromptModal';
+import { loadExampleScene } from './services/exampleScenes';
+import { MovementBehavior } from './types';
 
 const App: React.FC = () => {
   // State
@@ -234,21 +236,44 @@ const App: React.FC = () => {
       const errorMsg = (error as Error).message;
       console.error('[SPAWN ERROR]', error);
 
-      // Provide helpful error messages for common issues
-      if (errorMsg.includes('API') || errorMsg.includes('key') || errorMsg.includes('401') || errorMsg.includes('403')) {
-        addLog(`AI Generation Failed: API key not configured`, 'warning');
-        addLog(`Scene generated with basic shapes. To enable AI: Click API button (top-right) to add Gemini API key`, 'info');
-        addLog(`TIP: Browse ASSETS tab (left panel) to add 3D models manually`, 'info');
-      } else if (errorMsg.includes('backend') || errorMsg.includes('network') || errorMsg.includes('fetch')) {
-        addLog(`AI Generation Failed: Network/backend unavailable`, 'warning');
-        addLog(`Scene generated with basic shapes. Check network or configure API key directly`, 'info');
-      } else if (errorMsg.includes('quota') || errorMsg.includes('429')) {
-        addLog(`AI API quota exceeded - using basic shapes`, 'warning');
-        addLog(`Scene still works! Using procedural fallback generation`, 'info');
-      } else {
-        addLog(`AI Generation Error: ${errorMsg}`, 'warning');
-        addLog(`Scene generated with fallback basic shapes`, 'info');
-        console.error('[SPAWN ERROR DETAILS]', error);
+      // FALLBACK: Load pre-built example scene instead of primitives
+      addLog(`AI generation failed - loading example scene instead`, 'warning');
+
+      try {
+        // Pick example scene based on prompt keywords
+        const lowerPrompt = inputPrompt.toLowerCase();
+        let sceneType: 'surgical' | 'warehouse' | 'assembly' | 'tabletop' | 'clutter' = 'tabletop';
+
+        if (lowerPrompt.includes('surgical') || lowerPrompt.includes('medical') || lowerPrompt.includes('hospital')) {
+          sceneType = 'surgical';
+        } else if (lowerPrompt.includes('warehouse') || lowerPrompt.includes('shelf') || lowerPrompt.includes('package')) {
+          sceneType = 'warehouse';
+        } else if (lowerPrompt.includes('assembly') || lowerPrompt.includes('industrial') || lowerPrompt.includes('factory')) {
+          sceneType = 'assembly';
+        } else if (lowerPrompt.includes('clutter') || lowerPrompt.includes('pile') || lowerPrompt.includes('mess')) {
+          sceneType = 'clutter';
+        }
+
+        const scene = loadExampleScene(sceneType);
+
+        const fallbackParams: PhysicsParams = {
+          gravity: { x: 0, y: -9.81, z: 0 },
+          wind: { x: 0, y: 0, z: 0 },
+          movementBehavior: MovementBehavior.PHYSICS_GRAVITY,
+          assetGroups: [],
+          scene: scene  // Use scene architecture, not primitives
+        };
+
+        setParams(fallbackParams);
+        setShouldReset(true);
+        setIsPaused(false);
+
+        addLog(`Loaded ${sceneType} example scene with ${scene.objects.length} objects`, 'success');
+        addLog(`TIP: Configure API key to enable custom AI generation`, 'info');
+        setStatusMessage(`Example scene loaded: ${sceneType}`);
+      } catch (fallbackError) {
+        console.error('[FALLBACK ERROR]', fallbackError);
+        addLog(`Failed to load fallback scene: ${(fallbackError as Error).message}`, 'error');
       }
     } finally {
       setIsAnalyzing(false);

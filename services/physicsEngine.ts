@@ -87,7 +87,10 @@ export class PhysicsEngine {
       .setRestitution(0.3);
     this.world.createCollider(groundColliderDesc);
 
-    // Create rigid bodies for each particle
+    // Two-pass approach to avoid Rapier borrow conflicts
+    // Pass 1: Create all rigid bodies
+    const bodyHandles: Array<{ handle: number; group: AssetGroup; structure: any; i: number }> = [];
+
     groupStructure.forEach((structure) => {
       const group = params.assetGroups[structure.index];
 
@@ -112,35 +115,39 @@ export class PhysicsEngine {
 
         if (bodyType === 'dynamic') {
           bodyDesc.setLinvel(velocities[i3], velocities[i3 + 1], velocities[i3 + 2]);
-          bodyDesc.setLinearDamping(group.drag * 2.0); // Rapier's damping is different scale
+          bodyDesc.setLinearDamping(group.drag * 2.0);
           bodyDesc.setAngularDamping(group.drag * 3.0);
         }
 
         const body = this.world.createRigidBody(bodyDesc);
+        bodyHandles.push({ handle: body.handle, group, structure, i });
 
-        // Create collider based on shape
-        const colliderDesc = this.createColliderDesc(group);
-
-        if (colliderDesc) {
-          colliderDesc.setMass(group.mass);
-          colliderDesc.setRestitution(Math.min(group.restitution, 1.0)); // Clamp to physical range
-          colliderDesc.setFriction(group.friction);
-
-          this.world.createCollider(colliderDesc, body);
-        }
-
-        // Store body data with global index
+        // Store body data
         this.bodies.set(body.handle, {
           handle: body.handle,
           groupIndex: structure.index,
           localIndex: i - structure.start,
-          globalIndex: i,  // Store global index from groupStructure
+          globalIndex: i,
           groupId: group.id,
           shape: group.shape,
           mass: group.mass
         });
       }
     });
+
+    // Pass 2: Create all colliders
+    for (const { handle, group } of bodyHandles) {
+      const body = this.world.getRigidBody(handle);
+      if (!body) continue;
+
+      const colliderDesc = this.createColliderDesc(group);
+      if (colliderDesc) {
+        colliderDesc.setMass(group.mass);
+        colliderDesc.setRestitution(Math.min(group.restitution, 1.0));
+        colliderDesc.setFriction(group.friction);
+        this.world.createCollider(colliderDesc, body);
+      }
+    }
 
     this.frameCount = 0;
   }

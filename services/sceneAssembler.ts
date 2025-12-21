@@ -46,6 +46,14 @@ export class SceneAssembler {
     const scene: Scene = { objects: [], instancedGroups: [] };
     const { assets, layout = 'tabletop', includeGround = true, includeRobot = false, spacing = 0.3 } = config;
 
+    // Validate assets
+    if (!assets || assets.length === 0) {
+      console.warn('[SceneAssembler] No assets provided');
+      return scene;
+    }
+
+    console.log(`[SceneAssembler] Assembling scene with ${assets.length} assets in ${layout} layout`);
+
     // Add ground surface
     if (includeGround) {
       scene.objects.push(this.createGroundPlane());
@@ -57,22 +65,29 @@ export class SceneAssembler {
     }
 
     // Arrange assets based on layout
-    switch (layout) {
-      case 'tabletop':
-        this.arrangeTabletop(scene, assets, spacing);
-        break;
-      case 'warehouse_shelf':
-        this.arrangeWarehouseShelf(scene, assets, spacing);
-        break;
-      case 'surgical_table':
-        this.arrangeSurgicalTable(scene, assets, spacing);
-        break;
-      case 'grid':
-        this.arrangeGrid(scene, assets, spacing);
-        break;
-      case 'pile':
-        this.arrangePile(scene, assets, spacing);
-        break;
+    try {
+      switch (layout) {
+        case 'tabletop':
+          this.arrangeTabletop(scene, assets, spacing);
+          break;
+        case 'warehouse_shelf':
+          this.arrangeWarehouseShelf(scene, assets, spacing);
+          break;
+        case 'surgical_table':
+          this.arrangeSurgicalTable(scene, assets, spacing);
+          break;
+        case 'grid':
+          this.arrangeGrid(scene, assets, spacing);
+          break;
+        case 'pile':
+          this.arrangePile(scene, assets, spacing);
+          break;
+      }
+
+      console.log(`[SceneAssembler] Created scene with ${scene.objects.length} objects`);
+    } catch (error) {
+      console.error('[SceneAssembler] Error arranging assets:', error);
+      throw new Error(`Scene assembly failed: ${(error as Error).message}`);
     }
 
     return scene;
@@ -123,49 +138,40 @@ export class SceneAssembler {
   }
 
   /**
-   * Convert asset to scene object
+   * Convert asset to scene object with safe defaults
    */
   private static assetToSceneObject(
     asset: Asset,
     position: Vector3Data,
     index: number
   ): SceneObject {
+    // Validate and sanitize asset data
+    const safeMass = this.validateNumber(asset.mass || asset.metadata?.mass, 0.1, 100, 0.5);
+    const safeRestitution = this.validateNumber(asset.restitution || asset.metadata?.restitution, 0, 1, 0.4);
+    const safeFriction = this.validateNumber(asset.friction || asset.metadata?.friction, 0, 1, 0.6);
+    const safeScale = this.validateNumber(asset.metadata?.scale, 0.01, 10, 0.15);
+
     // Determine if object is graspable based on asset metadata
     const isGraspable = asset.metadata?.graspable !== false;
     const isManipulable = asset.metadata?.manipulable !== false;
 
-    // Use geometry if it's a primitive, otherwise use mesh
-    const type: 'mesh' | 'primitive' = asset.geometry ? 'primitive' : 'mesh';
-    const modelUrl = asset.url || asset.path;
-
-    // Map geometry string to ShapeType
-    let shape: ShapeType | undefined;
-    if (asset.geometry) {
-      const geometryMap: Record<string, ShapeType> = {
-        'sphere': ShapeType.SPHERE,
-        'box': ShapeType.CUBE,
-        'cube': ShapeType.CUBE,
-        'cylinder': ShapeType.CYLINDER,
-        'cone': ShapeType.CONE,
-        'capsule': ShapeType.CAPSULE
-      };
-      shape = geometryMap[asset.geometry.toLowerCase()] || ShapeType.CUBE;
-    }
+    // For now, always use primitives since mesh loading might not be set up
+    // Use geometry if specified, otherwise default to cube
+    const shape = this.getShapeFromGeometry(asset.geometry);
 
     return {
-      id: `${asset.id}_${index}`,
-      name: asset.name,
-      type,
-      shape: type === 'primitive' ? shape : undefined,
-      modelUrl: type === 'mesh' ? modelUrl : undefined,
-      scale: asset.metadata?.scale || asset.mass || 1.0,
-      color: asset.metadata?.color || '#FFFFFF',
+      id: `asset_${asset.id}_${index}`,
+      name: asset.name || 'Unknown Asset',
+      type: 'primitive',  // Use primitives for now to avoid mesh loading issues
+      shape: shape,
+      scale: safeScale,
+      color: asset.metadata?.color || this.getRandomColor(),
       rigidBodyType: RigidBodyType.DYNAMIC,
-      mass: asset.mass || asset.metadata?.mass || 0.5,
-      restitution: asset.restitution || asset.metadata?.restitution || 0.4,
-      friction: asset.friction || asset.metadata?.friction || 0.6,
+      mass: safeMass,
+      restitution: safeRestitution,
+      friction: safeFriction,
       drag: 0.05,
-      position,
+      position: { ...position },  // Clone to avoid reference issues
       rotation: { x: 0, y: 0, z: 0 },
       semanticLabel: asset.metadata?.semanticLabel || asset.category || 'object',
       affordances: {
@@ -179,6 +185,46 @@ export class SceneAssembler {
         sourceLibrary: true
       }
     };
+  }
+
+  /**
+   * Validate numeric value with safe bounds
+   */
+  private static validateNumber(value: any, min: number, max: number, defaultValue: number): number {
+    const num = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(num) || !isFinite(num)) return defaultValue;
+    return Math.max(min, Math.min(max, num));
+  }
+
+  /**
+   * Map geometry string to ShapeType safely
+   */
+  private static getShapeFromGeometry(geometry: string | undefined): ShapeType {
+    if (!geometry || typeof geometry !== 'string') {
+      return ShapeType.CUBE;  // Safe default
+    }
+
+    const geometryMap: Record<string, ShapeType> = {
+      'sphere': ShapeType.SPHERE,
+      'ball': ShapeType.SPHERE,
+      'box': ShapeType.CUBE,
+      'cube': ShapeType.CUBE,
+      'cylinder': ShapeType.CYLINDER,
+      'cone': ShapeType.CONE,
+      'capsule': ShapeType.CAPSULE,
+      'pyramid': ShapeType.PYRAMID
+    };
+
+    const normalized = geometry.toLowerCase().trim();
+    return geometryMap[normalized] || ShapeType.CUBE;
+  }
+
+  /**
+   * Generate random color for variety
+   */
+  private static getRandomColor(): string {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+    return colors[Math.floor(Math.random() * colors.length)];
   }
 
   /**

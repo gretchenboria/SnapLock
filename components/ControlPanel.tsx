@@ -524,24 +524,45 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                  setSelectedGroupId(newGroup.id);
                }}
                onAssembleScene={(assets, layout) => {
-                 // Assemble scene from selected assets
-                 const scene = SceneAssembler.assembleFromAssets({
-                   assets,
-                   layout,
-                   includeGround: true,
-                   includeRobot: false,
-                   spacing: 0.3
-                 });
+                 try {
+                   console.log(`[ControlPanel] Assembling scene with ${assets.length} assets, layout: ${layout}`);
 
-                 // Update params with assembled scene
-                 setParams({
-                   ...params,
-                   assetGroups: [],  // Clear old groups
-                   scene: scene       // Use new scene
-                 });
+                   // Validate we have assets
+                   if (!assets || assets.length === 0) {
+                     console.error('[ControlPanel] No assets to assemble');
+                     return;
+                   }
 
-                 // Trigger reset to apply new scene
-                 onReset();
+                   // Assemble scene from selected assets
+                   const scene = SceneAssembler.assembleFromAssets({
+                     assets,
+                     layout,
+                     includeGround: true,
+                     includeRobot: false,
+                     spacing: 0.3
+                   });
+
+                   // Validate scene was created
+                   if (!scene || scene.objects.length === 0) {
+                     console.error('[ControlPanel] Scene assembly produced no objects');
+                     return;
+                   }
+
+                   console.log(`[ControlPanel] Scene assembled with ${scene.objects.length} objects`);
+
+                   // Update params with assembled scene
+                   setParams({
+                     ...params,
+                     assetGroups: [],  // Clear old groups
+                     scene: scene       // Use new scene
+                   });
+
+                   // Trigger reset to apply new scene
+                   onReset();
+                 } catch (error) {
+                   console.error('[ControlPanel] Scene assembly error:', error);
+                   alert(`Failed to assemble scene: ${(error as Error).message}`);
+                 }
                }}
              />
            ) : (

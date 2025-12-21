@@ -91,7 +91,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [latestChaosLog, setLatestChaosLog] = useState<LogEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showHierarchy, setShowHierarchy] = useState(true);
+  const [showRightTelemetry, setShowRightTelemetry] = useState(true);
   const [showManualControls, setShowManualControls] = useState(false); // Hidden by default - user requested
 
   // Preset State
@@ -449,6 +451,48 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             </button>
           )}
 
+          {/* Divider */}
+          <div className="h-6 w-px bg-gray-700" />
+
+          {/* Toggle Left Panel */}
+          <button
+            onClick={() => setShowLeftPanel(!showLeftPanel)}
+            className={`w-8 h-8 flex items-center justify-center rounded border transition-all ${
+              showLeftPanel
+                ? 'bg-cyan-500/30 border-cyan-400'
+                : 'bg-gray-800/50 border-gray-600 hover:border-cyan-500/50'
+            }`}
+            title="Toggle Left Panel"
+          >
+            {showLeftPanel ? <EyeOff size={16} strokeWidth={2.5} className="text-cyan-300" /> : <Eye size={16} strokeWidth={2.5} className="text-gray-400" />}
+          </button>
+
+          {/* Toggle Scene Layers */}
+          <button
+            onClick={() => setShowHierarchy(!showHierarchy)}
+            className={`w-8 h-8 flex items-center justify-center rounded border transition-all ${
+              showHierarchy
+                ? 'bg-cyan-500/30 border-cyan-400'
+                : 'bg-gray-800/50 border-gray-600 hover:border-cyan-500/50'
+            }`}
+            title="Toggle Scene Layers"
+          >
+            <Layers size={16} strokeWidth={2.5} className={showHierarchy ? 'text-cyan-300' : 'text-gray-400'} />
+          </button>
+
+          {/* Toggle Right Telemetry */}
+          <button
+            onClick={() => setShowRightTelemetry(!showRightTelemetry)}
+            className={`w-8 h-8 flex items-center justify-center rounded border transition-all ${
+              showRightTelemetry
+                ? 'bg-cyan-500/30 border-cyan-400'
+                : 'bg-gray-800/50 border-gray-600 hover:border-cyan-500/50'
+            }`}
+            title="Toggle Right Telemetry"
+          >
+            <Activity size={16} strokeWidth={2.5} className={showRightTelemetry ? 'text-cyan-300' : 'text-gray-400'} />
+          </button>
+
           {/* Settings */}
           <button
             onClick={() => setActiveTab('SETTINGS')}
@@ -466,8 +510,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {/* --- MAIN WORKSPACE --- */}
       <div className="flex-1 flex overflow-hidden">
-        
+
         {/* --- LEFT PANEL (Inspector) - COMPACT --- */}
+        {showLeftPanel && (
         <div className="w-72 bg-scifi-900/95 backdrop-blur-md border-r border-scifi-cyan/30 flex flex-col pointer-events-auto overflow-hidden shadow-xl">
 
            {/* TAB BAR - COMPACT */}
@@ -937,6 +982,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
            )}
            </div>
         </div>
+        )}
 
         {/* --- SPACER TO REVEAL VIEWPORT --- */}
         <div className="flex-1 min-w-0"></div>
@@ -1035,6 +1081,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               ))}
            </div>
 
+           {showRightTelemetry && (
+           <>
            <div className="h-px bg-white/10 my-1" />
 
            {/* RIGOROUS LIVE TELEMETRY DASHBOARD */}
@@ -1044,9 +1092,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   <span className="text-[9px] font-bold tracking-wider">LIVE TELEMETRY</span>
                   {isAutoSpawn && <span className="text-[9px] text-purple-300 ml-auto animate-pulse">AUTOMATED</span>}
               </div>
-              
+
               <TelemetryReadout telemetryRef={telemetryRef} />
-              
+
               {/* Rotation Metrics for VR/Robotics */}
               <div className="space-y-1 pt-1 border-t border-white/5 mt-2">
                   <div className="text-[8px] font-bold text-cyan-400 mb-1 tracking-wider">ROTATION METRICS</div>
@@ -1066,6 +1114,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   </div>
               </div>
            </div>
+           </>
+           )}
 
         </div>
         )}

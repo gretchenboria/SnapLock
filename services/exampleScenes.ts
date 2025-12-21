@@ -41,7 +41,7 @@ export function createSurgicalScene(): Scene {
     name: 'Surgical Robot Arm',
     type: 'mesh',
     shape: ShapeType.MODEL, // ← CRITICAL: Tells renderer to load GLB!
-    modelUrl: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
+    modelUrl: '/models/surgical_robot_davinci.glb',
     scale: 1.0,
     color: '#4A90E2',
     rigidBodyType: RigidBodyType.KINEMATIC, // ANIMATED!
@@ -213,9 +213,10 @@ export function createAssemblyScene(): Scene {
   scene.objects.push({
     id: 'industrial_robot',
     name: 'Industrial Robot Arm',
-    type: 'primitive',
-    shape: ShapeType.CYLINDER,
-    scale: { x: 0.08, y: 0.8, z: 0.08 },
+    type: 'mesh',
+    shape: ShapeType.MODEL,
+    modelUrl: '/models/robotic_arm_6axis.glb',
+    scale: 1.0,
     color: '#FFD700',
     rigidBodyType: RigidBodyType.KINEMATIC,
     mass: 15,
@@ -342,7 +343,7 @@ export function createAutonomousVehicleScene(): Scene {
     id: 'autonomous_vehicle',
     name: 'Self-Driving Car',
     type: 'mesh',
-    modelUrl: 'https://threejs.org/examples/models/gltf/CesiumMilkTruck/CesiumMilkTruck.glb', // Official Three.js CDN
+    modelUrl: '/models/autonomous_vehicle.glb',
     scale: 2.0, // Large visible truck
     color: '#2E86DE', // Blue autonomous vehicle
     rigidBodyType: RigidBodyType.KINEMATIC, // ← KINEMATIC = ANIMATED!
@@ -491,7 +492,7 @@ export function createDroneScene(): Scene {
     id: 'delivery_drone',
     name: 'Delivery Drone',
     type: 'mesh',
-    modelUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb', // Drone body
+    modelUrl: '/models/drone_quadcopter.glb',
     scale: 0.4,
     color: '#E74C3C',
     rigidBodyType: RigidBodyType.KINEMATIC, // ANIMATED!

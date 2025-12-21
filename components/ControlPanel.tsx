@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LogEntry, PhysicsParams, ShapeType, MovementBehavior, AssetGroup, SpawnMode, ViewMode, TelemetryData, MaterialPreset } from '../types';
 import { DEFAULT_MATERIAL_PRESETS, SAMPLE_PROMPTS } from '../constants';
-import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, EyeOff, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug, Smile, PlayCircle, StopCircle, Package, Settings, User, Mail, Image as ImageIcon, HelpCircle } from 'lucide-react';
+import { Play, Pause, RefreshCw, Command, Aperture, Camera, Download, Upload, Activity, Zap, Box, Hexagon, Circle, Triangle, Database, Layers, Skull, Video, Loader2, Plus, Trash, Wind, ArrowDown, Eye, EyeOff, ScanLine, Grid3X3, BoxSelect, Lock, RectangleHorizontal, Wand2, Brain, Sparkles, AlertTriangle, Save, X, FileText, FileSpreadsheet, RotateCcw, ChevronRight, Lightbulb, History, Keyboard, Bug, Smile, PlayCircle, StopCircle, Package, Settings, User, Mail, Image as ImageIcon, HelpCircle, Film } from 'lucide-react';
 import { ApiKeyModal } from './ApiKeyModal';
 import { SupportForm } from './SupportForm';
 import { AuthSection } from './AuthSection';
 import { AssetLibrary, Asset } from './AssetLibrary';
 import { SceneAssembler } from '../services/sceneAssembler';
+import { loadExampleScene as loadScene, EXAMPLE_SCENES } from '../services/exampleScenes';
+import { PhysicsSceneHandle } from './PhysicsScene';
 
 interface ControlPanelProps {
   prompt: string;
@@ -17,6 +19,7 @@ interface ControlPanelProps {
   isPaused: boolean;
   togglePause: () => void;
   onReset: () => void;
+  sceneRef?: React.RefObject<PhysicsSceneHandle | null>;
   logs: LogEntry[];
   isAnalyzing: boolean;
   resetCamera: () => void;
@@ -55,6 +58,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   isPaused,
   togglePause,
   onReset,
+  sceneRef,
   logs,
   isAnalyzing,
   resetCamera,
@@ -88,7 +92,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const [latestChaosLog, setLatestChaosLog] = useState<LogEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showHierarchy, setShowHierarchy] = useState(true);
-  const [showManualControls, setShowManualControls] = useState(true);
+  const [showManualControls, setShowManualControls] = useState(false); // Hidden by default - user requested
 
   // Preset State
   const [presets, setPresets] = useState<MaterialPreset[]>(DEFAULT_MATERIAL_PRESETS);
@@ -215,6 +219,34 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     }
   };
 
+  const loadExampleScene = (sceneName: string) => {
+    try {
+      const sceneKey = sceneName as keyof typeof EXAMPLE_SCENES;
+      if (!EXAMPLE_SCENES[sceneKey]) {
+        alert(`Scene "${sceneName}" not found. Available: surgical, warehouse, assembly, tabletop, clutter`);
+        return;
+      }
+
+      const scene = loadScene(sceneKey);
+      console.log('[ControlPanel] Loading example scene:', sceneName, scene);
+
+      // Set params with the scene - the physics engine will convert it to assetGroups
+      setParams({
+        ...params,
+        scene: scene,
+        assetGroups: [] // Clear existing groups, scene will take over
+      });
+
+      // Reset and trigger simulation
+      onReset();
+
+      alert(`Loaded ${EXAMPLE_SCENES[sceneKey].name}!\n${EXAMPLE_SCENES[sceneKey].description}`);
+    } catch (error) {
+      console.error('[ControlPanel] Failed to load scene:', error);
+      alert(`Failed to load scene: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
   const toggleVisibility = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     const newGroups = params.assetGroups.map(g =>
@@ -280,223 +312,175 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col justify-between z-50 font-sans text-xs select-none">
+    <div className="absolute inset-0 flex flex-col justify-between z-50 font-sans text-xs select-none pointer-events-none">
       
-      {/* --- TOP HEADER --- */}
-      <div className="w-full bg-scifi-900 border-b border-white/10 p-2 pointer-events-auto flex items-center gap-3 shadow-xl z-50 h-12 relative">
-        {/* Left: Branding */}
-        <div className="flex items-center gap-2 px-3 border-r border-white/10 h-full">
-          <Lock className="w-6 h-6 text-cyan-400" strokeWidth={2.5} />
-          <div className="flex flex-col justify-center">
-            <span className="text-sm font-bold tracking-wider text-white">SNAPLOCK</span>
-            <span className="text-[9px] text-cyan-400/80 tracking-wide">Lock physics, snap reality</span>
-          </div>
+      {/* --- COMPACT TOP TOOLBAR: SINGLE ROW, NO OVERLAPS --- */}
+      <div className="w-full bg-scifi-900/95 backdrop-blur-sm border-b border-cyan-500/20 px-3 py-1.5 pointer-events-auto flex items-center justify-between shadow-lg z-50 h-12">
+
+        {/* LEFT: BRANDING (compact) */}
+        <div className="flex items-center gap-2 pr-4 border-r border-white/10">
+          <Lock className="w-5 h-5 text-cyan-400" strokeWidth={2.5} />
+          <span className="text-xs font-bold tracking-wider text-white">SNAPLOCK</span>
         </div>
 
-        {/* Prompt moved to bottom center - see floating prompt bar below */}
+        {/* CENTER: PRIMARY CONTROLS (compact inline buttons) */}
+        <div className="flex items-center gap-2">
 
-        {/* AUTO-SPAWN TOGGLE - Compact Style */}
-        <button
-          onClick={toggleAutoSpawn}
-          disabled={!prompt.trim() && !isAutoSpawn}
-          title={
-            isAutoSpawn
-            ? "Auto-Spawn Active - Click to disable"
-            : !prompt.trim()
-            ? "Enter a prompt first to enable auto-spawn"
-            : "Enable Auto-Spawn - Generate scene variations"
-          }
-          className={`h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group pointer-events-auto ${
-            isAutoSpawn
-              ? 'bg-green-500/20 border-green-500/50 hover:bg-green-500/30'
-              : !prompt.trim()
-              ? 'bg-black/40 border-gray-600 cursor-not-allowed opacity-50'
-              : 'bg-black/40 border-white/20 hover:border-green-500/50 hover:bg-white/5'
-          }`}
-        >
-          <Database size={14} className={`transition-colors ${
-            isAutoSpawn ? 'text-green-400' : !prompt.trim() ? 'text-gray-600' : 'text-gray-400 group-hover:text-green-400'
-          }`} />
-          <div className="flex flex-col items-start">
-            <span className={`font-bold text-[10px] tracking-wider transition-colors ${
-              isAutoSpawn ? 'text-green-400' : !prompt.trim() ? 'text-gray-600' : 'text-gray-400 group-hover:text-green-400'
-            }`}>
-              AUTO-SPAWN
-            </span>
-          </div>
-          {isAutoSpawn && (
-            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+          {/* Auto-Spawn */}
+          <button
+            onClick={toggleAutoSpawn}
+            className={`w-8 h-8 flex items-center justify-center rounded border transition-all ${
+              isAutoSpawn
+                ? 'bg-cyan-500/30 border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.3)]'
+                : 'bg-gray-800/50 border-gray-600 hover:border-cyan-500/50'
+            }`}
+            title="Auto-Generate: Creates new physics scenarios every 15 seconds"
+          >
+            <Wand2 size={16} strokeWidth={2.5} className={isAutoSpawn ? 'text-cyan-300' : 'text-gray-400'} />
+          </button>
+
+          {/* Divider */}
+          <div className="h-6 w-px bg-gray-700" />
+
+          {/* Play/Pause */}
+          <button
+            onClick={togglePause}
+            className={`w-8 h-8 flex items-center justify-center rounded border transition-all ${
+              isPaused
+                ? 'bg-green-500/30 border-green-400'
+                : 'bg-blue-500/30 border-blue-400'
+            }`}
+            title={isPaused ? "Play (Space)" : "Pause (Space)"}
+          >
+            {isPaused ? <Play size={16} strokeWidth={2.5} className="text-green-300" /> : <Pause size={16} strokeWidth={2.5} className="text-blue-300" />}
+          </button>
+
+          {/* Reset */}
+          <button
+            onClick={onReset}
+            className="w-8 h-8 flex items-center justify-center bg-orange-500/30 border border-orange-400 rounded transition-all hover:bg-orange-500/40"
+            title="Reset (R)"
+          >
+            <RefreshCw size={16} strokeWidth={2.5} className="text-orange-300" />
+          </button>
+
+          {/* Divider */}
+          <div className="h-6 w-px bg-gray-700" />
+
+          {/* Record */}
+          {!isRecording ? (
+            <button
+              onClick={onStartRecording}
+              disabled={!onStartRecording}
+              className="w-8 h-8 flex items-center justify-center bg-red-600/30 border border-red-500 rounded transition-all disabled:opacity-30"
+              title="Record (30 FPS)"
+            >
+              <div className="w-3 h-3 bg-red-400 rounded-full" />
+            </button>
+          ) : (
+            <button
+              onClick={onStopRecording}
+              className="w-8 h-8 flex items-center justify-center bg-red-500/40 border border-red-400 rounded animate-pulse"
+              title="Stop Recording"
+            >
+              <div className="w-3 h-3 bg-red-300 rounded-sm" />
+            </button>
           )}
-        </button>
 
-          {/* DATA CAPTURE CONTROLS - Recording & Export */}
-          <div className="flex items-center gap-2 border-l border-white/10 pl-3">
-            {/* Record Button */}
-            {!isRecording ? (
-              <button
-                onClick={onStartRecording}
-                disabled={!onStartRecording}
-                className="h-10 w-10 flex items-center justify-center bg-red-600/20 hover:bg-red-600/30 border-2 border-red-500/50 hover:border-red-500 text-red-300 hover:text-red-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]"
-                title="Start Recording (30 FPS)"
-              >
-                <div className="w-4 h-4 bg-red-500 rounded-full" />
-              </button>
-            ) : (
-              <button
-                onClick={onStopRecording}
-                className="h-10 w-10 flex items-center justify-center bg-red-500/30 hover:bg-red-500/40 border-2 border-red-500 text-red-200 rounded-lg transition-all animate-pulse shadow-[0_0_25px_rgba(239,68,68,0.5)] relative"
-                title="Stop Recording"
-              >
-                <div className="w-4 h-4 bg-red-500 rounded-sm" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{recordedFrameCount}</span>
-              </button>
+          {/* Snap */}
+          <button
+            onClick={onCaptureMLFrame}
+            disabled={!onCaptureMLFrame || isRecording}
+            className="w-8 h-8 flex items-center justify-center bg-cyan-500/30 border border-cyan-500 rounded transition-all disabled:opacity-30"
+            title="Capture Frame"
+          >
+            <Camera size={16} strokeWidth={2.5} className="text-cyan-300" />
+          </button>
+
+          {/* Export */}
+          <button
+            onClick={onOpenMLExportModal}
+            disabled={recordedFrameCount === 0}
+            className="w-8 h-8 flex items-center justify-center bg-blue-600/30 border border-blue-500 rounded transition-all disabled:opacity-30 relative"
+            title={recordedFrameCount > 0 ? `Export ${recordedFrameCount} frames` : "Record first"}
+          >
+            <Download size={16} strokeWidth={2.5} className="text-blue-300" />
+            {recordedFrameCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[8px] font-bold px-1 rounded-full">
+                {recordedFrameCount}
+              </span>
             )}
-
-            {/* Snap Button */}
-            <button
-              onClick={onCaptureMLFrame}
-              disabled={!onCaptureMLFrame || isRecording}
-              className="h-10 w-10 flex items-center justify-center bg-cyan-500/20 hover:bg-cyan-500/30 border-2 border-cyan-500/50 hover:border-cyan-500 text-cyan-300 hover:text-cyan-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Capture Single Frame"
-            >
-              <Camera size={20} />
-            </button>
-
-            {/* Export Button */}
-            <button
-              onClick={onOpenMLExportModal}
-              disabled={recordedFrameCount === 0}
-              className="h-10 w-10 flex items-center justify-center bg-blue-600/20 hover:bg-blue-600/30 border-2 border-blue-500/50 hover:border-blue-500 text-blue-300 hover:text-blue-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed relative"
-              title={recordedFrameCount > 0 ? `Export ${recordedFrameCount} frames to COCO/YOLO` : "Record frames first to enable export"}
-            >
-              <Download size={20} />
-              {recordedFrameCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{recordedFrameCount}</span>
-              )}
-            </button>
-          </div>
-
-        {/* Right: View Controls & AI Director */}
-        <div className="flex items-center gap-3 pr-4">
-             {/* View Mode Selector */}
-             <div className="flex items-center bg-black/40 rounded border border-white/10 p-0.5">
-                 {Object.values(ViewMode).map(mode => (
-                     <IconButton
-                        key={mode}
-                        onClick={() => setViewMode(mode)}
-                        icon={getViewModeIcon(mode)}
-                        active={viewMode === mode}
-                        title={`Sensor View: ${mode}`}
-                     />
-                 ))}
-             </div>
-
-             {/* CHAOS MODE - PROMINENT TOGGLE */}
-             {toggleChaos && (
-                 <button
-                    onClick={toggleChaos}
-                    title={isChaosActive ? "Disable Chaos Mode" : "Enable Chaos Mode"}
-                    className={`h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group ${
-                        isChaosActive
-                        ? 'bg-gradient-to-r from-red-950/40 via-red-900/30 to-red-950/40 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]'
-                        : 'bg-black/40 border-red-900/30 hover:border-red-700/50 hover:bg-red-950/20'
-                    }`}
-                 >
-                    <Skull size={14} className={`${isChaosActive ? 'text-red-400 animate-pulse' : 'text-red-700 group-hover:text-red-500'} transition-colors`} strokeWidth={2} />
-                    <div className="flex flex-col items-start">
-                        <span className={`font-bold text-[10px] tracking-wider ${
-                            isChaosActive ? 'text-red-300' : 'text-red-700 group-hover:text-red-400'
-                        }`}>
-                            CHAOS
-                        </span>
-                    </div>
-                    {isChaosActive && (
-                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping absolute -top-1 -right-1" />
-                    )}
-                 </button>
-             )}
-
-
-             {/* Snappy button removed - will be in 3D scene */}
-
-             {/* API SETTINGS BUTTON */}
-             <button
-                onClick={() => setShowApiKeyModal(true)}
-                title="Configure API Key"
-                className="h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group bg-black/40 border-white/20 hover:border-scifi-cyan-light/50 hover:bg-white/5"
-             >
-                <Settings size={14} className="text-gray-400 group-hover:text-scifi-cyan-light transition-colors" />
-                <div className="flex flex-col items-start">
-                    <span className="font-bold text-[10px] tracking-wider text-gray-400 group-hover:text-scifi-cyan-light transition-colors">
-                        API
-                    </span>
-                </div>
-             </button>
-
-             {/* TELEMETRY TOGGLE BUTTON */}
-             {toggleTelemetry && (
-               <button
-                  onClick={toggleTelemetry}
-                  title={showTelemetry ? "Hide Live Telemetry" : "Show Live Telemetry"}
-                  className="h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group bg-black/40 border-white/20 hover:border-cyan-500/50 hover:bg-white/5"
-               >
-                  <Activity size={14} className={`transition-colors ${showTelemetry ? 'text-cyan-400' : 'text-gray-400 group-hover:text-cyan-400'}`} />
-                  <div className="flex flex-col items-start">
-                      <span className={`font-bold text-[10px] tracking-wider transition-colors ${showTelemetry ? 'text-cyan-400' : 'text-gray-400 group-hover:text-cyan-400'}`}>
-                          TELEMETRY
-                      </span>
-                  </div>
-                  {showTelemetry && (
-                      <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-                  )}
-               </button>
-             )}
-
-             {/* HIERARCHY TOGGLE BUTTON */}
-             <button
-                onClick={() => setShowHierarchy(!showHierarchy)}
-                title={showHierarchy ? "Hide Hierarchy Panel" : "Show Hierarchy Panel"}
-                className="h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group bg-black/40 border-white/20 hover:border-purple-500/50 hover:bg-white/5"
-             >
-                <Layers size={14} className={`transition-colors ${showHierarchy ? 'text-purple-400' : 'text-gray-400 group-hover:text-purple-400'}`} />
-                <div className="flex flex-col items-start">
-                    <span className={`font-bold text-[10px] tracking-wider transition-colors ${showHierarchy ? 'text-purple-400' : 'text-gray-400 group-hover:text-purple-400'}`}>
-                        HIERARCHY
-                    </span>
-                </div>
-             </button>
-
-             {/* MANUAL CONTROLS TOGGLE BUTTON */}
-             <button
-                onClick={() => setShowManualControls(!showManualControls)}
-                title={showManualControls ? "Hide Manual Controls" : "Show Manual Controls"}
-                className="h-9 px-3 rounded-lg border transition-all duration-300 flex items-center gap-1.5 group bg-black/40 border-white/20 hover:border-orange-500/50 hover:bg-white/5"
-             >
-                <Settings size={14} className={`transition-colors ${showManualControls ? 'text-orange-400' : 'text-gray-400 group-hover:text-orange-400'}`} />
-                <div className="flex flex-col items-start">
-                    <span className={`font-bold text-[10px] tracking-wider transition-colors ${showManualControls ? 'text-orange-400' : 'text-gray-400 group-hover:text-orange-400'}`}>
-                        CONTROLS
-                    </span>
-                </div>
-             </button>
+          </button>
         </div>
 
-        {/* CHAOS notification removed - will show in 3D scene with floating skull */}
+        {/* RIGHT: VIEW MODE + SETTINGS (compact) */}
+        <div className="flex items-center gap-2 pl-4 border-l border-white/10">
+
+          {/* View Mode (compact pills) */}
+          <div className="flex items-center bg-black/40 rounded border border-cyan-500/20">
+            {Object.values(ViewMode).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`px-2 py-1 text-[10px] font-bold transition-all ${
+                  viewMode === mode
+                    ? 'bg-cyan-500/30 text-cyan-300'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+                title={`${mode} View`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Chaos */}
+          {toggleChaos && (
+            <button
+              onClick={toggleChaos}
+              className={`w-8 h-8 flex items-center justify-center rounded border transition-all ${
+                isChaosActive
+                  ? 'bg-red-500/30 border-red-400 animate-pulse'
+                  : 'bg-gray-800/50 border-gray-600 hover:border-red-500/50'
+              }`}
+              title="Chaos Mode"
+            >
+              <Skull size={16} strokeWidth={2.5} className={isChaosActive ? 'text-red-300' : 'text-gray-400'} />
+            </button>
+          )}
+
+          {/* Settings */}
+          <button
+            onClick={() => setActiveTab('SETTINGS')}
+            className={`w-8 h-8 flex items-center justify-center rounded border transition-all ${
+              activeTab === 'SETTINGS'
+                ? 'bg-orange-500/30 border-orange-400'
+                : 'bg-gray-800/50 border-gray-600 hover:border-orange-500/50'
+            }`}
+            title="Settings"
+          >
+            <Settings size={16} strokeWidth={2.5} className={activeTab === 'SETTINGS' ? 'text-orange-300' : 'text-gray-400'} />
+          </button>
+        </div>
       </div>
 
       {/* --- MAIN WORKSPACE --- */}
       <div className="flex-1 flex overflow-hidden">
         
-        {/* --- LEFT PANEL (Inspector) --- */}
-        <div className="w-72 bg-scifi-900/95 backdrop-blur-md border-r border-white/10 flex flex-col pointer-events-auto overflow-y-auto custom-scrollbar">
-           
-           <div className="flex border-b border-white/10 overflow-x-auto">
+        {/* --- LEFT PANEL (Inspector) - COMPACT --- */}
+        <div className="w-72 bg-scifi-900/95 backdrop-blur-md border-r border-scifi-cyan/30 flex flex-col pointer-events-auto overflow-hidden shadow-xl">
+
+           {/* TAB BAR - COMPACT */}
+           <div className="flex border-b border-scifi-cyan/30 bg-scifi-900 sticky top-0 z-10">
               <TabButton label="ASSETS" active={activeTab === 'ASSETS'} onClick={() => setActiveTab('ASSETS')} />
               <TabButton label="PHYSICS" active={activeTab === 'PHYSICS'} onClick={() => setActiveTab('PHYSICS')} />
               <TabButton label="ENV" active={activeTab === 'ENV'} onClick={() => setActiveTab('ENV')} />
               <TabButton label="DATA" active={activeTab === 'DATA'} onClick={() => setActiveTab('DATA')} />
               <TabButton label="SETTINGS" active={activeTab === 'SETTINGS'} onClick={() => setActiveTab('SETTINGS')} />
            </div>
+
+           {/* TAB CONTENT - Scrollable below tabs */}
+           <div className="flex-1 overflow-y-auto custom-scrollbar">
 
            {/* ASSETS TAB - Full-height Asset Library */}
            {activeTab === 'ASSETS' ? (
@@ -706,46 +690,26 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                                 Export production-ready training data with camera matrices, bounding boxes, and labels in COCO or YOLO format.
                             </p>
 
-                            {/* Recording Controls */}
-                            <div className="bg-black/30 border border-white/10 rounded p-3 space-y-2">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-[10px] font-bold text-gray-300">SEQUENCE RECORDING</span>
-                                    {isRecording && (
-                                        <span className="text-[9px] px-2 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded animate-pulse">
-                                            REC {recordedFrameCount} frames
-                                        </span>
-                                    )}
+                            {/* Recording Status */}
+                            <div className="bg-blue-900/20 border border-blue-500/30 rounded p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Camera className="w-4 h-4 text-blue-400" />
+                                    <span className="text-[10px] font-bold text-blue-400">RECORDING CONTROLS</span>
                                 </div>
-
-                                <div className="flex gap-2">
-                                    {!isRecording ? (
-                                        <button
-                                            onClick={onStartRecording}
-                                            disabled={!onStartRecording}
-                                            className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 py-2 rounded text-[10px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                        >
-                                            <PlayCircle size={14} />
-                                            START RECORDING
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={onStopRecording}
-                                            className="flex-1 flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 py-2 rounded text-[10px] font-bold transition-all animate-pulse"
-                                        >
-                                            <StopCircle size={14} />
-                                            STOP RECORDING
-                                        </button>
-                                    )}
-
-                                    <button
-                                        onClick={onCaptureMLFrame}
-                                        disabled={!onCaptureMLFrame || isRecording}
-                                        className="flex-1 flex items-center justify-center gap-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500/50 text-cyan-400 py-2 rounded text-[10px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                    >
-                                        <Camera size={14} />
-                                        CAPTURE FRAME
-                                    </button>
-                                </div>
+                                <p className="text-[10px] text-gray-400 mb-2">
+                                    Use the recording buttons in the <strong>top header</strong>:
+                                </p>
+                                <ul className="text-[9px] text-gray-500 space-y-1 ml-4 list-disc">
+                                    <li><strong className="text-red-400">Red Circle</strong> - Start/Stop Recording</li>
+                                    <li><strong className="text-cyan-400">Camera</strong> - Capture Single Frame</li>
+                                    <li><strong className="text-blue-400">Download</strong> - Export Datasets</li>
+                                </ul>
+                                {isRecording && (
+                                    <div className="mt-2 p-2 bg-red-900/30 border border-red-500/50 rounded flex items-center justify-between">
+                                        <span className="text-[10px] text-red-400 font-bold">● RECORDING</span>
+                                        <span className="text-[10px] text-red-400 font-mono">{recordedFrameCount} frames</span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Export Formats */}
@@ -971,29 +935,48 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
            </div>
            )}
+           </div>
         </div>
 
         {/* --- SPACER TO REVEAL VIEWPORT --- */}
         <div className="flex-1 min-w-0"></div>
 
-        {/* --- RIGHT PANEL (Scene Graph) --- TOGGLEABLE */}
+        {/* --- RIGHT PANEL (Scene Graph / Layers) --- TOGGLEABLE */}
         {showHierarchy && (
-        <div className="w-64 bg-scifi-900/95 backdrop-blur-md border-l border-white/10 flex flex-col pointer-events-auto p-4 space-y-4">
+        <div className="w-80 bg-scifi-900/95 backdrop-blur-md border-l-2 border-scifi-cyan/30 flex flex-col pointer-events-auto p-4 space-y-4 shadow-xl">
            
            {/* Header with Add Action */}
-           <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
+           <div className="flex justify-between items-center border-b-2 border-scifi-cyan/30 pb-3 mb-3">
               <div className="flex items-center gap-2">
-                <Layers className="text-scifi-cyan-light w-4 h-4" />
-                <span className="font-bold tracking-widest text-scifi-cyan-light text-[10px]">HIERARCHY</span>
+                <Layers className="text-scifi-cyan-light w-5 h-5" />
+                <span className="font-bold tracking-widest text-scifi-cyan-light text-xs">SCENE LAYERS</span>
               </div>
-              <button
-                 onClick={addAssetGroup}
-                 className="flex items-center gap-1 bg-scifi-cyan/10 hover:bg-scifi-cyan/20 text-scifi-cyan-light rounded px-2 py-1 transition-colors border border-scifi-cyan/20"
-                 title="Add New Asset Group"
-              >
-                 <Plus size={10} />
-                 <span className="text-[9px] font-bold">ADD LAYER</span>
-              </button>
+              <div className="flex gap-1">
+                <button
+                   onClick={() => {
+                     const sceneOptions = Object.entries(EXAMPLE_SCENES)
+                       .map(([key, scene]) => `${key}: ${scene.description}`)
+                       .join('\n');
+                     const sceneName = window.prompt(`Choose a scene:\n\n${sceneOptions}\n\nAvailable: surgical, autonomous, xr, drone, warehouse, assembly, tabletop, clutter`);
+                     if (sceneName) {
+                       loadExampleScene(sceneName.trim().toLowerCase());
+                     }
+                   }}
+                   className="flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded px-2 py-1 transition-colors border border-purple-500/20"
+                   title="Load Example Scene - Any Domain"
+                >
+                   <Package size={10} />
+                   <span className="text-[9px] font-bold">SCENE</span>
+                </button>
+                <button
+                   onClick={addAssetGroup}
+                   className="flex items-center gap-1 bg-scifi-cyan/10 hover:bg-scifi-cyan/20 text-scifi-cyan-light rounded px-2 py-1 transition-colors border border-scifi-cyan/20"
+                   title="Add New Asset Group"
+                >
+                   <Plus size={10} />
+                   <span className="text-[9px] font-bold">ADD LAYER</span>
+                </button>
+              </div>
            </div>
            
            {/* Group List */}
@@ -1332,7 +1315,7 @@ const TelemetryReadout = ({ telemetryRef }: { telemetryRef: React.MutableRefObje
             </div>
 
             <div className="border-t border-white/10 pt-3">
-                <div className="text-[8px] font-bold text-green-400 tracking-widest uppercase mb-2">VR/ROBOTICS TRACKING (Object #1)</div>
+                <div className="text-[8px] font-bold text-green-400 tracking-widest uppercase mb-2">3D POSE (Object #1)</div>
                 <div className="space-y-2">
                     <TelemetryBoxRaw label="POSITION (m)" ref={samplePosRef} />
                     <TelemetryBoxRaw label="QUATERNION ORIENTATION" ref={sampleQuatRef} />
@@ -1360,8 +1343,10 @@ const Section = ({ title, children }: any) => (
 const TabButton = ({ label, active, onClick }: any) => (
   <button
     onClick={onClick}
-    className={`flex-1 py-3 text-[10px] font-bold tracking-wider transition-colors border-b-2 ${
-      active ? 'border-scifi-cyan-light text-white bg-white/5' : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5'
+    className={`flex-1 py-2 text-[10px] font-bold tracking-wider transition-all border-b-2 ${
+      active
+        ? 'border-scifi-cyan-light text-white bg-scifi-cyan/10'
+        : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5 hover:border-gray-600'
     }`}
   >
     {label}

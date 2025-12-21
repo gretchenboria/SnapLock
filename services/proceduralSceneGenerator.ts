@@ -196,7 +196,7 @@ export class ProceduralSceneGenerator {
     });
 
     // Decorative Spheres (floating orbs, Roblox aesthetic)
-    const orbCount = density === 'sparse' ? 3 : density === 'medium' ? 6 : 10;
+    const orbCount = density === 'sparse' ? 15 : density === 'medium' ? 30 : 50;
     assetGroups.push({
       id: this.generateId('orbs'),
       name: 'Floating Orbs',
@@ -220,7 +220,7 @@ export class ProceduralSceneGenerator {
     });
 
     // Graspable Cubes (interactive objects)
-    const cubeCount = density === 'sparse' ? 5 : density === 'medium' ? 10 : 15;
+    const cubeCount = density === 'sparse' ? 20 : density === 'medium' ? 40 : 60;
     assetGroups.push({
       id: this.generateId('cubes'),
       name: 'Interactive Cubes',
@@ -397,7 +397,7 @@ export class ProceduralSceneGenerator {
     });
 
     // Neon Spheres (bouncing balls)
-    const ballCount = density === 'sparse' ? 10 : density === 'medium' ? 20 : 30;
+    const ballCount = density === 'sparse' ? 30 : density === 'medium' ? 60 : 100;
     assetGroups.push({
       id: this.generateId('neon_balls'),
       name: 'Neon Balls',
@@ -579,7 +579,7 @@ export class ProceduralSceneGenerator {
     });
 
     // Trees (Minecraft blocky style)
-    const treeCount = density === 'sparse' ? 5 : density === 'medium' ? 10 : 15;
+    const treeCount = density === 'sparse' ? 15 : density === 'medium' ? 30 : 50;
     assetGroups.push({
       id: this.generateId('trees'),
       name: 'Trees',
@@ -598,7 +598,7 @@ export class ProceduralSceneGenerator {
     });
 
     // Rocks (graspable)
-    const rockCount = density === 'sparse' ? 10 : density === 'medium' ? 20 : 30;
+    const rockCount = density === 'sparse' ? 30 : density === 'medium' ? 60 : 100;
     assetGroups.push({
       id: this.generateId('rocks'),
       name: 'Rocks',
@@ -623,7 +623,7 @@ export class ProceduralSceneGenerator {
     });
 
     // Crystals (collectibles)
-    const crystalCount = density === 'sparse' ? 8 : density === 'medium' ? 15 : 25;
+    const crystalCount = density === 'sparse' ? 25 : density === 'medium' ? 50 : 80;
     assetGroups.push({
       id: this.generateId('crystals'),
       name: 'Crystals',

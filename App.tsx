@@ -24,12 +24,30 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProminentTelemetry } from './components/ProminentTelemetry';
 import { PromptModal } from './components/PromptModal';
 import { loadExampleScene } from './services/exampleScenes';
+import { SceneGraph, SceneBuilder } from './services/sceneGraph';
+import { SceneAssembler } from './services/sceneAssembler';
 import { MovementBehavior } from './types';
 
 const App: React.FC = () => {
   // State
   const [prompt, setPrompt] = useState('');
-  const [params, setParams] = useState<PhysicsParams>(DEFAULT_PHYSICS);
+  const [params, setParams] = useState<PhysicsParams>(() => {
+    // ALWAYS load surgical scene by default - NO LOCALSTORAGE BULLSHIT
+    try {
+      const scene = loadExampleScene('surgical');
+      const assetGroups = SceneGraph.sceneToLegacyFormat(scene);
+      const legacyParams = {
+        ...DEFAULT_PHYSICS,
+        assetGroups,
+        scene // Pass raw scene for animations/behaviors
+      };
+      console.log('[App] ✅ Loading surgical robotics scene with REAL 3D MODELS and ANIMATIONS');
+      return legacyParams;
+    } catch (error) {
+      console.error('[App] ❌ Failed to load surgical scene:', error);
+      return DEFAULT_PHYSICS;
+    }
+  });
 
   // Guided Tour State
   const [showGuidedTour, setShowGuidedTour] = useState(() => {
@@ -42,7 +60,7 @@ const App: React.FC = () => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.RGB);
   
-  // Auto Spawn State - DISABLED (confusing UX, user always wants specific prompts)
+  // Auto Spawn: Generates new physics scenarios every 15 seconds
   const [isAutoSpawn, setIsAutoSpawn] = useState(false);
   const isAutoSpawnRef = useRef(false);
   const autoSpawnTimerRef = useRef<number | null>(null);
@@ -94,7 +112,7 @@ const App: React.FC = () => {
   const totalParticles = params.assetGroups.reduce((sum, group) => sum + group.count, 0);
 
   // Refs
-  const sceneRef = useRef<PhysicsSceneHandle>(null);
+  const sceneRef = useRef<PhysicsSceneHandle | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null); // To capture the container for screenshots
   
   // Test Mode Detection
@@ -167,13 +185,9 @@ const App: React.FC = () => {
   }, []);
 
   const handleReset = () => {
-    // Clear all asset groups to completely empty the scene
-    setParams(prev => ({
-      ...prev,
-      assetGroups: []
-    }));
+    // Reset physics simulation (keeps objects, restarts motion)
     setShouldReset(true);
-    addLog('Scene cleared - all objects removed', 'info');
+    addLog('Restarting simulation', 'info');
   };
   
   const handleResetCamera = () => {
@@ -504,9 +518,14 @@ const App: React.FC = () => {
       }
 
       // Stop video recording
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-          mediaRecorderRef.current.stop();
-          mediaRecorderRef.current = null;
+      try {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop();
+            mediaRecorderRef.current = null;
+        }
+      } catch (error) {
+        console.warn('[App] Video recording stop failed:', error);
+        mediaRecorderRef.current = null;
       }
 
       setIsRecording(false);
@@ -939,6 +958,7 @@ const App: React.FC = () => {
         isPaused={isPaused}
         togglePause={() => setIsPaused(!isPaused)}
         onReset={handleReset}
+        sceneRef={sceneRef}
         logs={logs}
         isAnalyzing={isAnalyzing}
         resetCamera={handleResetCamera}
@@ -993,15 +1013,15 @@ const App: React.FC = () => {
         onDownloadVideo={handleDownloadVideo}
       />
 
-      {/* Snappy AI Chatbot - DISABLED - blocking critical telemetry data */}
-      {/* <SnappyChatbot
+      {/* Snappy AI Chatbot */}
+      <SnappyChatbot
         isOpen={isSnappyEnabled}
         onClose={() => setIsSnappyEnabled(false)}
         onGenerateScene={(scenePrompt) => {
           setPrompt(scenePrompt);
           executeAnalysis(scenePrompt, 'MANUAL');
         }}
-      /> */}
+      />
 
       {/* Snappy Kawaii Robot Eyes - DISABLED */}
       {false && !isSnappyEnabled && (

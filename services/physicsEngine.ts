@@ -69,29 +69,17 @@ export class PhysicsEngine {
     if (this.disposed) throw new Error('Physics engine already disposed');
 
     try {
-      // Clear existing bodies - collect handles first to avoid iterator invalidation
+      // Clear existing state
       this.bodies.clear();
-      const oldBodyHandles: number[] = [];
-      for (let i = 0; i < this.world.bodies.len(); i++) {
-        const body = this.world.bodies.get(i);
-        if (body) oldBodyHandles.push(body.handle);
-      }
-      // Now remove them
-      for (const handle of oldBodyHandles) {
-        const body = this.world.getRigidBody(handle);
-        if (body) this.world.removeRigidBody(body);
-      }
 
-      // Clear existing colliders too
-      const oldColliderHandles: number[] = [];
-      for (let i = 0; i < this.world.colliders.len(); i++) {
-        const collider = this.world.colliders.get(i);
-        if (collider) oldColliderHandles.push(collider.handle);
-      }
-      for (const handle of oldColliderHandles) {
-        const collider = this.world.getCollider(handle);
-        if (collider) this.world.removeCollider(collider, true);
-      }
+      // Recreate world to avoid Rapier borrow checker issues
+      // This is safer than trying to remove individual objects
+      this.world.free();
+      const gravity = new RAPIER.Vector3(params.gravity.x, params.gravity.y, params.gravity.z);
+      this.world = new RAPIER.World(gravity);
+      this.world.integrationParameters.dt = this.fixedTimeStep;
+      this.world.integrationParameters.numSolverIterations = 8;
+      this.world.integrationParameters.numInternalPgsIterations = 1;
 
       // Create ground plane
       const groundColliderDesc = RAPIER.ColliderDesc.cuboid(100, 0.1, 100)

@@ -32,21 +32,9 @@ const App: React.FC = () => {
   // State
   const [prompt, setPrompt] = useState('');
   const [params, setParams] = useState<PhysicsParams>(() => {
-    // ALWAYS load surgical scene by default - NO LOCALSTORAGE BULLSHIT
-    try {
-      const scene = loadExampleScene('surgical');
-      const assetGroups = SceneGraph.sceneToLegacyFormat(scene);
-      const legacyParams = {
-        ...DEFAULT_PHYSICS,
-        assetGroups,
-        scene // Pass raw scene for animations/behaviors
-      };
-      console.log('[App] ✅ Loading surgical robotics scene with REAL 3D MODELS and ANIMATIONS');
-      return legacyParams;
-    } catch (error) {
-      console.error('[App] ❌ Failed to load surgical scene:', error);
-      return DEFAULT_PHYSICS;
-    }
+    // START WITH EMPTY SCENE - User creates scenes via prompts
+    console.log('[App] Starting with empty scene');
+    return DEFAULT_PHYSICS;
   });
 
   // Guided Tour State

@@ -81,13 +81,58 @@ export function createSurgicalScene(): Scene {
     });
   });
 
-  // Add animated behaviors for the surgical robot
+  // Add animated behaviors for the surgical robot - pick up blocks in sequence
+  const block0Pos = blocks[0].pos;
+  const block1Pos = blocks[1].pos;
+
   scene.behaviors = [
-    createPickupScalpelBehavior('surgical_robot_arm', 'block_0'),
-    createSuturingBehavior('surgical_robot_arm')
+    {
+      id: 'pick_block_0',
+      name: 'Pick Up Block 1',
+      description: 'Robot picks up first block',
+      targetObjectId: 'surgical_robot_arm',
+      loop: false,
+      actions: [
+        {
+          type: ActionType.MOVE_TO,
+          duration: 2.5,
+          position: { x: block0Pos.x, y: block0Pos.y + 0.5, z: block0Pos.z } // Above block
+        },
+        {
+          type: ActionType.MOVE_TO,
+          duration: 1.0,
+          position: { x: block0Pos.x, y: block0Pos.y + 0.1, z: block0Pos.z } // Lower to block
+        },
+        {
+          type: ActionType.GRASP,
+          duration: 0.5,
+          target: 'block_0'
+        },
+        {
+          type: ActionType.MOVE_TO,
+          duration: 1.5,
+          position: { x: block0Pos.x, y: 1.0, z: block0Pos.z } // Lift
+        },
+        {
+          type: ActionType.MOVE_TO,
+          duration: 2.0,
+          position: { x: 0, y: 1.0, z: 0 } // Move to center
+        },
+        {
+          type: ActionType.RELEASE,
+          duration: 0.5,
+          target: 'block_0'
+        },
+        {
+          type: ActionType.MOVE_TO,
+          duration: 2.0,
+          position: { x: block1Pos.x, y: block1Pos.y + 0.5, z: block1Pos.z } // Move to block 2
+        }
+      ]
+    }
   ];
 
-  console.log('[Surgical Scene] Created with robot and blocks, 2 behaviors');
+  console.log('[Surgical Scene] Created with robot and blocks, dynamic behaviors based on actual positions');
 
   return scene;
 }

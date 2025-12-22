@@ -417,12 +417,16 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
         - "inspect", "scan", "navigate" → FOLLOW_PATH action
         - "rotate", "turn", "flip" → ROTATE action
 
-        STEP 2: IF ACTION VERBS DETECTED → Generate behaviors array with action sequences
-        STEP 3: IF NO ACTION VERBS → Generate static scene (but encourage user to add actions)
+        STEP 2: MANDATORY BEHAVIOR GENERATION
+        CRITICAL: If ANY robots/agents are present in the scene, you MUST generate behaviors array.
+        - Robot prompts WITHOUT explicit verbs → Generate default inspection/demo behaviors
+        - Example: "robot arm" → Generate behaviors showing the robot moving and demonstrating capability
+        - Example: "surgical robot" → Generate behaviors showing surgical motions
+        - NEVER generate robot scenes without behaviors - robots must DO something!
 
-        STEP 4: Generate BASE ENVIRONMENT appropriate for the task
-        STEP 5: Add ACTORS (robots, agents) that will perform actions
-        STEP 6: Add TARGET OBJECTS that actions are performed on
+        STEP 3: Generate BASE ENVIRONMENT appropriate for the task
+        STEP 4: Add ACTORS (robots, agents) that will perform actions
+        STEP 5: Add TARGET OBJECTS that actions are performed on
 
         EXAMPLE PROMPTS (what users ACTUALLY want):
         - "surgical robot picks up scalpel" → Robot + scalpel + GRASP behavior
@@ -723,10 +727,29 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                 { type: "MOVE_TO", duration: 1.5, position: {x: -2, y: current.y, z: current.z} }
               ]}
 
+            "robot arm and blocks" (NO explicit verbs) ->
+              behavior: { id: "pick_and_place_demo", targetObjectId: "robot_arm", actions: [
+                { type: "MOVE_TO", duration: 2.0, position: {x: block1.x, y: block1.y + 0.5, z: block1.z} },
+                { type: "GRASP", duration: 0.5, target: "block_1" },
+                { type: "MOVE_TO", duration: 2.0, position: {x: 2, y: 1.5, z: 0} },
+                { type: "RELEASE", duration: 0.5 },
+                { type: "MOVE_TO", duration: 1.5, position: {x: 0, y: 1.0, z: 0} }
+              ]}
+
+            "basic robot arm demo" (NO explicit verbs) ->
+              behavior: { id: "demo_movement", targetObjectId: "robot_arm", actions: [
+                { type: "MOVE_TO", duration: 2.0, position: {x: 1, y: 1.2, z: 0.5} },
+                { type: "WAIT", duration: 0.5 },
+                { type: "MOVE_TO", duration: 2.0, position: {x: -1, y: 1.2, z: -0.5} },
+                { type: "WAIT", duration: 0.5 },
+                { type: "MOVE_TO", duration: 2.0, position: {x: 0, y: 1.5, z: 0} }
+              ]}
+
             RULES FOR BEHAVIOR GENERATION (MANDATORY FOR PRODUCTION!):
-            - IF scene has ANY robot/vehicle → behaviors array is MANDATORY!
-            - IF prompt has action verbs (pick, move, grasp) → MUST generate behaviors
-            - IF scene has robots but NO action verbs → generate default demonstration behavior (robot waves, moves, etc.)
+            - IF scene has ANY robot/vehicle → behaviors array is MANDATORY! NEVER SKIP THIS!
+            - IF prompt has action verbs (pick, move, grasp) → Generate behaviors matching those verbs
+            - IF scene has robots but NO action verbs → Generate default pick-and-place OR demo movement behaviors
+            - WITHOUT behaviors, robots will just fall or sit static - THIS IS UNACCEPTABLE!
             - targetObjectId MUST match a KINEMATIC object in assetGroups (robots, vehicles, arms)
             - KINEMATIC objects are the actors that perform behaviors
             - Action durations: GRASP/RELEASE=0.5s, MOVE_TO=1-3s, FOLLOW_PATH=2-5s, WAIT=0.5-2s

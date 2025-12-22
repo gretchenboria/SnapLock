@@ -93,17 +93,6 @@
   ],
   "medical": [
     {
-      "id": "surgical_robot_prompt",
-      "name": "Surgical Robot (AI Generated)",
-      "geometry": "box",
-      "category": "medical",
-      "physics_enabled": true,
-      "mass": 120.0,
-      "friction": 0.7,
-      "restitution": 0.15,
-      "tags": ["medical", "precision", "articulated", "surgery"]
-    },
-    {
       "id": "operating_table",
       "name": "Operating Table",
       "geometry": "box",
@@ -128,37 +117,92 @@
   ],
   "robots": [
     {
-      "id": "robot_arm_6dof",
-      "name": "6-DOF Robot Arm",
-      "geometry": "cylinder",
+      "id": "surgical_robot_davinci",
+      "name": "Da Vinci Surgical Robot",
+      "path": "/models/surgical_robot_davinci.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 120.0,
+      "friction": 0.7,
+      "restitution": 0.15,
+      "tags": ["surgical", "medical", "precision", "multi-arm"]
+    },
+    {
+      "id": "robotic_arm_6axis",
+      "name": "6-Axis Robot Arm",
+      "path": "/models/robotic_arm_6axis.glb",
       "category": "robots",
       "physics_enabled": true,
       "mass": 85.0,
       "friction": 0.6,
       "restitution": 0.2,
-      "tags": ["articulated", "manipulator", "industrial"]
+      "tags": ["industrial", "manipulator", "6-axis"]
     },
     {
-      "id": "gripper_box",
-      "name": "Robot Gripper",
-      "geometry": "box",
+      "id": "industrial_robot_kuka",
+      "name": "KUKA Industrial Robot",
+      "path": "/models/industrial_robot_arm_kuka.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 150.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "tags": ["industrial", "heavy-duty", "manufacturing", "kuka"]
+    },
+    {
+      "id": "basic_robot_arm",
+      "name": "Basic Robot Arm",
+      "path": "/models/basic_robot_arm.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 60.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "tags": ["educational", "demo", "mechanical", "basic"]
+    },
+    {
+      "id": "collaborative_robot_ur5",
+      "name": "Collaborative Robot (UR5)",
+      "path": "/models/collaborative_robot_ur5.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 70.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "tags": ["collaborative", "cobot", "ur5", "safe"]
+    },
+    {
+      "id": "scara_robot",
+      "name": "SCARA Robot",
+      "path": "/models/scara_robot_assembly.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 50.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "tags": ["scara", "assembly", "pick-place", "4-axis"]
+    },
+    {
+      "id": "delta_robot",
+      "name": "Delta Robot Picker",
+      "path": "/models/delta_robot_picker.glb",
+      "category": "robots",
+      "physics_enabled": true,
+      "mass": 45.0,
+      "friction": 0.6,
+      "restitution": 0.2,
+      "tags": ["delta", "parallel", "high-speed", "picker"]
+    },
+    {
+      "id": "drone_quadcopter",
+      "name": "Quadcopter Drone",
+      "path": "/models/drone_quadcopter.glb",
       "category": "robots",
       "physics_enabled": true,
       "mass": 2.5,
-      "friction": 0.9,
-      "restitution": 0.1,
-      "tags": ["end-effector", "precision", "small"]
-    },
-    {
-      "id": "mobile_robot_platform",
-      "name": "Mobile Robot Platform",
-      "geometry": "cylinder",
-      "category": "robots",
-      "physics_enabled": true,
-      "mass": 75.0,
-      "friction": 0.8,
-      "restitution": 0.2,
-      "tags": ["wheeled", "autonomous", "platform"]
+      "friction": 0.4,
+      "restitution": 0.3,
+      "tags": ["drone", "aerial", "uav", "quadcopter"]
     }
   ],
   "furniture": [

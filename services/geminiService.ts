@@ -57,23 +57,24 @@ const getModelForTask = (task: 'reasoning' | 'vision' | 'creative' | 'image' | '
   const apiKeyAvailable = hasApiKey();
 
   if (!apiKeyAvailable) {
-    return 'gemini-2.5-flash';
+    return 'gemini-3-pro-preview';
   }
 
-  // API key available - use BEST models (v1beta compatible names)
+  // API key available - use BEST SOTA models for each task (Dec 2025)
+  // CRITICAL: Use Pro models with dynamic thinking, NOT Flash
   switch (task) {
     case 'reasoning':
-      return 'gemini-1.5-pro-latest'; // Best stable model for physics reasoning
+      return 'gemini-3-pro-preview'; // PhD-level reasoning with dynamic thinking (1M context)
     case 'vision':
-      return 'gemini-1.5-pro-latest'; // Best for chaos mode (vision capabilities)
+      return 'gemini-3-pro-preview'; // Multimodal analysis with advanced reasoning
     case 'creative':
-      return 'gemini-1.5-pro-latest'; // Best for creative prompts
+      return 'gemini-3-pro-preview'; // Complex creative generation with thinking
     case 'image':
-      return 'gemini-2.0-flash-exp-image-generation'; // Experimental image generation
+      return 'imagen-3.0-generate-002'; // SOTA image generation (or imagen-4.0-generate-001)
     case 'video':
-      return 'gemini-1.5-pro-latest'; // Video generation not natively supported, use text model
+      return 'veo-3.1-generate-preview'; // SOTA video generation with audio
     default:
-      return 'gemini-1.5-pro-latest';
+      return 'gemini-3-pro-preview';
   }
 };
 
@@ -99,30 +100,50 @@ const FALLBACK_PROMPTS = [
  * Generate fallback scene when API quota exceeded
  * Creates a reasonable default scene based on prompt keyword parsing
  */
-function generateFallbackScene(prompt: string): AnalysisResponse {
+async function generateFallbackScene(prompt: string): Promise<AnalysisResponse> {
   const lowerPrompt = prompt.toLowerCase();
   let assetGroups: AssetGroup[] = [];
 
-  // Detect gravity environment
+  // CONTEXT-AWARE MOVEMENT BEHAVIOR FOR ML TRAINING
+  // PURPOSE: Controlled, reproducible motion - NOT chaotic falling!
+
+  // Detect scene context
   const isZeroG = lowerPrompt.includes('zero') || lowerPrompt.includes('orbit') || lowerPrompt.includes('space') || lowerPrompt.includes('weightless');
-  const isLowG = lowerPrompt.includes('moon') || lowerPrompt.includes('low gravity');
-  const isHighG = lowerPrompt.includes('high gravity') || lowerPrompt.includes('heavy');
+  const isSurgical = lowerPrompt.includes('surgical') || lowerPrompt.includes('surgery') || lowerPrompt.includes('operating') || lowerPrompt.includes('medical');
+  const isWarehouse = lowerPrompt.includes('warehouse') || lowerPrompt.includes('conveyor') || lowerPrompt.includes('factory') || lowerPrompt.includes('assembly');
+  const isDrone = lowerPrompt.includes('drone') || lowerPrompt.includes('uav') || lowerPrompt.includes('quadcopter') || lowerPrompt.includes('swarm');
+  const isTraffic = lowerPrompt.includes('traffic') || lowerPrompt.includes('highway') || lowerPrompt.includes('road') || lowerPrompt.includes('vehicle');
+  const isRobotics = lowerPrompt.includes('robot') || lowerPrompt.includes('robotic') || lowerPrompt.includes('manipulator');
 
   let gravity: Vector3Data;
   let movementBehavior: MovementBehavior;
 
+  // CRITICAL: Use context-aware movement for ML training data
   if (isZeroG) {
+    // Space/orbital scenarios
     gravity = { x: 0, y: 0, z: 0 };
     movementBehavior = MovementBehavior.ORBITAL;
-  } else if (isLowG) {
-    gravity = { x: 0, y: -1.62, z: 0 };
-    movementBehavior = MovementBehavior.PHYSICS_GRAVITY;
-  } else if (isHighG) {
-    gravity = { x: 0, y: -15, z: 0 };
-    movementBehavior = MovementBehavior.PHYSICS_GRAVITY;
-  } else {
+  } else if (isSurgical || isRobotics) {
+    // Surgical/robotics: Controlled motion via behaviors, NO automatic movement!
+    // Objects are KINEMATIC (controlled) and only move when commanded by behaviors
+    gravity = { x: 0, y: -9.81, z: 0 };  // Gravity exists but objects are KINEMATIC
+    movementBehavior = MovementBehavior.ORBITAL;  // ORBITAL with zero-g = objects stay put until commanded
+  } else if (isWarehouse) {
+    // Warehouse: Conveyor belt motion, controlled flow
     gravity = { x: 0, y: -9.81, z: 0 };
-    movementBehavior = MovementBehavior.PHYSICS_GRAVITY;
+    movementBehavior = MovementBehavior.LINEAR_FLOW;  // Conveyor belts
+  } else if (isDrone) {
+    // Drones: Coordinated flight patterns
+    gravity = { x: 0, y: -9.81, z: 0 };
+    movementBehavior = MovementBehavior.SWARM_FLOCK;  // Coordinated swarms
+  } else if (isTraffic) {
+    // Traffic: Predictable vehicle flow
+    gravity = { x: 0, y: -9.81, z: 0 };
+    movementBehavior = MovementBehavior.LINEAR_FLOW;  // Vehicle flow
+  } else {
+    // General default: Objects stay in place unless commanded
+    gravity = { x: 0, y: -9.81, z: 0 };
+    movementBehavior = MovementBehavior.ORBITAL;  // Objects maintain position (kinematic hold)
   }
 
   // Detect wind
@@ -249,30 +270,35 @@ function generateFallbackScene(prompt: string): AnalysisResponse {
   }
 
   // Try to integrate 3D models from library
-  const { findModelForObject, getModelScale } = require('./modelLibrary');
+  try {
+    const modelLibrary = await import('./modelLibrary');
+    const { findModelForObject, getModelScale } = modelLibrary;
 
-  assetGroups = assetGroups.map(group => {
-    const modelUrl = findModelForObject(group.name, group.id);
+    assetGroups = assetGroups.map(group => {
+      const modelInfo = findModelForObject(group.name, group.id);
 
-    if (modelUrl) {
-      const modelScale = getModelScale(modelUrl);
-      console.log(`[GeminiService/Fallback] Using 3D model for "${group.name}"`);
-      return {
-        ...group,
-        shape: ShapeType.MODEL,
-        modelUrl,
-        scale: modelScale * group.scale
-      };
-    }
+      if (modelInfo) {
+        console.log(`[GeminiService/Fallback] Using 3D model for "${group.name}": ${modelInfo.modelUrl}`);
+        return {
+          ...group,
+          shape: ShapeType.MODEL,
+          modelUrl: modelInfo.modelUrl,
+          scale: modelInfo.scale * group.scale
+        };
+      }
 
-    return group; // Keep geometric primitive if no model found
-  });
+      return group; // Keep geometric primitive if no model found
+    });
 
-  console.log('[GeminiService/Fallback] Scene generated with domain randomization (mix of 3D models and geometric primitives)');
+    console.log('[GeminiService/Fallback] Scene generated with domain randomization (mix of 3D models and geometric primitives)');
+  } catch (error) {
+    console.warn('[GeminiService/Fallback] Model library not available, using primitives');
+  }
 
   // Apply spatial positioning to prevent random falling (P0 CRITICAL FIX)
   try {
-    const { calculateSpatialPositions } = require('./spatialPositioning');
+    const spatialModule = await import('./spatialPositioning');
+    const { calculateSpatialPositions } = spatialModule;
     assetGroups = calculateSpatialPositions(assetGroups);
     console.log('[GeminiService/Fallback] Applied spatial positioning to fallback scene');
   } catch (error) {
@@ -367,27 +393,42 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
   try {
     return await withRetry(async () => {
         const ai = getAI();
-        // Use best reasoning model for physics configuration (Gemini 3 Pro when available)
+        // Use best reasoning model for physics configuration
+        const modelName = getModelForTask('reasoning');
         const response = await ai.models.generateContent({
-        model: getModelForTask('reasoning'),
+        model: modelName,
         contents: `You are a Photorealistic Physics-Aware 3D Digital Twin Generator for SnapLock simulation engine.
 
         USER PROMPT: "${userPrompt}"
 
-        MISSION: Generate PHOTOREALISTIC 3D digital twins with physics-accurate materials and properties. Create a COMPLETE 3D environment with the user's requested objects that looks and behaves like the real world.
+        MISSION: You are generating ML TRAINING DATA for robotics and computer vision.
+        This is a SIMULATION platform - you MUST generate ANIMATED action sequences, not static scenes!
 
-        STEP 1: Identify the SCENE TYPE from the prompt
-        STEP 2: Generate the BASE ENVIRONMENT (floor, walls, furniture for that scene type)
-        STEP 3: Add the USER'S MENTIONED OBJECTS with proper placement
+        CRITICAL UNDERSTANDING:
+        - This is NOT a scene builder - it's a SIMULATION ENGINE
+        - Users want to see ACTIONS and TASKS being performed
+        - Generate physics simulations of robots/agents DOING things
+        - Output = video of simulated task for ML training
 
-        SCENE TYPES:
-        - "meeting room" / "conference room" / "office" -> MEETING_ROOM (floor, table, chairs)
-        - "lounge" / "living room" / "hangout" -> LOUNGE (floor, couches, coffee table)
-        - "gaming room" / "arcade" / "game space" -> GAMING_ROOM (floor, arcade cabinets, gaming chairs)
-        - "studio" / "art room" / "workshop" -> CREATIVE_STUDIO (floor, work tables, storage)
-        - "outdoor" / "nature" / "forest" / "field" -> OPEN_WORLD (grass floor, trees, rocks)
+        STEP 1: DETECT ACTION VERBS in the prompt
+        - "pick up", "grasp", "grab" → GRASP action
+        - "move", "transport", "carry" → MOVE_TO action
+        - "drop", "release", "place" → RELEASE action
+        - "inspect", "scan", "navigate" → FOLLOW_PATH action
+        - "rotate", "turn", "flip" → ROTATE action
 
-        If no scene type mentioned, use LOUNGE as default.
+        STEP 2: IF ACTION VERBS DETECTED → Generate behaviors array with action sequences
+        STEP 3: IF NO ACTION VERBS → Generate static scene (but encourage user to add actions)
+
+        STEP 4: Generate BASE ENVIRONMENT appropriate for the task
+        STEP 5: Add ACTORS (robots, agents) that will perform actions
+        STEP 6: Add TARGET OBJECTS that actions are performed on
+
+        EXAMPLE PROMPTS (what users ACTUALLY want):
+        - "surgical robot picks up scalpel" → Robot + scalpel + GRASP behavior
+        - "forklift moves box to shelf" → Forklift + box + MOVE_TO behavior
+        - "drone flies inspection path" → Drone + FOLLOW_PATH behavior
+        - "robotic arm assembles parts" → Arm + parts + GRASP + MOVE_TO sequence
 
         REQUIREMENTS:
 
@@ -399,18 +440,21 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
            - Organs/tissues being operated on (heart, brain, liver)
            - Industrial workbenches, assembly fixtures, mounting plates
            - Use when: Object provides reference frame for manipulation tasks
+           - Mass: Any value (ignored for static bodies, use typical mass for the object type)
 
            KINEMATIC: Precisely controlled motion, NOT affected by physics forces
            - Robotic arms (surgical robots, industrial manipulators)
            - Gantry systems, CNC machines, automated stages
            - VR hand controllers, teleoperated devices
            - Use when: Object follows programmed trajectories, not physics
+           - Mass: Required (use typical mass for the object type)
 
            DYNAMIC: Normal physics simulation (default if not specified)
            - Surgical instruments (forceps, needles, scalpels)
            - Parts being assembled, packages, containers
            - Objects that collide, fall, bounce naturally
            - Use when: Object should respond to forces and collisions
+           - Mass: MUST BE > 0 (physics engine requires mass for dynamics)
 
            EXAMPLE - Surgical Robot Scene:
            - operating_table: STATIC
@@ -419,15 +463,63 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
            - suture_needle: DYNAMIC (held by kinematic arm)
            - forceps: DYNAMIC
 
-        1. SHAPE MAPPING
-           - Flat surfaces (tables, floors, platforms) -> PLATE
-           - Containers (cups, cans, bottles) -> CYLINDER
-           - Boxes (crates, packages, blocks) -> CUBE
-           - Rolling objects (balls, spheres) -> SPHERE
-           - Pointed objects (cones, pyramids) -> CONE or PYRAMID
-           - Robots, humanoids -> CAPSULE
-           - Irregular objects (rocks, debris) -> ICOSAHEDRON
-           - Rings, tires, hoops -> TORUS
+        1. 3D MODEL USAGE (ENTERPRISE GRADE - PRODUCTION QUALITY ONLY!)
+
+           CRITICAL: This is an ENTERPRISE ML training platform. Use REAL 3D models, NOT mock primitives!
+
+           **ROBOTS & VEHICLES (MANDATORY - NEVER USE PRIMITIVES FOR THESE!):**
+
+           CRITICAL: For robots, ALWAYS use appropriate 3D models with type:'mesh', shape:'MODEL':
+
+           **SURGICAL/MEDICAL ROBOTS:**
+           - "Da Vinci surgical robot" / "Surgical robot" / "Medical robot": modelUrl:'/models/surgical_robot_davinci.glb', scale:1.0
+           - NEVER use generic robotic_arm_6axis.glb for surgical robots!
+
+           **INDUSTRIAL ROBOTS:**
+           - "6-axis robot arm" / "Industrial robotic arm" / "Manipulator": modelUrl:'/models/robotic_arm_6axis.glb', scale:1.0
+           - "KUKA robot" / "Heavy duty robot" / "Factory robot": modelUrl:'/models/industrial_robot_arm_kuka.glb', scale:1.0
+           - "Basic robot arm" / "Simple robot" / "Mech arm" / "Demo robot": modelUrl:'/models/basic_robot_arm.glb', scale:2.5
+           - "Collaborative robot" / "Cobot" / "UR5": modelUrl:'/models/collaborative_robot_ur5.glb', scale:1.0
+           - "SCARA robot" / "Pick and place robot": modelUrl:'/models/scara_robot_assembly.glb', scale:1.0
+           - "Delta robot" / "Parallel robot" / "Picker robot": modelUrl:'/models/delta_robot_picker.glb', scale:1.0
+
+           **AERIAL ROBOTS:**
+           - "Drone" / "Quadcopter" / "UAV": modelUrl:'/models/drone_quadcopter.glb', scale:1.0
+
+           **VEHICLES:**
+           - "Buggy" / "Off-road vehicle": modelUrl:'/models/buggy.glb', scale:1.0
+           - "Autonomous vehicle" / "Self-driving car": modelUrl:'/models/autonomous_vehicle.glb', scale:1.0
+           - "Toy car": modelUrl:'/models/toy_car.glb', scale:0.8
+
+           NEVER use primitives (CUBE, CYLINDER, SPHERE) for robots or vehicles!
+
+           **ENVIRONMENTAL OBJECTS (ALWAYS use primitives - NOT 3D models!):**
+           - Floors/ground/surfaces/platforms: shape:'PLATE', type:'primitive' (NEVER modelUrl!)
+           - Tables/workbenches/desks/counters: shape:'PLATE', type:'primitive' (NEVER use vehicle models!)
+           - Walls/barriers/partitions: shape:'CUBE', type:'primitive'
+           - Generic crates/boxes/bins/containers: shape:'CUBE', type:'primitive' (NEVER use buggy.glb!)
+           - Generic cylinders/barrels/tubes: shape:'CYLINDER', type:'primitive'
+           - Generic spheres/balls: shape:'SPHERE', type:'primitive'
+           - Parts/components/pieces to manipulate: shape:'CUBE' or 'CYLINDER', type:'primitive'
+           - Surgical instruments/tools: shape:'CYLINDER', type:'primitive', scale:0.1-0.2
+
+           **SPECIFIC 3D MODELS (use ONLY if prompt specifically names these items):**
+           CRITICAL: Do NOT add gearboxes, saws, or machinery to robot/vehicle scenes!
+           - "Textured cardboard box": modelUrl:'/models/box_textured.glb'
+           - "Water bottle": modelUrl:'/models/water_bottle.glb'
+           - "Lantern": modelUrl:'/models/lantern.glb'
+
+           WARNING: NEVER use these with robots - they cause visual clutter:
+           - "Industrial gearbox" (ONLY if user explicitly requests gearbox): modelUrl:'/models/gearbox.glb'
+           - "Reciprocating saw" (ONLY if user explicitly requests saw): modelUrl:'/models/reciprocating_saw.glb'
+
+           **RULES (CRITICAL FOR PRODUCTION):**
+           - Robots/vehicles MUST use LOCAL .glb models (NOT primitives!)
+           - Simple objects CAN use primitives for performance
+           - NEVER use external URLs (cdn.jsdelivr.net, raw.githubusercontent.com) - ALWAYS use /models/ path
+           - modelUrl field IS supported in schema - use it for robots!
+           - shape:'MODEL' tells renderer to load 3D mesh
+           - type:'mesh' indicates 3D model asset
 
         2. MATERIAL PHYSICS
            WOOD: friction:0.6, restitution:0.3, mass:5, drag:0.05, color:#8B4513
@@ -452,24 +544,38 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
            - "organized" / "grid" -> GRID spawn
            - "explosion" / "burst" -> BLAST spawn
 
-        5. GRAVITY & WIND
+        5. ENVIRONMENTAL FORCES (context-sensitive defaults)
+
            GRAVITY:
-           - Earth (default): {x:0, y:-9.81, z:0}, PHYSICS_GRAVITY
-           - Moon / low gravity: {x:0, y:-1.62, z:0}
-           - Zero-G / space: {x:0, y:0, z:0}, ORBITAL behavior
-           - High gravity: {x:0, y:-15 to -25, z:0}
+           - Earth standard (DEFAULT): {x:0, y:-9.81, z:0}
+           - Moon/Mars (low gravity): {x:0, y:-1.62, z:0}
+           - Space station (zero-g): {x:0, y:0, z:0}
+           - Heavy planet: {x:0, y:-15, z:0}
 
-           WIND:
-           - Calm (default): {x:0, y:0, z:0}
-           - Breeze: {x:3-5, y:0, z:0}
-           - Windy: {x:8-12, y:0, z:0}
-           - Storm: {x:20-30, y:0, z:-5}
+           WIND (context-aware - indoor vs outdoor):
+           - Indoor scenes (surgical, warehouse, factory, office): {x:0, y:0, z:0}
+           - Outdoor calm (vehicles, construction): {x:0, y:0, z:0}
+           - Outdoor light breeze: {x:3, y:0, z:0}
+           - Moderate wind (drone training): {x:8, y:0, z:0}
+           - Strong wind (stress testing): {x:15, y:0, z:0}
+           - Storm conditions (adversarial): {x:25, y:0, z:-5}
 
-        6. SCALE & COUNT
-           - Large static (tables, floors): scale 2-5, count 1-3, mass 20-100 kg
-           - Medium objects (boxes, robots): scale 0.5-2, count 1-15, mass 2-50 kg
-           - Small items (cups, balls): scale 0.2-0.8, count 1-20, mass 0.1-5 kg
-           - Particles (marbles, debris): scale 0.05-0.2, count 20-200, mass 0.01-0.5 kg
+           RULES:
+           - Detect indoor/outdoor from scene type
+           - Use zero wind for controlled environments
+           - Use appropriate wind for outdoor scenarios
+
+        6. SCALE & COUNT (CRITICAL - WRONG SCALE = WRONG OBJECTS!)
+           - Large static (tables, floors, platforms): scale 2-6, count 1-3, mass 50-200 kg
+           - Medium objects (boxes, robots, furniture): scale 0.5-2, count 1-15, mass 2-50 kg
+           - Small items (cups, balls, laptops): scale 0.2-0.5, count 1-20, mass 0.1-5 kg
+           - SURGICAL INSTRUMENTS (scalpels, forceps, needles): scale 0.1-0.2, count 1-10, mass 0.02-0.1 kg
+           - Micro objects (screws, pills, marbles): scale 0.05-0.15, count 10-100, mass 0.01-0.05 kg
+
+           SCALE VALIDATION:
+           - Scalpel should be 0.15 (size of a pen), NOT 1.0 (size of a baseball bat)
+           - Robot arm should be 0.8 (human arm size), NOT 0.2 (toy size)
+           - Operating table should be 2.0 (standard bed), NOT 0.5 (stool size)
            - Mass scales with volume (scale³) and material density
 
         7. COLOR ASSIGNMENT
@@ -493,6 +599,30 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
            - semanticLabel: Specific category (e.g., "coffee_mug", "office_desk")
            - vrRole: 'target'/'tool'/'furniture'/'environment'
 
+        8b. SPATIAL CONSTRAINTS (CRITICAL - PREVENTS FLOATING OBJECTS)
+           EVERY object MUST have a spatialConstraint defining WHERE it's positioned:
+
+           'on_surface': Object sits ON another object (table, floor, shelf)
+           - Use for: instruments on table, laptop on desk, cup on surface, box on floor
+           - MUST include parentGroupId (ID of the surface object)
+           - Set maintainOrientation: true to keep upright
+           - Example: { type: 'on_surface', parentGroupId: 'operating_table', maintainOrientation: true }
+
+           'attached_to': Object is connected/fixed to parent (door hinge, drawer slide)
+           - Use for: doors attached to frames, drawers in cabinet, robot arm on base
+           - MUST include parentGroupId
+           - Example: { type: 'attached_to', parentGroupId: 'robot_base' }
+
+           'none': Object floats freely in space (for zero-gravity or aerial objects)
+           - Use ONLY for: drones, balloons, spacecraft, particles in fluid
+           - Example: { type: 'none' }
+
+           RULES:
+           - Surfaces (floors, tables) use { type: 'none' } (they ARE the reference)
+           - Objects ON surfaces use { type: 'on_surface', parentGroupId: 'surface_id' }
+           - Order matters: Define parent BEFORE children in assetGroups array
+           - NEVER leave spatialConstraint undefined (will cause floating!)
+
         9. JOINTS (for interactive objects: doors, drawers, buttons)
            DOOR (Revolute): type:'REVOLUTE', axis:{x:0,y:1,z:0}, limits:{min:0,max:1.57}
            DRAWER (Prismatic): type:'PRISMATIC', axis:{x:1,y:0,z:0}, limits:{min:0,max:0.5}
@@ -501,24 +631,120 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
            Rules: Parent object before child, joint ID: "{parent}_to_{child}_joint"
 
-        EXAMPLE 1:
-        "conference room with laptops and notebooks"
-        BASE SCENE (MEETING_ROOM):
-        -> floor (PLATE, concrete, scale:6, mass:100, static, GRID, y:0)
-        -> conference_table (PLATE, wood, scale:2.5x0.05x1.2, mass:30, GRID, y:0.4)
-        -> chair (CUBE, plastic, scale:0.4x0.5x0.4, mass:8, count:4, GRID around table)
-        USER OBJECTS:
-        -> laptop (CUBE, metal, scale:0.3x0.02x0.2, mass:2, count:3, GRID on table, y:0.45)
-        -> notebook (CUBE, cardboard, scale:0.2x0.01x0.15, mass:0.3, count:3, GRID on table, y:0.45)
+        EXAMPLE 1: "conference room with laptops and notebooks"
 
-        EXAMPLE 2:
-        "lounge with colorful balls"
-        BASE SCENE (LOUNGE):
-        -> floor (PLATE, wood, scale:6, mass:100, static, GRID, y:0)
-        -> couch (CUBE, fabric, scale:1.5x0.6x0.8, mass:25, count:2, GRID)
-        -> coffee_table (PLATE, wood, scale:1x0.05x0.6, mass:15, GRID, y:0.25)
-        USER OBJECTS:
-        -> ball (SPHERE, rubber, scale:0.15, mass:0.5, restitution:0.85, count:10, PILE on floor)
+        assetGroups: [
+          {
+            id: "floor_1", name: "Concrete Floor", shape: "PLATE", scale: 6,
+            rigidBodyType: "STATIC", mass: 100, color: "#696969",
+            spatialConstraint: { type: "none" }  // Floors don't sit on anything
+          },
+          {
+            id: "table_1", name: "Conference Table", shape: "PLATE", scale: 2.5,
+            rigidBodyType: "STATIC", mass: 30, color: "#8B4513",
+            spatialConstraint: { type: "on_surface", parentGroupId: "floor_1" }
+          },
+          {
+            id: "laptop_1", name: "Laptop", shape: "CUBE", scale: 0.3,
+            rigidBodyType: "DYNAMIC", mass: 2, color: "#C0C0C0",
+            spatialConstraint: { type: "on_surface", parentGroupId: "table_1", maintainOrientation: true }
+          },
+          {
+            id: "notebook_1", name: "Notebook", shape: "CUBE", scale: 0.2,
+            rigidBodyType: "DYNAMIC", mass: 0.3, color: "#FFFFFF",
+            spatialConstraint: { type: "on_surface", parentGroupId: "table_1", maintainOrientation: true }
+          }
+        ]
+
+        EXAMPLE 2: "surgical robot picks up scalpel" (REAL 3D MODEL + ANIMATION)
+
+        assetGroups: [
+          {
+            id: "operating_table", name: "Operating Table", shape: "PLATE", scale: 2,
+            rigidBodyType: "STATIC", mass: 150, color: "#C0C0C0",
+            spatialConstraint: { type: "none" }
+          },
+          {
+            id: "robot_arm", name: "Surgical Robot", shape: "MODEL", scale: 1.0,
+            rigidBodyType: "KINEMATIC", mass: 20, color: "#4A90E2",
+            spatialConstraint: { type: "attached_to", parentGroupId: "operating_table" },
+            modelUrl: "/models/robotic_arm_6axis.glb"  // REAL 6-axis industrial robot arm!
+          },
+          {
+            id: "scalpel_1", name: "Surgical Scalpel", shape: "CYLINDER", scale: 0.15,
+            rigidBodyType: "DYNAMIC", mass: 0.05, color: "#E0E0E0",
+            spatialConstraint: { type: "on_surface", parentGroupId: "operating_table", maintainOrientation: true }
+          }
+        ],
+        behaviors: [
+          {
+            id: "pickup_scalpel_sequence",
+            name: "Surgical Pickup Task",
+            description: "Robot approaches scalpel, grasps it, lifts up",
+            targetObjectId: "robot_arm",
+            loop: false,
+            actions: [
+              { type: "MOVE_TO", duration: 2.0, position: {x: 0.5, y: 0, z: 0} },
+              { type: "GRASP", duration: 0.5, target: "scalpel_1" },
+              { type: "MOVE_TO", duration: 2.0, position: {x: 0.5, y: 1.0, z: 0} },
+              { type: "WAIT", duration: 1.0 }
+            ]
+          }
+        ]
+
+        10. ACTIONS & BEHAVIORS (CRITICAL FOR SIMULATION PLATFORM)
+            Extract ACTION SEQUENCES from the user's prompt:
+
+            ACTION VERBS TO DETECT:
+            - "pick up" / "grasp" / "grab" -> type: GRASP
+            - "drop" / "release" / "let go" -> type: RELEASE
+            - "move to" / "go to" / "navigate to" -> type: MOVE_TO
+            - "follow path" / "drive along" / "fly through" -> type: FOLLOW_PATH
+            - "rotate" / "turn" / "spin" -> type: ROTATE
+            - "wait" / "pause" / "hold" -> type: WAIT
+
+            EXAMPLE PROMPTS WITH ACTIONS:
+            "surgical robot picks up scalpel" ->
+              behavior: { id: "surgical_pickup", targetObjectId: "surgical_robot", actions: [
+                { type: "MOVE_TO", duration: 2.0, position: {x: scalpel.x, y: scalpel.y, z: scalpel.z} },
+                { type: "GRASP", duration: 0.5, target: "scalpel" },
+                { type: "MOVE_TO", duration: 2.0, position: {x: 0, y: 2, z: 0} }
+              ]}
+
+            "drone flies forward and lands" ->
+              behavior: { id: "drone_flight", targetObjectId: "drone", actions: [
+                { type: "MOVE_TO", duration: 3.0, position: {x: 5, y: 3, z: 0} },
+                { type: "WAIT", duration: 1.0 },
+                { type: "MOVE_TO", duration: 2.0, position: {x: 5, y: 0.5, z: 0} }
+              ]}
+
+            "robot arm moves left" ->
+              behavior: { id: "move_left", targetObjectId: "robot_arm", actions: [
+                { type: "MOVE_TO", duration: 1.5, position: {x: -2, y: current.y, z: current.z} }
+              ]}
+
+            RULES FOR BEHAVIOR GENERATION (MANDATORY FOR PRODUCTION!):
+            - IF scene has ANY robot/vehicle → behaviors array is MANDATORY!
+            - IF prompt has action verbs (pick, move, grasp) → MUST generate behaviors
+            - IF scene has robots but NO action verbs → generate default demonstration behavior (robot waves, moves, etc.)
+            - targetObjectId MUST match a KINEMATIC object in assetGroups (robots, vehicles, arms)
+            - KINEMATIC objects are the actors that perform behaviors
+            - Action durations: GRASP/RELEASE=0.5s, MOVE_TO=1-3s, FOLLOW_PATH=2-5s, WAIT=0.5-2s
+            - For MOVE_TO, calculate realistic positions based on scene layout
+            - For FOLLOW_PATH, generate 3-5 waypoint positions
+            - Set loop:false for one-time tasks, loop:true for repetitive cycles
+            - Multiple behaviors can run simultaneously (e.g., two robots working together)
+
+            CRITICAL VALIDATION:
+            - Robot scenes with NO behaviors will be REJECTED!
+            - This is a SIMULATION platform, not a static scene viewer
+            - Every robot must DO something (even if just demonstration movement)
+
+            PRIORITY ORDER:
+            1. DETECT robots/vehicles in scene requirements
+            2. GENERATE behaviors array for those robots
+            3. THEN generate assetGroups with KINEMATIC robots
+            4. Ensure every KINEMATIC object has at least one behavior
 
         CRITICAL RULES:
         - ALWAYS generate complete scene: BASE ENVIRONMENT + USER OBJECTS
@@ -528,6 +754,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
         - Foundation objects (floors, tables) must have y:0 or appropriate elevation
         - Use realistic physics values from material science
         - Only create joints array when interactive objects present
+        - Extract behaviors if prompt contains action verbs, otherwise return empty array
 
         Return strictly valid JSON matching the schema.`,
         config: {
@@ -556,13 +783,27 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                     color: { type: Type.STRING },
                     spawnMode: { type: Type.STRING, enum: Object.values(SpawnMode) },
                     scale: { type: Type.NUMBER },
-                    rigidBodyType: { type: Type.STRING, enum: Object.values(RigidBodyType) },
+                    rigidBodyType: { type: Type.STRING, enum: Object.values(RigidBodyType), description: "STATIC for immovable objects (floors, walls, tables), KINEMATIC for animated objects (robots), DYNAMIC for physics-driven objects" },
                     mass: { type: Type.NUMBER },
                     restitution: { type: Type.NUMBER },
                     friction: { type: Type.NUMBER },
                     drag: { type: Type.NUMBER },
+                    spatialConstraint: {
+                      type: Type.OBJECT,
+                      description: "CRITICAL: Defines WHERE object is positioned. Objects on tables/floors MUST have 'on_surface' constraint",
+                      properties: {
+                        type: { type: Type.STRING, enum: ['on_surface', 'attached_to', 'inside', 'none'], description: "Use 'on_surface' for objects ON tables/floors, 'attached_to' for connected parts, 'none' for floating" },
+                        parentGroupId: { type: Type.STRING, description: "ID of surface/parent object (required for on_surface and attached_to)" },
+                        maintainOrientation: { type: Type.BOOLEAN, description: "Keep object upright (true for cups, bottles, instruments)" }
+                      },
+                      required: ["type"]
                     },
-                    required: ["id", "name", "count", "shape", "color", "spawnMode", "scale", "mass", "restitution", "friction", "drag"]
+                    modelUrl: {
+                      type: Type.STRING,
+                      description: "REQUIRED for robots/vehicles: Path to LOCAL 3D model. Use /models/surgical_robot_davinci.glb, /models/robotic_arm_6axis.glb, /models/autonomous_vehicle.glb, or /models/drone_quadcopter.glb. NEVER use external URLs!"
+                    },
+                    },
+                    required: ["id", "name", "count", "shape", "color", "spawnMode", "scale", "rigidBodyType", "mass", "restitution", "friction", "drag", "spatialConstraint"]
                 }
                 },
                 joints: {
@@ -608,6 +849,47 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                     required: ["id", "type", "parentGroupId", "childGroupId", "parentAnchor", "childAnchor", "axis"]
                 }
                 },
+                behaviors: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                    id: { type: Type.STRING },
+                    name: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    targetObjectId: { type: Type.STRING },
+                    loop: { type: Type.BOOLEAN },
+                    actions: {
+                        type: Type.ARRAY,
+                        items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: ['MOVE_TO', 'GRASP', 'RELEASE', 'FOLLOW_PATH', 'ROTATE', 'WAIT'] },
+                            duration: { type: Type.NUMBER },
+                            target: { type: Type.STRING },
+                            position: {
+                            type: Type.OBJECT,
+                            properties: { x: { type: Type.NUMBER }, y: { type: Type.NUMBER }, z: { type: Type.NUMBER } },
+                            },
+                            rotation: {
+                            type: Type.OBJECT,
+                            properties: { x: { type: Type.NUMBER }, y: { type: Type.NUMBER }, z: { type: Type.NUMBER } },
+                            },
+                            path: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: { x: { type: Type.NUMBER }, y: { type: Type.NUMBER }, z: { type: Type.NUMBER } },
+                            }
+                            },
+                        },
+                        required: ["type", "duration"]
+                        }
+                    }
+                    },
+                    required: ["id", "name", "description", "targetObjectId", "loop", "actions"]
+                }
+                },
                 explanation: { type: Type.STRING },
             },
             required: ["movementBehavior", "gravity", "wind", "assetGroups", "explanation"],
@@ -637,12 +919,11 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
           // Try to find a 3D model for this object
-          const modelUrl = findModelForObject(group.name, group.id);
+          const modelInfo = findModelForObject(group.name, group.id);
 
-          if (modelUrl) {
+          if (modelInfo) {
             // Found a 3D model! Use it instead of geometric primitive
-            const modelScale = getModelScale(modelUrl);
-            console.log(`[GeminiService] [OK] Using 3D model for "${group.name}": ${modelUrl}`);
+            console.log(`[GeminiService] [OK] Using 3D model for "${group.name}": ${modelInfo.modelUrl} (scale: ${modelInfo.scale})`);
 
             // Add domain randomization to material properties (±20%)
             const materialVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
@@ -650,8 +931,8 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
             return {
               ...group,
               shape: ShapeType.MODEL, // Switch from geometric primitive to MODEL
-              modelUrl: modelUrl,
-              scale: modelScale * group.scale, // Combine AI scale with model-specific scale
+              modelUrl: modelInfo.modelUrl,
+              scale: modelInfo.scale * (group.scale || 1.0), // Combine AI scale with model-specific scale
               // Domain randomization: vary material properties for training diversity
               restitution: Math.max(0.1, Math.min(0.95, group.restitution * materialVariation)),
               friction: Math.max(0.1, Math.min(0.95, group.friction * materialVariation)),
@@ -669,13 +950,27 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
           }
         });
 
-        // POST-PROCESSING #2: Set default rigidBodyType if missing
+        // POST-PROCESSING #2: Set defaults for rigidBodyType and spawnMode if missing
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
+          const updates: Partial<AssetGroup> = {};
+
+          // Default rigidBodyType
           if (!group.rigidBodyType) {
-            // Default to DYNAMIC for backward compatibility
-            return { ...group, rigidBodyType: RigidBodyType.DYNAMIC };
+            updates.rigidBodyType = RigidBodyType.DYNAMIC;
           }
-          return group;
+
+          // Default spawnMode (CRITICAL: prevents undefined spawnMode)
+          if (!group.spawnMode) {
+            // Single objects with specific positions should use GRID
+            if (group.count === 1) {
+              updates.spawnMode = SpawnMode.GRID;
+            } else {
+              // Multiple objects default to PILE (realistic grouping)
+              updates.spawnMode = SpawnMode.PILE;
+            }
+          }
+
+          return Object.keys(updates).length > 0 ? { ...group, ...updates } : group;
         });
 
         // POST-PROCESSING #3: Apply spatial positioning (P0 CRITICAL FIX)
@@ -791,8 +1086,9 @@ export const generateCreativePrompt = async (): Promise<string> => {
         // We retry once for creative prompts to handle transient 500/503s or empty responses
         return await withRetry(async () => {
             const ai = getAI();
+            const modelName = getModelForTask('creative');
             const response = await ai.models.generateContent({
-                model: getModelForTask('creative'),
+                model: modelName,
                 contents: `Generate a single, creative scene prompt for a social VR physics simulation engine called SnapLock.
 
                 Scene Template Options:
@@ -976,8 +1272,8 @@ export const generateRealityImage = async (base64Image: string, prompt: string):
         `;
 
         // High Fidelity Image Generation Model
-        const response = await ai.models.generateContent({
-        model: "gemini-3-pro-image-preview",
+        const model = ai.getGenerativeModel({ model: "gemini-3-pro-image-preview" });
+        const response = await model.generateContent({
         contents: {
             parts: [
             { text: aiPrompt },
@@ -1138,9 +1434,10 @@ export const analyzeSceneStability = async (base64Image: string): Promise<Advers
         Return strictly valid JSON matching the schema.
         `;
 
-        // Use best vision model for adversarial scene analysis (Gemini 3 Pro)
+        // Use best vision model for adversarial scene analysis
+        const modelName = getModelForTask('vision');
         const response = await ai.models.generateContent({
-        model: getModelForTask('vision'),
+        model: modelName,
         contents: {
             parts: [
             { text: systemPrompt },
@@ -1219,11 +1516,11 @@ export const generateSimulationReport = async (params: PhysicsParams, telemetry:
 
         return await withRetry(async () => {
             const ai = getAI();
-            const model = getModelForTask('reasoning');
-            console.log("[Report] Using model:", model);
+            const modelName = getModelForTask('reasoning');
+            console.log("[Report] Using model:", modelName);
 
             const response = await ai.models.generateContent({
-                model,
+                model: modelName,
                 contents: `Generate a professional Technical Simulation Report (HTML format) based on the following JSON data context.
 
                 DATA CONTEXT: ${dataContext}

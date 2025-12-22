@@ -233,13 +233,25 @@ export class PhysicsEngine {
         for (let i = structure.start; i < structure.end; i++) {
           const i3 = i * 3;
 
-          // Determine body type based on movement behavior
-          const bodyType = this.getBodyType(params.movementBehavior);
-
-          // Create rigid body
-          const bodyDesc = bodyType === 'dynamic'
-            ? RAPIER.RigidBodyDesc.dynamic()
-            : RAPIER.RigidBodyDesc.kinematicPositionBased();
+          // Determine body type - use individual rigidBodyType if specified, otherwise fall back to global movementBehavior
+          let bodyDesc: RAPIER.RigidBodyDesc;
+          if (group.rigidBodyType === 'KINEMATIC') {
+            bodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased();
+            console.log(`[PhysicsEngine] Creating KINEMATIC body for '${group.id}'`);
+          } else if (group.rigidBodyType === 'STATIC') {
+            bodyDesc = RAPIER.RigidBodyDesc.fixed();
+            console.log(`[PhysicsEngine] Creating STATIC body for '${group.id}'`);
+          } else if (group.rigidBodyType === 'DYNAMIC') {
+            bodyDesc = RAPIER.RigidBodyDesc.dynamic();
+            console.log(`[PhysicsEngine] Creating DYNAMIC body for '${group.id}'`);
+          } else {
+            // Fall back to global movement behavior if rigidBodyType not specified
+            const bodyType = this.getBodyType(params.movementBehavior);
+            bodyDesc = bodyType === 'dynamic'
+              ? RAPIER.RigidBodyDesc.dynamic()
+              : RAPIER.RigidBodyDesc.kinematicPositionBased();
+            console.log(`[PhysicsEngine] Creating ${bodyType.toUpperCase()} body for '${group.id}' (fallback from movementBehavior)`);
+          }
 
           bodyDesc.setTranslation(positions[i3], positions[i3 + 1], positions[i3 + 2]);
           bodyDesc.setRotation({
@@ -249,7 +261,8 @@ export class PhysicsEngine {
             w: 1
           });
 
-          if (bodyType === 'dynamic') {
+          // Only set velocity and damping for dynamic bodies
+          if (group.rigidBodyType === 'DYNAMIC' || (!group.rigidBodyType && this.getBodyType(params.movementBehavior) === 'dynamic')) {
             bodyDesc.setLinvel(velocities[i3], velocities[i3 + 1], velocities[i3 + 2]);
             bodyDesc.setLinearDamping(group.drag * 2.0);
             bodyDesc.setAngularDamping(group.drag * 3.0);

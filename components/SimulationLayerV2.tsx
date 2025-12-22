@@ -671,10 +671,13 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
           console.log(`[SimulationLayerV2] Registered behavior: ${behavior.name}`);
         });
 
-        // Auto-start first behavior
+        // Auto-start first behavior with robot's initial position
         const firstBehavior = rawParams.scene.behaviors[0];
-        animationEngineRef.current!.startBehavior(firstBehavior.id);
-        console.log(`[SimulationLayerV2] ✨ Started behavior: ${firstBehavior.name}`);
+        const robotObj = rawParams.scene.objects.find(obj => obj.id === firstBehavior.targetObjectId);
+        const initialPos = robotObj ? robotObj.position : undefined;
+
+        animationEngineRef.current!.startBehavior(firstBehavior.id, initialPos);
+        console.log(`[SimulationLayerV2] Started behavior: ${firstBehavior.name} for object at position:`, initialPos);
       }
     }
 

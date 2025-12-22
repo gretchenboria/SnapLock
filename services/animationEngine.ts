@@ -63,7 +63,7 @@ export class AnimationEngine {
   /**
    * Start executing a behavior sequence
    */
-  startBehavior(behaviorId: string): boolean {
+  startBehavior(behaviorId: string, initialPosition?: Vector3Data): boolean {
     const behavior = this.behaviors.get(behaviorId);
     if (!behavior) {
       console.warn(`[AnimationEngine] Behavior not found: ${behaviorId}`);
@@ -77,9 +77,14 @@ export class AnimationEngine {
         actionStartTime: 0,
         elapsedTime: 0
       });
+
+      // Store initial position for interpolation
+      if (initialPosition) {
+        this.behaviorPositions.set(behavior.targetObjectId, initialPosition);
+      }
     }
     this.state.isPlaying = true;
-    console.log(`[AnimationEngine] Starting behavior: ${behavior.name}`);
+    console.log(`[AnimationEngine] Starting behavior: ${behavior.name} with initial pos:`, initialPosition);
     return true;
   }
 
@@ -248,6 +253,9 @@ export class AnimationEngine {
     return null;
   }
 
+  // Track previous positions for interpolation
+  private behaviorPositions: Map<string, Vector3Data> = new Map();
+
   /**
    * Update a behavior sequence
    */
@@ -265,6 +273,11 @@ export class AnimationEngine {
 
     // Check if action completed
     if (state.elapsedTime >= action.duration) {
+      // Store final position before moving to next action
+      if (action.type === ActionType.MOVE_TO && action.position) {
+        this.behaviorPositions.set(behavior.targetObjectId, action.position);
+      }
+
       state.currentActionIndex++;
       state.elapsedTime = 0;
       state.actionStartTime = this.state.currentTime;
@@ -278,16 +291,29 @@ export class AnimationEngine {
 
     // Execute current action
     const progress = state.elapsedTime / action.duration;
-    return this.executeAction(action, progress);
+    return this.executeAction(behavior.targetObjectId, action, progress);
   }
 
   /**
    * Execute a single action at given progress (0-1)
    */
-  private executeAction(action: Action, progress: number): { position?: Vector3Data; rotation?: Vector3Data } | null {
+  private executeAction(objectId: string, action: Action, progress: number): { position?: Vector3Data; rotation?: Vector3Data } | null {
     switch (action.type) {
       case ActionType.MOVE_TO:
-        return action.position ? { position: action.position } : null;
+        if (action.position) {
+          // Get starting position (previous action's end position or initial position)
+          const startPos = this.behaviorPositions.get(objectId) || action.position;
+
+          // Interpolate from start to target
+          const currentPos = this.interpolateVector(startPos, action.position, progress, 'cubic');
+
+          if (progress < 0.05) {
+            console.log(`[AnimationEngine] MOVE_TO ${objectId}: progress=${progress.toFixed(3)}, from=(${startPos.x.toFixed(2)}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) to=(${action.position.x.toFixed(2)}, ${action.position.y.toFixed(2)}, ${action.position.z.toFixed(2)})`);
+          }
+
+          return { position: currentPos };
+        }
+        return null;
 
       case ActionType.ROTATE_TO:
         return action.rotation ? { rotation: action.rotation } : null;

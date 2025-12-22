@@ -16,13 +16,12 @@ import { createPickupScalpelBehavior, createSuturingBehavior } from './robotBeha
 export function createSurgicalScene(): Scene {
   const scene: Scene = { objects: [], instancedGroups: [] };
 
-  // Operating table (static) - Using minimalistic bedroom as table substitute
+  // Work platform (static)
   scene.objects.push({
-    id: 'operating_table',
-    name: 'Operating Table',
-    type: 'mesh',
-    shape: ShapeType.MODEL,
-    modelUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/SheenChair.glb',
+    id: 'platform',
+    name: 'Platform',
+    type: 'primitive',
+    shape: ShapeType.CUBE,
     scale: { x: 3.0, y: 0.1, z: 2.0 },
     color: '#E0E0E0',
     rigidBodyType: RigidBodyType.STATIC,
@@ -31,7 +30,7 @@ export function createSurgicalScene(): Scene {
     friction: 0.8,
     drag: 0.05,
     position: { x: 0, y: -0.5, z: 0 },
-    semanticLabel: 'operating_table',
+    semanticLabel: 'platform',
     affordances: { graspable: false, manipulable: false, interactive: false }
   });
 
@@ -40,11 +39,11 @@ export function createSurgicalScene(): Scene {
     id: 'surgical_robot_arm',
     name: 'Surgical Robot Arm',
     type: 'mesh',
-    shape: ShapeType.MODEL, // ← CRITICAL: Tells renderer to load GLB!
+    shape: ShapeType.MODEL,
     modelUrl: '/models/surgical_robot_davinci.glb',
     scale: 1.0,
     color: '#4A90E2',
-    rigidBodyType: RigidBodyType.KINEMATIC, // ANIMATED!
+    rigidBodyType: RigidBodyType.KINEMATIC,
     mass: 5,
     restitution: 0.3,
     friction: 0.5,
@@ -55,58 +54,40 @@ export function createSurgicalScene(): Scene {
     affordances: { graspable: false, manipulable: false, interactive: true }
   });
 
-  // Surgical instruments (graspable, dynamic) - Realistic 3D models
-  const instruments = [
-    {
-      name: 'Scalpel',
-      pos: { x: 1.0, y: 0.5, z: 0.5 },
-      color: '#FFD700',
-      modelUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/WaterBottle/glTF-Binary/WaterBottle.glb', // Medical instrument
-      scale: 0.15
-    },
-    {
-      name: 'Forceps',
-      pos: { x: 1.5, y: 0.5, z: 0.8 },
-      color: '#C0C0C0',
-      modelUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Lantern/glTF-Binary/Lantern.glb', // Medical instrument
-      scale: 0.15
-    },
-    {
-      name: 'Clamp',
-      pos: { x: 2.0, y: 0.5, z: 0.3 },
-      color: '#A0A0A0',
-      modelUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/coffeeMug.glb', // Medical instrument
-      scale: 0.15
-    }
+  // Simple blocks for manipulation (no weird models)
+  const blocks = [
+    { name: 'Block 1', pos: { x: 1.0, y: 0.1, z: 0.5 }, color: '#FF6B6B' },
+    { name: 'Block 2', pos: { x: 1.5, y: 0.1, z: 0.8 }, color: '#4ECDC4' },
+    { name: 'Block 3', pos: { x: 2.0, y: 0.1, z: 0.3 }, color: '#95E1D3' }
   ];
 
-  instruments.forEach((inst, i) => {
+  blocks.forEach((block, i) => {
     scene.objects.push({
-      id: `instrument_${i}`,
-      name: inst.name,
-      type: 'mesh',
-      modelUrl: inst.modelUrl,
-      scale: inst.scale,
-      color: inst.color,
+      id: `block_${i}`,
+      name: block.name,
+      type: 'primitive',
+      shape: ShapeType.CUBE,
+      scale: { x: 0.15, y: 0.15, z: 0.15 },
+      color: block.color,
       rigidBodyType: RigidBodyType.DYNAMIC,
       mass: 0.1,
       restitution: 0.3,
       friction: 0.7,
       drag: 0.05,
-      position: inst.pos, // Above table surface (y=0.3)
+      position: block.pos,
       rotation: { x: 0, y: 0, z: 0 },
-      semanticLabel: `surgical_${inst.name.toLowerCase()}`,
+      semanticLabel: 'block',
       affordances: { graspable: true, manipulable: true, interactive: false }
     });
   });
 
   // Add animated behaviors for the surgical robot
   scene.behaviors = [
-    createPickupScalpelBehavior('surgical_robot_arm', 'instrument_0'), // Pick up first instrument (scalpel)
-    createSuturingBehavior('surgical_robot_arm') // Suturing motion
+    createPickupScalpelBehavior('surgical_robot_arm', 'block_0'),
+    createSuturingBehavior('surgical_robot_arm')
   ];
 
-  console.log('[Surgical Scene] Created with 2 animated behaviors');
+  console.log('[Surgical Scene] Created with robot and blocks, 2 behaviors');
 
   return scene;
 }

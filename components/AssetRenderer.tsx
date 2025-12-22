@@ -221,8 +221,12 @@ const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }
 export const AssetRenderer: React.FC<AssetRendererProps> = (props) => {
     // Conditional Rendering: Only mount ModelAsset if modelUrl is present.
     // This ensures useGLTF inside ModelAsset is always called with a valid URL.
+    console.log(`[AssetRenderer] Rendering ${props.group.name}: shape=${props.group.shape}, modelUrl=${props.group.modelUrl}`);
+
     if (props.group.shape === ShapeType.MODEL && props.group.modelUrl) {
+        console.log(`[AssetRenderer] Loading GLB model for ${props.group.name}`);
         return <ModelAsset {...props} />;
     }
+    console.log(`[AssetRenderer] Using primitive geometry for ${props.group.name}`);
     return <PrimitiveAsset {...props} />;
 };

@@ -221,7 +221,27 @@ const Material = ({ group, viewMode }: { group: AssetGroup, viewMode: ViewMode }
 export const AssetRenderer: React.FC<AssetRendererProps> = (props) => {
     // Conditional Rendering: Only mount ModelAsset if modelUrl is present.
     // This ensures useGLTF inside ModelAsset is always called with a valid URL.
-    console.log(`[AssetRenderer] Rendering ${props.group.name}: shape=${props.group.shape}, modelUrl=${props.group.modelUrl}`);
+    console.error(`[AssetRenderer] 🔍 Rendering "${props.group.name}": shape=${props.group.shape}, modelUrl="${props.group.modelUrl}", id="${props.group.id}"`);
+
+    // EMERGENCY: Force drone detection
+    const lowerName = (props.group.name || '').toLowerCase();
+    const lowerId = (props.group.id || '').toLowerCase();
+    const isDrone = lowerName.includes('drone') || lowerName.includes('quadcopter') || lowerName.includes('uav') ||
+                    lowerId.includes('drone') || lowerId.includes('quadcopter') || lowerId.includes('uav');
+
+    if (isDrone) {
+        console.error(`[AssetRenderer] 🚨 DRONE DETECTED! Forcing model load for "${props.group.name}"`);
+        // Force override to MODEL shape
+        const overriddenProps = {
+            ...props,
+            group: {
+                ...props.group,
+                shape: ShapeType.MODEL,
+                modelUrl: props.group.modelUrl || '/models/drone_quadcopter.glb'
+            }
+        };
+        return <ModelAsset {...overriddenProps} />;
+    }
 
     if (props.group.shape === ShapeType.MODEL && props.group.modelUrl) {
         console.log(`[AssetRenderer] Loading GLB model for ${props.group.name}`);

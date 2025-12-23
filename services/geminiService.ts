@@ -208,15 +208,15 @@ async function generateFallbackScene(prompt: string): Promise<AnalysisResponse> 
       count: 1,
       shape: ShapeType.MODEL,
       modelUrl: '/models/drone_quadcopter.glb',
-      color: '#000000',
+      color: '#FFFFFF',  // WHITE for visibility (model has its own materials)
       spawnMode: SpawnMode.FLOAT,
-      scale: 1.0,
+      scale: 1.5,  // Larger so it's visible
       rigidBodyType: RigidBodyType.KINEMATIC,
       mass: 2.5,
       restitution: 0.4,
       friction: 0.3,
       drag: 0.05,
-      spawnPosition: { x: 0, y: 3, z: 0 }
+      spawnPosition: { x: 0, y: 2.5, z: 0 }  // Lower, more centered
     });
   }
 
@@ -1136,30 +1136,30 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                 actions: [
                   {
                     type: ActionType.MOVE_TO,
-                    duration: 3.0,
-                    position: { x: 0, y: 3, z: 0 }
+                    duration: 8.0,  // SLOW movement - 8 seconds
+                    position: { x: 0, y: 2.5, z: 0 }  // Center position
                   },
                   {
                     type: ActionType.WAIT,
-                    duration: 1.0
+                    duration: 2.0
                   },
                   {
                     type: ActionType.MOVE_TO,
-                    duration: 3.0,
-                    position: { x: 1, y: 3.5, z: 0.5 }
+                    duration: 8.0,
+                    position: { x: 0.3, y: 2.7, z: 0.2 }  // Small movement - stay visible
                   },
                   {
                     type: ActionType.WAIT,
-                    duration: 1.0
+                    duration: 2.0
                   },
                   {
                     type: ActionType.MOVE_TO,
-                    duration: 3.0,
-                    position: { x: -1, y: 3.2, z: -0.5 }
+                    duration: 8.0,
+                    position: { x: -0.3, y: 2.6, z: -0.2 }  // Small movement
                   },
                   {
                     type: ActionType.WAIT,
-                    duration: 1.0
+                    duration: 2.0
                   }
                 ]
               });

@@ -260,12 +260,27 @@ export class PhysicsEngine {
           }
 
           bodyDesc.setTranslation(positions[i3], positions[i3 + 1], positions[i3 + 2]);
-          bodyDesc.setRotation({
-            x: 0,
-            y: 0,
-            z: 0,
-            w: 1
-          });
+
+          // Apply initial rotation if specified (Euler to quaternion conversion)
+          if (group.rotation) {
+            const euler = group.rotation;
+            // Convert Euler angles (XYZ order) to quaternion
+            const cy = Math.cos(euler.z * 0.5);
+            const sy = Math.sin(euler.z * 0.5);
+            const cp = Math.cos(euler.y * 0.5);
+            const sp = Math.sin(euler.y * 0.5);
+            const cr = Math.cos(euler.x * 0.5);
+            const sr = Math.sin(euler.x * 0.5);
+
+            const qw = cr * cp * cy + sr * sp * sy;
+            const qx = sr * cp * cy - cr * sp * sy;
+            const qy = cr * sp * cy + sr * cp * sy;
+            const qz = cr * cp * sy - sr * sp * cy;
+
+            bodyDesc.setRotation({ x: qx, y: qy, z: qz, w: qw });
+          } else {
+            bodyDesc.setRotation({ x: 0, y: 0, z: 0, w: 1 });
+          }
 
           // Only set velocity and damping for dynamic bodies
           if (group.rigidBodyType === 'DYNAMIC' || (!group.rigidBodyType && this.getBodyType(params.movementBehavior) === 'dynamic')) {

@@ -211,13 +211,14 @@ async function generateFallbackScene(prompt: string): Promise<AnalysisResponse> 
       modelUrl: '/models/drone_quadcopter.glb',
       color: '#FFFFFF',  // WHITE for visibility (model has its own materials)
       spawnMode: SpawnMode.FLOAT,
-      scale: 0.2,  // Scaled for 10MB high-detail model
+      scale: 0.08,  // Smaller scale for 10MB high-detail model
       rigidBodyType: RigidBodyType.KINEMATIC,
       mass: 2.5,
       restitution: 0.4,
       friction: 0.3,
       drag: 0.05,
-      spawnPosition: { x: 0, y: 1.5, z: 0 }  // Hovering at visible height
+      spawnPosition: { x: 0, y: 1.5, z: 0 },  // Hovering at visible height
+      rotation: { x: Math.PI / 2, y: 0, z: 0 }  // Rotate 90 degrees to horizontal
     });
   }
 
@@ -1111,10 +1112,11 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
               droneObj.shape = ShapeType.MODEL;
               droneObj.modelUrl = '/models/drone_quadcopter.glb';
               droneObj.rigidBodyType = RigidBodyType.KINEMATIC;
-              droneObj.scale = 0.2;  // Scaled for 10MB high-detail model
+              droneObj.scale = 0.08;  // Smaller scale for 10MB high-detail model
               droneObj.color = '#FFFFFF';  // White for visibility
               droneObj.mass = 2.5;
               droneObj.spawnPosition = { x: 0, y: 1.5, z: 0 }; // Hovering height, centered
+              droneObj.rotation = { x: Math.PI / 2, y: 0, z: 0 };  // Rotate to horizontal
             } else {
               console.error('[GeminiService] 🚨 AUTO-FIX: NO SUSPECT OBJECTS - Adding drone from scratch');
               aiResponse.assetGroups.push({
@@ -1125,14 +1127,15 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                 modelUrl: '/models/drone_quadcopter.glb',
                 color: '#FFFFFF',  // WHITE for visibility
                 spawnMode: SpawnMode.GRID,
-                scale: 0.2,  // Scaled for 10MB high-detail model
+                scale: 0.08,  // Smaller scale for 10MB high-detail model
                 rigidBodyType: RigidBodyType.KINEMATIC,
                 mass: 2.5,
                 restitution: 0.3,
                 friction: 0.4,
                 drag: 0.1,
                 spatialConstraint: { type: 'none' },
-                spawnPosition: { x: 0, y: 1.5, z: 0 }  // Hovering at visible height
+                spawnPosition: { x: 0, y: 1.5, z: 0 },  // Hovering at visible height
+                rotation: { x: Math.PI / 2, y: 0, z: 0 }  // Rotate to horizontal
               } as AssetGroup);
             }
 

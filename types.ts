@@ -123,6 +123,9 @@ export interface AssetGroup {
 
   // P0 CRITICAL FIX: Calculated spawn position from spatial positioning service
   spawnPosition?: Vector3Data;    // Initial position calculated from spatial constraints
+
+  // Initial rotation (Euler angles in radians)
+  rotation?: Vector3Data;         // Initial rotation for model orientation correction
 }
 
 // --- HYBRID SCENE ARCHITECTURE FOR ML TRAINING DATA ---

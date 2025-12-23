@@ -1632,6 +1632,120 @@ export const generateSimulationReport = async (params: PhysicsParams, telemetry:
     } catch (error) {
         console.error("[Report] Generation error:", error);
         const errorMessage = error instanceof Error ? error.message : String(error);
-        return `<h1>Error Generating Report</h1><p>${errorMessage}</p><p>Please check the browser console for details.</p>`;
+
+        // FALLBACK: Generate basic report client-side if API fails
+        console.log("[Report] Falling back to client-side report generation");
+        return generateFallbackReport(params, telemetry, errorMessage);
     }
 };
+
+/**
+ * Generate a basic HTML report client-side when AI generation fails
+ */
+function generateFallbackReport(params: PhysicsParams, telemetry: TelemetryData, errorMessage: string): string {
+    const timestamp = new Date().toISOString();
+    const assetGroupRows = params.assetGroups.map(group =>
+        `<tr>
+            <td style="padding: 8px; border: 1px solid #ddd;">${group.name}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${group.count}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${group.shape}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${group.rigidBodyType}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${group.mass.toFixed(2)} kg</td>
+        </tr>`
+    ).join('');
+
+    const stabilityStatus = telemetry.stabilityScore < 0.1 ? 'STABLE' :
+                           telemetry.stabilityScore > 2.0 ? 'CHAOTIC' : 'DYNAMIC';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SnapLock Simulation Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1 { color: #2563eb; border-bottom: 3px solid #2563eb; padding-bottom: 10px; }
+        h2 { color: #1e40af; margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th { background-color: #2563eb; color: white; padding: 10px; text-align: left; }
+        td { padding: 8px; border: 1px solid #ddd; }
+        .metric { background-color: #f3f4f6; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .warning { background-color: #fef3c7; padding: 10px; border-left: 4px solid #f59e0b; margin: 20px 0; }
+        .status-${stabilityStatus.toLowerCase()} {
+            font-weight: bold;
+            color: ${stabilityStatus === 'STABLE' ? '#059669' : stabilityStatus === 'CHAOTIC' ? '#dc2626' : '#f59e0b'};
+        }
+    </style>
+</head>
+<body>
+    <h1>SNAPLOCK // SIMULATION AUDIT REPORT</h1>
+    <p><strong>Generated:</strong> ${timestamp}</p>
+    <p><strong>Mode:</strong> Fallback Report (AI generation unavailable)</p>
+
+    <div class="warning">
+        <strong>Note:</strong> AI-powered analysis unavailable. Reason: ${errorMessage}<br>
+        This report contains basic telemetry and configuration data only.
+    </div>
+
+    <h2>Executive Summary</h2>
+    <p>Simulation contains ${params.assetGroups.length} asset group(s) with ${telemetry.particleCount} total objects.</p>
+    <p>System Status: <span class="status-${stabilityStatus.toLowerCase()}">${stabilityStatus}</span></p>
+
+    <h2>Configuration Matrix</h2>
+    <div class="metric">
+        <strong>Gravity:</strong> [${params.gravity.x.toFixed(2)}, ${params.gravity.y.toFixed(2)}, ${params.gravity.z.toFixed(2)}] m/s²<br>
+        <strong>Wind:</strong> [${params.wind.x.toFixed(2)}, ${params.wind.y.toFixed(2)}, ${params.wind.z.toFixed(2)}] N<br>
+        <strong>Movement Behavior:</strong> ${params.movementBehavior}
+    </div>
+
+    <h3>Asset Groups</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Count</th>
+                <th>Shape</th>
+                <th>Body Type</th>
+                <th>Mass</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${assetGroupRows}
+        </tbody>
+    </table>
+
+    <h2>Telemetry Analysis</h2>
+    <div class="metric">
+        <strong>FPS:</strong> ${telemetry.fps.toFixed(1)}<br>
+        <strong>System Energy:</strong> ${telemetry.systemEnergy.toFixed(2)} J<br>
+        <strong>Average Velocity:</strong> ${telemetry.avgVelocity.toFixed(2)} m/s<br>
+        <strong>Max Velocity:</strong> ${telemetry.maxVelocity.toFixed(2)} m/s<br>
+        <strong>Stability Score:</strong> ${telemetry.stabilityScore.toFixed(3)} (Lower is more stable)<br>
+        <strong>Active Collisions:</strong> ${telemetry.activeCollisions}<br>
+        <strong>Physics Steps:</strong> ${telemetry.physicsSteps}
+    </div>
+
+    <h3>Stability Interpretation</h3>
+    <p>
+        ${telemetry.stabilityScore < 0.1
+            ? 'System is <strong>STABLE</strong>. Objects have settled into equilibrium.'
+            : telemetry.stabilityScore > 2.0
+            ? 'System is <strong>CHAOTIC</strong>. High velocity variation indicates ongoing dynamic interactions or instability.'
+            : 'System is <strong>DYNAMIC</strong>. Moderate activity with controlled interactions.'}
+    </p>
+
+    <h2>Real-World Validation Recommendations</h2>
+    <ul>
+        <li>Verify friction coefficients match real-world materials</li>
+        <li>Calibrate sensor accuracy for velocity measurements</li>
+        <li>Test edge cases with high-energy collisions</li>
+        <li>Validate restitution values against drop tests</li>
+    </ul>
+
+    <hr style="margin-top: 40px; border: none; border-top: 1px solid #ccc;">
+    <p style="text-align: center; color: #6b7280; font-size: 14px;">
+        Generated by SnapLock Simulation Platform | <a href="https://snaplock.netlify.app">snaplock.netlify.app</a>
+    </p>
+</body>
+</html>`;
+}

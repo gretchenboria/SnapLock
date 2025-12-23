@@ -393,20 +393,40 @@ const App: React.FC = () => {
       try {
           addLog("Compiling Simulation Audit Report...", "info");
           const htmlContent = await generateSimulationReport(params, telemetryRef.current);
-          
+
+          if (!htmlContent || htmlContent.trim().length === 0) {
+              addLog("Report generation returned empty content", "error");
+              return;
+          }
+
           const printWindow = window.open('', '_blank');
-          if (printWindow) {
-              printWindow.document.write(htmlContent);
-              printWindow.document.close();
-              printWindow.focus();
-              setTimeout(() => {
+          if (!printWindow) {
+              addLog("Failed to open report window - popup may be blocked by browser", "error");
+              // Try alternative: show in modal or download as file
+              console.log("[Report] HTML Content:", htmlContent.substring(0, 500));
+              return;
+          }
+
+          printWindow.document.write(htmlContent);
+          printWindow.document.close();
+          printWindow.focus();
+
+          // Auto-print after brief delay
+          setTimeout(() => {
+              try {
                   printWindow.print();
                   printWindow.close();
-              }, 500);
-          }
+              } catch (printError) {
+                  console.error("[Report] Print error:", printError);
+                  // Keep window open if print fails
+              }
+          }, 500);
+
           addLog("Report Generated.", "success");
       } catch (e) {
-          addLog("Failed to generate report.", "error");
+          const errorMsg = e instanceof Error ? e.message : String(e);
+          addLog(`Failed to generate report: ${errorMsg}`, "error");
+          console.error("[Report] Full error:", e);
       } finally {
           setIsGeneratingReport(false);
           if (!wasPaused) setIsPaused(false);

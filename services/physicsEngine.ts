@@ -7,7 +7,7 @@
 
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
-import { PhysicsParams, AssetGroup, ShapeType, SpawnMode, MovementBehavior, JointConfig, JointType, ObjectState, ObjectStateData, VRHand, Scene } from '../types';
+import { PhysicsParams, AssetGroup, ShapeType, SpawnMode, MovementBehavior, JointConfig, JointType, ObjectState, ObjectStateData, VRHand, Scene, RigidBodyType } from '../types';
 import { VRHandPhysics } from './handPhysics';
 import { SceneGraph } from './sceneGraph';
 

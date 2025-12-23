@@ -101,6 +101,7 @@ const FALLBACK_PROMPTS = [
  * Creates a reasonable default scene based on prompt keyword parsing
  */
 async function generateFallbackScene(prompt: string): Promise<AnalysisResponse> {
+  console.error(`[GeminiService/Fallback] 🔍 GENERATING FALLBACK SCENE FOR PROMPT: "${prompt}"`);
   const lowerPrompt = prompt.toLowerCase();
   let assetGroups: AssetGroup[] = [];
 
@@ -325,6 +326,14 @@ async function generateFallbackScene(prompt: string): Promise<AnalysisResponse> 
   } catch (error) {
     console.error('[GeminiService/Fallback] Failed to apply spatial positioning:', error);
   }
+
+  console.error(`[GeminiService/Fallback] 📦 FINAL ASSET GROUPS:`, assetGroups.map(g => ({
+    name: g.name,
+    id: g.id,
+    shape: g.shape,
+    modelUrl: g.modelUrl,
+    count: g.count
+  })));
 
   return {
     movementBehavior,

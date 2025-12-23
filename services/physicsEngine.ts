@@ -774,8 +774,13 @@ export class PhysicsEngine {
         }
 
         // Update kinematic bodies (scripted motion)
-        if (params.movementBehavior !== MovementBehavior.PHYSICS_GRAVITY) {
+        // CRITICAL: Only use procedural movements if no Scene behaviors exist
+        // Scene behaviors take precedence over global movement patterns
+        const hasSceneBehaviors = params.scene?.behaviors && params.scene.behaviors.length > 0;
+        if (params.movementBehavior !== MovementBehavior.PHYSICS_GRAVITY && !hasSceneBehaviors) {
           this.updateKinematicBodies(params, initialPositions, meta, elapsedTime);
+        } else if (hasSceneBehaviors && this.frameCount % 120 === 0) {
+          console.log(`[PhysicsEngine] Skipping updateKinematicBodies - using Scene behaviors instead`);
         }
 
         // Step the simulation with WASM error protection
@@ -915,6 +920,10 @@ export class PhysicsEngine {
   /**
    * Update kinematic object transforms from animation system
    * Call this BEFORE step() to apply animation targets
+   *
+   * IMPORTANT: This sets the next kinematic translation for behavior-driven objects.
+   * The step() function will skip procedural movements (updateKinematicBodies) when
+   * Scene behaviors are active to prevent conflicts.
    */
   updateKinematicFromAnimation(
     objectId: string,

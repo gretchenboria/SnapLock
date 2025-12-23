@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DEFAULT_PHYSICS } from './constants';
-import { PhysicsParams, LogEntry, ViewMode, TelemetryData, VRHand } from './types';
+import { PhysicsParams, LogEntry, ViewMode, TelemetryData, VRHand, Scene } from './types';
 import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
 import { analyzePhysicsPrompt, analyzeSceneStability, generateCreativePrompt, generateSimulationReport, generatePhotorealisticScene } from './services/geminiService';

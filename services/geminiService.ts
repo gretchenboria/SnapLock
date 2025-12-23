@@ -750,7 +750,9 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
             - IF prompt has action verbs (pick, move, grasp) → Generate behaviors matching those verbs
             - IF scene has robots but NO action verbs → Generate default pick-and-place OR demo movement behaviors
             - WITHOUT behaviors, robots will just fall or sit static - THIS IS UNACCEPTABLE!
-            - targetObjectId MUST match a KINEMATIC object in assetGroups (robots, vehicles, arms)
+            - targetObjectId MUST EXACTLY match the "id" field of a KINEMATIC object in assetGroups
+            - CRITICAL ID CONSISTENCY: If you create a behavior with targetObjectId:"robot_arm", the assetGroups MUST have an object with id:"robot_arm"
+            - Use simple, consistent IDs: "robot_arm" (NOT "robot_manipulator"), "surgical_robot" (NOT "davinci_system"), "drone" (NOT "quadcopter_drone")
             - KINEMATIC objects are the actors that perform behaviors
             - Action durations: GRASP/RELEASE=0.5s, MOVE_TO=1-3s, FOLLOW_PATH=2-5s, WAIT=0.5-2s
             - For MOVE_TO, calculate realistic positions based on scene layout
@@ -880,7 +882,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                     id: { type: Type.STRING },
                     name: { type: Type.STRING },
                     description: { type: Type.STRING },
-                    targetObjectId: { type: Type.STRING },
+                    targetObjectId: { type: Type.STRING, description: "MUST EXACTLY match the 'id' field of a KINEMATIC robot/vehicle object in assetGroups array. Example: if assetGroups has {id:'robot_arm', ...}, use targetObjectId:'robot_arm'" },
                     loop: { type: Type.BOOLEAN },
                     actions: {
                         type: Type.ARRAY,
@@ -1000,6 +1002,48 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
         console.log('[GeminiService] Applying spatial positioning to prevent random falling...');
         const { calculateSpatialPositions } = await import('./spatialPositioning');
         aiResponse.assetGroups = calculateSpatialPositions(aiResponse.assetGroups);
+
+        // POST-PROCESSING #4: Validate and auto-fix behavior targetObjectId (P0 ANIMATION FIX)
+        if (aiResponse.behaviors && aiResponse.behaviors.length > 0) {
+          const assetGroupIds = new Set(aiResponse.assetGroups.map(g => g.id));
+          const kinematicObjects = aiResponse.assetGroups.filter(g => g.rigidBodyType === RigidBodyType.KINEMATIC);
+          const kinematicIds = new Set(kinematicObjects.map(g => g.id));
+
+          aiResponse.behaviors = aiResponse.behaviors.map(behavior => {
+            if (!assetGroupIds.has(behavior.targetObjectId)) {
+              console.error(
+                `[GeminiService] CRITICAL: Behavior "${behavior.id}" references targetObjectId "${behavior.targetObjectId}" ` +
+                `which does not exist in assetGroups. Available IDs: ${Array.from(assetGroupIds).join(', ')}`
+              );
+
+              // AUTO-FIX: Try to find a kinematic robot to target
+              if (kinematicObjects.length > 0) {
+                const autoFixTarget = kinematicObjects[0].id;
+                console.warn(`[GeminiService] AUTO-FIX: Reassigning behavior "${behavior.id}" to target "${autoFixTarget}"`);
+                return { ...behavior, targetObjectId: autoFixTarget };
+              } else {
+                console.error(`[GeminiService] FATAL: No KINEMATIC objects found to target. Behavior will not execute.`);
+              }
+            } else if (!kinematicIds.has(behavior.targetObjectId)) {
+              console.warn(
+                `[GeminiService] WARNING: Behavior "${behavior.id}" targets "${behavior.targetObjectId}" ` +
+                `which is not KINEMATIC (animations only work on kinematic bodies). ` +
+                `Object has rigidBodyType: ${aiResponse.assetGroups.find(g => g.id === behavior.targetObjectId)?.rigidBodyType}`
+              );
+
+              // AUTO-FIX: Find first kinematic object
+              if (kinematicObjects.length > 0) {
+                const autoFixTarget = kinematicObjects[0].id;
+                console.warn(`[GeminiService] AUTO-FIX: Reassigning behavior "${behavior.id}" to kinematic object "${autoFixTarget}"`);
+                return { ...behavior, targetObjectId: autoFixTarget };
+              }
+            } else {
+              console.log(`[GeminiService] ✅ Behavior "${behavior.id}" correctly targets "${behavior.targetObjectId}"`);
+            }
+
+            return behavior;
+          });
+        }
 
         return aiResponse;
     });

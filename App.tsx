@@ -213,7 +213,8 @@ const App: React.FC = () => {
       // CRITICAL: If behaviors exist, create Scene object to preserve them
       let newParams: PhysicsParams;
       if (result.behaviors && result.behaviors.length > 0) {
-        console.log(`[App] AI generated ${result.behaviors.length} behaviors - creating Scene object`);
+        console.log(`[App] ========== ANIMATION DEBUG ==========`);
+        console.log(`[App] AI generated ${result.behaviors.length} behaviors:`, result.behaviors.map(b => `${b.id} -> ${b.targetObjectId}`));
         const scene: Scene = {
           objects: result.assetGroups.map((group, idx) => ({
             id: group.id,
@@ -254,12 +255,15 @@ const App: React.FC = () => {
         };
       }
 
-      console.log('[SPAWN DEBUG] New Params:', newParams);
+      console.log('[SPAWN DEBUG] New Params - has scene:', !!newParams.scene, 'behaviors:', newParams.scene?.behaviors?.length);
 
       // VALIDATION & SANITIZATION - Ensure data integrity
       const validatedParams = validateAndSanitize(newParams);
 
-      console.log('[SPAWN DEBUG] Validated Params:', validatedParams);
+      console.log('[SPAWN DEBUG] Validated Params - has scene:', !!validatedParams.scene, 'behaviors:', validatedParams.scene?.behaviors?.length);
+      if (validatedParams.scene?.behaviors) {
+        console.log('[SPAWN DEBUG] Behavior targets:', validatedParams.scene.behaviors.map(b => b.targetObjectId));
+      }
 
       // Update Physics State with validated params
       setParams(validatedParams);

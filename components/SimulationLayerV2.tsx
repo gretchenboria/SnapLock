@@ -655,20 +655,29 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
     }
 
     // Register and start animations/behaviors from scene
+    console.log(`[SimulationLayerV2] ========== ANIMATION REGISTRATION ==========`);
+    console.log(`[SimulationLayerV2] Has scene:`, !!rawParams.scene);
+    console.log(`[SimulationLayerV2] Has animation engine:`, !!animationEngineRef.current);
+    if (rawParams.scene) {
+      console.log(`[SimulationLayerV2] Scene behaviors:`, rawParams.scene.behaviors?.length);
+      console.log(`[SimulationLayerV2] Scene objects:`, rawParams.scene.objects.map(o => `${o.id} (${o.rigidBodyType})`));
+    }
+
     if (animationEngineRef.current && rawParams.scene) {
       // Register animations
       if (rawParams.scene.animations) {
         rawParams.scene.animations.forEach(clip => {
           animationEngineRef.current!.registerClip(clip);
-          console.log(`[SimulationLayerV2] Registered animation: ${clip.name}`);
+          console.log(`[SimulationLayerV2] ✅ Registered animation: ${clip.name}`);
         });
       }
 
       // Register behaviors
       if (rawParams.scene.behaviors && rawParams.scene.behaviors.length > 0) {
+        console.log(`[SimulationLayerV2] Registering ${rawParams.scene.behaviors.length} behaviors...`);
         rawParams.scene.behaviors.forEach(behavior => {
           animationEngineRef.current!.registerBehavior(behavior);
-          console.log(`[SimulationLayerV2] Registered behavior: ${behavior.name}`);
+          console.log(`[SimulationLayerV2] ✅ Registered behavior: "${behavior.name}" (${behavior.id}) targeting "${behavior.targetObjectId}"`);
         });
 
         // Auto-start first behavior with robot's initial position
@@ -676,9 +685,19 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
         const robotObj = rawParams.scene.objects.find(obj => obj.id === firstBehavior.targetObjectId);
         const initialPos = robotObj ? robotObj.position : undefined;
 
+        console.log(`[SimulationLayerV2] Starting first behavior "${firstBehavior.id}" targeting "${firstBehavior.targetObjectId}"...`);
+        console.log(`[SimulationLayerV2] Robot object found:`, !!robotObj, `Initial position:`, initialPos);
+
         animationEngineRef.current!.startBehavior(firstBehavior.id, initialPos);
-        console.log(`[SimulationLayerV2] Started behavior: ${firstBehavior.name} for object at position:`, initialPos);
+        console.log(`[SimulationLayerV2] ✅ Started behavior: ${firstBehavior.name}`);
+      } else {
+        console.warn(`[SimulationLayerV2] ⚠️ Scene exists but has NO behaviors!`);
       }
+    } else {
+      console.warn(`[SimulationLayerV2] ⚠️ NOT registering animations - missing:`, {
+        scene: !rawParams.scene,
+        animationEngine: !animationEngineRef.current
+      });
     }
 
     // Initial matrix update

@@ -945,6 +945,21 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
           // Try to find a 3D model for this object
           console.log(`[GeminiService] 🔍 Attempting to find model for: name="${group.name}", id="${group.id}", shape="${group.shape}"`);
+
+          // EMERGENCY FIX: Force drone model for any quadcopter/drone/uav
+          const lowerName = group.name.toLowerCase();
+          const lowerId = group.id.toLowerCase();
+          if (lowerName.includes('quadcopter') || lowerName.includes('drone') || lowerName.includes('uav') ||
+              lowerId.includes('quadcopter') || lowerId.includes('drone') || lowerId.includes('uav')) {
+            console.log(`[GeminiService] 🚁 FORCING drone model for "${group.name}"`);
+            return {
+              ...group,
+              shape: ShapeType.MODEL,
+              modelUrl: '/models/drone_quadcopter.glb',
+              scale: 1.0 * (group.scale || 1.0),
+            };
+          }
+
           const modelInfo = findModelForObject(group.name, group.id);
 
           if (modelInfo) {

@@ -210,12 +210,49 @@ const App: React.FC = () => {
       }
 
       // Construct new params from AI result
-      const newParams: PhysicsParams = {
-        gravity: result.gravity,
-        wind: result.wind,
-        movementBehavior: result.movementBehavior,
-        assetGroups: result.assetGroups
-      };
+      // CRITICAL: If behaviors exist, create Scene object to preserve them
+      let newParams: PhysicsParams;
+      if (result.behaviors && result.behaviors.length > 0) {
+        console.log(`[App] AI generated ${result.behaviors.length} behaviors - creating Scene object`);
+        const scene: Scene = {
+          objects: result.assetGroups.map((group, idx) => ({
+            id: group.id,
+            name: group.name,
+            type: group.modelUrl ? 'mesh' : 'primitive',
+            shape: group.shape,
+            modelUrl: group.modelUrl,
+            scale: group.scale,
+            color: group.color,
+            rigidBodyType: group.rigidBodyType,
+            mass: group.mass,
+            restitution: group.restitution,
+            friction: group.friction,
+            drag: group.drag,
+            position: group.spawnPosition || { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0 },
+            visible: group.visible !== false,
+            semanticLabel: group.semanticLabel,
+            affordances: group.affordances
+          })),
+          behaviors: result.behaviors
+        };
+
+        newParams = {
+          gravity: result.gravity,
+          wind: result.wind,
+          movementBehavior: result.movementBehavior,
+          assetGroups: result.assetGroups,
+          scene: scene  // Include scene with behaviors
+        };
+      } else {
+        console.log(`[App] No behaviors generated - using assetGroups only`);
+        newParams = {
+          gravity: result.gravity,
+          wind: result.wind,
+          movementBehavior: result.movementBehavior,
+          assetGroups: result.assetGroups
+        };
+      }
 
       console.log('[SPAWN DEBUG] New Params:', newParams);
 

@@ -44,15 +44,20 @@ const ModelAssetInner: React.FC<AssetRendererProps> = ({ group, meshRef, viewMod
 
     const { nodes } = gltf;
 
+    console.error(`[AssetRenderer] 🔍 Model loaded for "${group.name}", found ${Object.keys(nodes).length} nodes:`, Object.keys(nodes));
+
     let gltfGeometry: THREE.BufferGeometry | null = null;
     const firstMesh = Object.values(nodes).find((n: any) => n.isMesh) as THREE.Mesh;
     if (firstMesh) {
         gltfGeometry = firstMesh.geometry;
+        console.error(`[AssetRenderer] ✅ Found mesh geometry for "${group.name}": vertices=${gltfGeometry.attributes.position?.count || 0}`);
+    } else {
+        console.error(`[AssetRenderer] ❌ NO MESH FOUND in nodes for "${group.name}"! Node types:`, Object.values(nodes).map((n: any) => n.type));
     }
 
     // Fallback if geometry extraction failed
     if (!gltfGeometry) {
-        console.warn(`[AssetRenderer] No geometry found in model, using primitive for "${group.name}"`);
+        console.error(`[AssetRenderer] ⚠️ No geometry found in model, using primitive for "${group.name}"`);
         return <PrimitiveAsset group={group} meshRef={meshRef} viewMode={viewMode} />;
     }
 

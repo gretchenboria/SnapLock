@@ -444,7 +444,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
            - Organs/tissues being operated on (heart, brain, liver)
            - Industrial workbenches, assembly fixtures, mounting plates
            - Use when: Object provides reference frame for manipulation tasks
-           - Mass: Any value (ignored for static bodies, use typical mass for the object type)
+           - Mass: Use realistic mass (e.g., floor=100kg, table=50kg). NEVER use mass=0
 
            KINEMATIC: Precisely controlled motion, NOT affected by physics forces
            - Robotic arms (surgical robots, industrial manipulators)
@@ -809,7 +809,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                     spawnMode: { type: Type.STRING, enum: Object.values(SpawnMode) },
                     scale: { type: Type.NUMBER },
                     rigidBodyType: { type: Type.STRING, enum: Object.values(RigidBodyType), description: "STATIC for immovable objects (floors, walls, tables), KINEMATIC for animated objects (robots), DYNAMIC for physics-driven objects" },
-                    mass: { type: Type.NUMBER },
+                    mass: { type: Type.NUMBER, description: "Mass in kg. MUST be > 0. Examples: floor=100, table=50, robot=20, block=5, ball=1, scalpel=0.05" },
                     restitution: { type: Type.NUMBER },
                     friction: { type: Type.NUMBER },
                     drag: { type: Type.NUMBER },
@@ -975,7 +975,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
           }
         });
 
-        // POST-PROCESSING #2: Set defaults for rigidBodyType and spawnMode if missing
+        // POST-PROCESSING #2: Set defaults for rigidBodyType, spawnMode, and mass
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
           const updates: Partial<AssetGroup> = {};
 
@@ -993,6 +993,15 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
               // Multiple objects default to PILE (realistic grouping)
               updates.spawnMode = SpawnMode.PILE;
             }
+          }
+
+          // Fix mass=0 for STATIC objects (physics engine allows it, but use reasonable default)
+          // DYNAMIC/KINEMATIC with mass=0 will be caught by physics validation
+          if (group.mass === 0 && (group.rigidBodyType === RigidBodyType.STATIC || updates.rigidBodyType === RigidBodyType.STATIC)) {
+            // Assign reasonable mass based on scale
+            const estimatedMass = Math.max(10, group.scale * group.scale * 10);
+            updates.mass = estimatedMass;
+            console.log(`[GeminiService] AUTO-FIX: STATIC object "${group.id}" had mass=0, setting to ${estimatedMass.toFixed(1)} kg based on scale`);
           }
 
           return Object.keys(updates).length > 0 ? { ...group, ...updates } : group;

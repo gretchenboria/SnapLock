@@ -168,8 +168,14 @@ export class PhysicsEngine {
         if (!isFinite(group.scale) || isNaN(group.scale) || group.scale <= 0 || group.scale > 1000) {
           throw new Error(`Invalid scale for group ${idx} (${group.id}): ${group.scale}`);
         }
-        if (!isFinite(group.mass) || isNaN(group.mass) || group.mass <= 0 || group.mass > 10000) {
+
+        // Mass validation: STATIC objects can have mass=0 (mass is ignored for fixed bodies)
+        // DYNAMIC and KINEMATIC objects MUST have mass > 0
+        if (!isFinite(group.mass) || isNaN(group.mass) || group.mass < 0 || group.mass > 10000) {
           throw new Error(`Invalid mass for group ${idx} (${group.id}): ${group.mass}`);
+        }
+        if (group.rigidBodyType !== RigidBodyType.STATIC && group.mass === 0) {
+          throw new Error(`Invalid mass for group ${idx} (${group.id}): ${group.rigidBodyType} bodies require mass > 0, got ${group.mass}`);
         }
         if (!isFinite(group.restitution) || isNaN(group.restitution)) {
           throw new Error(`Invalid restitution for group ${idx} (${group.id}): ${group.restitution}`);

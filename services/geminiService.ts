@@ -1082,47 +1082,56 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
           if (!hasDroneModel) {
             console.error('[GeminiService] 🚨 CRITICAL: User asked for drone but none generated!');
-            console.log('[GeminiService] Generated objects:', aiResponse.assetGroups.map(g => `${g.name} (${g.shape})`));
+            console.error('[GeminiService] Generated objects:', aiResponse.assetGroups.map(g => `${g.name} (${g.shape}, ${g.modelUrl})`));
 
-            // Find and fix misnamed objects (like "Target Ring", "Hovering Platform")
+            // Find and fix misnamed objects - CHECK ALL PRIMITIVES (CUBE, TORUS, SPHERE, etc.)
             const suspectObjects = aiResponse.assetGroups.filter(g =>
+              // ANY primitive shape is suspect for drone prompt
+              g.shape === ShapeType.CUBE ||
               g.shape === ShapeType.TORUS ||
               g.shape === ShapeType.SPHERE ||
+              g.shape === ShapeType.CYLINDER ||
+              g.shape === ShapeType.CAPSULE ||
+              g.shape === ShapeType.CONE ||
+              // OR has suspicious names
               g.name.toLowerCase().includes('target') ||
               g.name.toLowerCase().includes('ring') ||
               g.name.toLowerCase().includes('platform') ||
-              g.name.toLowerCase().includes('hover')
+              g.name.toLowerCase().includes('hover') ||
+              g.name.toLowerCase().includes('object') ||
+              g.name.toLowerCase().includes('entity')
             );
 
             if (suspectObjects.length > 0) {
-              console.warn('[GeminiService] AUTO-FIX: Converting suspicious object to drone:', suspectObjects[0].name);
+              console.error('[GeminiService] 🚨 AUTO-FIX: Converting primitive to drone:', suspectObjects[0].name, suspectObjects[0].shape);
               const droneObj = suspectObjects[0];
               droneObj.name = 'Quadcopter Drone';
               droneObj.id = 'quadcopter_drone';
               droneObj.shape = ShapeType.MODEL;
               droneObj.modelUrl = '/models/drone_quadcopter.glb';
               droneObj.rigidBodyType = RigidBodyType.KINEMATIC;
-              droneObj.scale = 1.0;
+              droneObj.scale = 1.5;  // Larger for visibility
+              droneObj.color = '#FFFFFF';  // White for visibility
               droneObj.mass = 2.5;
-              droneObj.spawnPosition = { x: 0, y: 3, z: 0 }; // Hovering height
+              droneObj.spawnPosition = { x: 0, y: 2.5, z: 0 }; // Hovering height, centered
             } else {
-              console.warn('[GeminiService] AUTO-FIX: Adding missing drone to scene');
+              console.error('[GeminiService] 🚨 AUTO-FIX: NO SUSPECT OBJECTS - Adding drone from scratch');
               aiResponse.assetGroups.push({
                 id: 'quadcopter_drone',
                 name: 'Quadcopter Drone',
                 count: 1,
                 shape: ShapeType.MODEL,
                 modelUrl: '/models/drone_quadcopter.glb',
-                color: '#333333',
+                color: '#FFFFFF',  // WHITE for visibility
                 spawnMode: SpawnMode.GRID,
-                scale: 1.0,
+                scale: 1.5,  // Larger scale for visibility
                 rigidBodyType: RigidBodyType.KINEMATIC,
                 mass: 2.5,
                 restitution: 0.3,
                 friction: 0.4,
                 drag: 0.1,
                 spatialConstraint: { type: 'none' },
-                spawnPosition: { x: 0, y: 3, z: 0 }
+                spawnPosition: { x: 0, y: 2.5, z: 0 }  // Lower for better framing
               } as AssetGroup);
             }
 
@@ -1217,6 +1226,15 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
             return behavior;
           });
         }
+
+        // FINAL VALIDATION: Log what we're actually returning
+        console.error('[GeminiService] 📤 FINAL RESPONSE - Asset Groups:', aiResponse.assetGroups.map(g => ({
+          name: g.name,
+          id: g.id,
+          shape: g.shape,
+          modelUrl: g.modelUrl,
+          count: g.count
+        })));
 
         return aiResponse;
     });

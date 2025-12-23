@@ -912,14 +912,14 @@ export class PhysicsEngine {
       velocities[i3 + 1] = linvel.y;
       velocities[i3 + 2] = linvel.z;
 
-      // Read rotation
+      // Read rotation as QUATERNION (x, y, z, w) - NO Euler conversion
+      // Physics requires quaternions for proper rigid body dynamics
       const rotation = body.rotation();
-      const euler = new THREE.Euler().setFromQuaternion(
-        new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-      );
-      rotations[i3] = euler.x;
-      rotations[i3 + 1] = euler.y;
-      rotations[i3 + 2] = euler.z;
+      const i4 = globalIndex * 4;  // 4 components for quaternion
+      rotations[i4] = rotation.x;
+      rotations[i4 + 1] = rotation.y;
+      rotations[i4 + 2] = rotation.z;
+      rotations[i4 + 3] = rotation.w;
     });
   }
 

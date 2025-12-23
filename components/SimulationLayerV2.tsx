@@ -291,12 +291,23 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
             mass: group.mass,
             position,
             velocity: { x: vel[i3], y: vel[i3+1], z: vel[i3+2] },
-            rotation: { x: rot[i3], y: rot[i3+1], z: rot[i3+2] },
+            // Convert quaternion to Euler for annotations (more human-readable)
+            rotation: (() => {
+              const i4 = i * 4;
+              const quat = new THREE.Quaternion(rot[i4], rot[i4+1], rot[i4+2], rot[i4+3]);
+              const euler = new THREE.Euler().setFromQuaternion(quat);
+              return { x: euler.x, y: euler.y, z: euler.z };
+            })(),
             angularVelocity: { x: angVel[i3], y: angVel[i3+1], z: angVel[i3+2] },
             boundingBox: {
               center: position,
               size: { x: group.scale, y: group.scale, z: group.scale },
-              rotation: { x: rot[i3], y: rot[i3+1], z: rot[i3+2] }
+              rotation: (() => {
+                const i4 = i * 4;
+                const quat = new THREE.Quaternion(rot[i4], rot[i4+1], rot[i4+2], rot[i4+3]);
+                const euler = new THREE.Euler().setFromQuaternion(quat);
+                return { x: euler.x, y: euler.y, z: euler.z };
+              })()
             }
           });
         }
@@ -332,10 +343,13 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 
         for (let i = structure.start; i < structure.end; i++) {
           const i3 = i * 3;
+          const i4 = i * 4;  // Quaternion uses 4 components
 
           const position = new THREE.Vector3(pos[i3], pos[i3+1], pos[i3+2]);
-          const rotation = new THREE.Euler(rot[i3], rot[i3+1], rot[i3+2]);
-          const quaternion = new THREE.Quaternion().setFromEuler(rotation);
+          // Read quaternion directly from buffer (no Euler conversion needed)
+          const quaternion = new THREE.Quaternion(rot[i4], rot[i4+1], rot[i4+2], rot[i4+3]);
+          // Convert quaternion to Euler for annotations (more human-readable)
+          const rotation = new THREE.Euler().setFromQuaternion(quaternion);
 
           // Calculate 2D bounding box
           const bbox2D = calculate2DBoundingBox(position, group.scale, group.shape, camera);
@@ -448,7 +462,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
     if (positions.current.length !== totalParticles * 3) {
       positions.current = new Float32Array(totalParticles * 3);
       velocities.current = new Float32Array(totalParticles * 3);
-      rotations.current = new Float32Array(totalParticles * 3);
+      rotations.current = new Float32Array(totalParticles * 4);  // QUATERNIONS: x, y, z, w (4 components, not 3)
       angularVelocities.current = new Float32Array(totalParticles * 3);
       initialPositions.current = new Float32Array(totalParticles * 3);
       meta.current = new Float32Array(totalParticles);
@@ -609,10 +623,19 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
                 vel[i3+2] = (Math.random() - 0.5) * 2;
             }
 
-            // Rotation
-            rot[i3] = Math.random() * Math.PI * 2;
-            rot[i3+1] = Math.random() * Math.PI * 2;
-            rot[i3+2] = Math.random() * Math.PI * 2;
+            // Rotation - Initialize as QUATERNION (x, y, z, w)
+            // Start with random Euler, convert to quaternion
+            const i4 = i * 4;
+            const euler = new THREE.Euler(
+              Math.random() * Math.PI * 2,
+              Math.random() * Math.PI * 2,
+              Math.random() * Math.PI * 2
+            );
+            const quat = new THREE.Quaternion().setFromEuler(euler);
+            rot[i4] = quat.x;
+            rot[i4 + 1] = quat.y;
+            rot[i4 + 2] = quat.z;
+            rot[i4 + 3] = quat.w;
 
             m[i] = Math.random();
 
@@ -682,10 +705,10 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 
         // Auto-start ALL behaviors (not just first one)
         rawParams.scene.behaviors.forEach((behavior, index) => {
-          const robotObj = rawParams.scene!.objects.find(obj => obj.id === behavior.targetObjectId);
+          const robotObj = rawParams.scene?.objects?.find(obj => obj.id === behavior.targetObjectId);
           const initialPos = robotObj?.position || { x: 0, y: 1, z: 0 }; // Force default position if undefined
 
-          console.log(`[SimulationLayerV2] Starting behavior ${index + 1}/${rawParams.scene!.behaviors.length}: "${behavior.id}" targeting "${behavior.targetObjectId}"...`);
+          console.log(`[SimulationLayerV2] Starting behavior ${index + 1}/${rawParams.scene?.behaviors?.length || 0}: "${behavior.id}" targeting "${behavior.targetObjectId}"...`);
           console.log(`[SimulationLayerV2] Robot object found:`, !!robotObj, `Position:`, initialPos);
 
           try {
@@ -717,8 +740,10 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 
         for (let i = structure.start; i < structure.end; i++) {
             const i3 = i * 3;
+            const i4 = i * 4;  // Quaternion uses 4 components
             dummy.position.set(pos[i3], pos[i3+1], pos[i3+2]);
-            dummy.rotation.set(rot[i3], rot[i3+1], rot[i3+2]);
+            // Set rotation using QUATERNION (not Euler)
+            dummy.quaternion.set(rot[i4], rot[i4+1], rot[i4+2], rot[i4+3]);
             dummy.scale.setScalar(group.scale);
             dummy.updateMatrix();
             mesh.setMatrixAt(i - structure.start, dummy.matrix);
@@ -883,6 +908,7 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 
         for (let i = structure.start; i < structure.end; i++) {
             const i3 = i * 3;
+            const i4 = i * 4;  // Quaternion uses 4 components
             activeParticles++;
 
             // Calculate telemetry
@@ -895,7 +921,8 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
             // Update matrices
             if (mesh) {
                 dummy.position.set(pos[i3], pos[i3+1], pos[i3+2]);
-                dummy.rotation.set(rot[i3], rot[i3+1], rot[i3+2]);
+                // Set rotation using QUATERNION (not Euler)
+                dummy.quaternion.set(rot[i4], rot[i4+1], rot[i4+2], rot[i4+3]);
                 dummy.scale.setScalar(group.scale);
                 dummy.updateMatrix();
                 mesh.setMatrixAt(i - structure.start, dummy.matrix);
@@ -952,14 +979,11 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 
         if (activeParticles > 0) {
             // First particle (index 0)
-            const i3 = 0;
             samplePos = { x: pos[0], y: pos[1], z: pos[2] };
             sampleVel = { x: vel[0], y: vel[1], z: vel[2] };
 
-            // Convert Euler angles to quaternion
-            const euler = new THREE.Euler(rot[i3], rot[i3+1], rot[i3+2], 'XYZ');
-            const quaternion = new THREE.Quaternion().setFromEuler(euler);
-            sampleQuat = { x: quaternion.x, y: quaternion.y, z: quaternion.z, w: quaternion.w };
+            // Read quaternion directly from buffer (already stored as quaternion)
+            sampleQuat = { x: rot[0], y: rot[1], z: rot[2], w: rot[3] };
         }
 
         telemetryRef.current = {

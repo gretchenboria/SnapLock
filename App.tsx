@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DEFAULT_PHYSICS } from './constants';
-import { PhysicsParams, LogEntry, ViewMode, TelemetryData, VRHand, Scene } from './types';
+import { PhysicsParams, LogEntry, ViewMode, TelemetryData, VRHand, Scene, RigidBodyType } from './types';
 import ControlPanel from './components/ControlPanel';
 import PhysicsScene, { PhysicsSceneHandle } from './components/PhysicsScene';
 import { analyzePhysicsPrompt, analyzeSceneStability, generateCreativePrompt, generateSimulationReport, generatePhotorealisticScene } from './services/geminiService';
@@ -224,7 +224,7 @@ const App: React.FC = () => {
             modelUrl: group.modelUrl,
             scale: group.scale,
             color: group.color,
-            rigidBodyType: group.rigidBodyType,
+            rigidBodyType: group.rigidBodyType || RigidBodyType.DYNAMIC,
             mass: group.mass,
             restitution: group.restitution,
             friction: group.friction,
@@ -232,7 +232,7 @@ const App: React.FC = () => {
             position: group.spawnPosition || { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
             visible: group.visible !== false,
-            semanticLabel: group.semanticLabel,
+            semanticLabel: group.semanticLabel || group.name,
             affordances: group.affordances
           })),
           behaviors: result.behaviors

@@ -1074,6 +1074,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
         const isDronePrompt = promptLower.includes('quadcopter') || promptLower.includes('drone') || promptLower.includes('uav');
 
         if (isDronePrompt) {
+          console.error('[GeminiService] 🚁 DRONE PROMPT DETECTED - Checking for drone model...');
           const hasDroneModel = aiResponse.assetGroups.some(g =>
             g.modelUrl === '/models/drone_quadcopter.glb' ||
             g.name.toLowerCase().includes('quadcopter') ||

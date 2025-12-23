@@ -202,6 +202,16 @@ const App: React.FC = () => {
       addLog('Analyzing prompt with AI...', 'info');
       const result = await analyzePhysicsPrompt(inputPrompt);
 
+      console.error(`[App] 🚨🚨🚨 AI RETURNED ${result.assetGroups.length} OBJECTS:`, result.assetGroups.map(g => ({
+        name: g.name,
+        id: g.id,
+        shape: g.shape,
+        modelUrl: g.modelUrl,
+        count: g.count,
+        scale: g.scale,
+        rigidBodyType: g.rigidBodyType
+      })));
+
       console.log('[SPAWN DEBUG] AI Result:', result);
       addLog(`AI extracted ${result.assetGroups.length} object groups`, 'info');
 

@@ -100,11 +100,24 @@ for i, pos in enumerate(motor_positions):
     motor.data.materials.append(motor_mat)
     motors.append(motor)
 
-    # Propeller (simplified as thin torus)
+    # Propeller blades (2 flat blades instead of torus ring)
     prop_pos = (pos[0], pos[1], pos[2] + 0.05)
-    prop = create_torus(f"Propeller{i+1}", major_radius=0.15, minor_radius=0.01, location=prop_pos)
-    prop.rotation_euler[0] = math.pi / 2
+
+    # Create propeller as two crossed flat blades
+    bpy.ops.mesh.primitive_cube_add(size=1, location=prop_pos)
+    prop = bpy.context.active_object
+    prop.name = f"Propeller{i+1}"
+    prop.scale = (0.25, 0.02, 0.005)  # Long, thin blade
     prop.data.materials.append(prop_mat)
+
+    # Second blade perpendicular to first
+    bpy.ops.mesh.primitive_cube_add(size=1, location=prop_pos)
+    blade2 = bpy.context.active_object
+    blade2.name = f"Blade2_{i+1}"
+    blade2.scale = (0.02, 0.25, 0.005)
+    blade2.data.materials.append(prop_mat)
+    blade2.parent = prop  # Parent to first blade so they rotate together
+
     propellers.append(prop)
 
     # Parent propeller to motor

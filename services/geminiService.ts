@@ -1573,10 +1573,10 @@ export const generateSimulationReport = async (params: PhysicsParams, telemetry:
     if (isTestMode()) return MOCK_HTML_REPORT;
 
     try {
-        // Check if API key is available
+        // Check if API key is available - if not, throw error to trigger fallback
         if (!hasApiKey()) {
-            console.error("[Report] No API key configured");
-            return "<h1>API Key Required</h1><p>Please configure your Gemini API key in Settings to generate reports.</p>";
+            console.warn("[Report] No API key configured - using fallback report");
+            throw new Error("No API key configured. Using client-side report generation.");
         }
 
         const dataContext = JSON.stringify({

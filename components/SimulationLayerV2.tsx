@@ -680,16 +680,25 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
           console.log(`[SimulationLayerV2] ✅ Registered behavior: "${behavior.name}" (${behavior.id}) targeting "${behavior.targetObjectId}"`);
         });
 
-        // Auto-start first behavior with robot's initial position
-        const firstBehavior = rawParams.scene.behaviors[0];
-        const robotObj = rawParams.scene.objects.find(obj => obj.id === firstBehavior.targetObjectId);
-        const initialPos = robotObj ? robotObj.position : undefined;
+        // Auto-start ALL behaviors (not just first one)
+        rawParams.scene.behaviors.forEach((behavior, index) => {
+          const robotObj = rawParams.scene!.objects.find(obj => obj.id === behavior.targetObjectId);
+          const initialPos = robotObj?.position || { x: 0, y: 1, z: 0 }; // Force default position if undefined
 
-        console.log(`[SimulationLayerV2] Starting first behavior "${firstBehavior.id}" targeting "${firstBehavior.targetObjectId}"...`);
-        console.log(`[SimulationLayerV2] Robot object found:`, !!robotObj, `Initial position:`, initialPos);
+          console.log(`[SimulationLayerV2] Starting behavior ${index + 1}/${rawParams.scene!.behaviors.length}: "${behavior.id}" targeting "${behavior.targetObjectId}"...`);
+          console.log(`[SimulationLayerV2] Robot object found:`, !!robotObj, `Position:`, initialPos);
 
-        animationEngineRef.current!.startBehavior(firstBehavior.id, initialPos);
-        console.log(`[SimulationLayerV2] ✅ Started behavior: ${firstBehavior.name}`);
+          try {
+            const started = animationEngineRef.current!.startBehavior(behavior.id, initialPos);
+            if (started) {
+              console.log(`[SimulationLayerV2] ✅ Started behavior: "${behavior.name}"`);
+            } else {
+              console.error(`[SimulationLayerV2] ❌ Failed to start behavior: "${behavior.name}"`);
+            }
+          } catch (error) {
+            console.error(`[SimulationLayerV2] ❌ Error starting behavior "${behavior.name}":`, error);
+          }
+        });
       } else {
         console.warn(`[SimulationLayerV2] ⚠️ Scene exists but has NO behaviors!`);
       }
@@ -751,24 +760,40 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
       // Debug: Log animation state every 60 frames
       if (frameCountRef.current % 60 === 0) {
         const state = animationEngineRef.current.getState();
-        console.log(`[Animation] Frame ${frameCountRef.current}: isPlaying=${state.isPlaying}, activeBehaviors=${state.activeBehaviors.length}, transforms=${animTransforms.size}`);
+        console.log(`[Animation] Frame ${frameCountRef.current}: isPlaying=${state.isPlaying}, activeBehaviors=${JSON.stringify(state.activeBehaviors)}, transforms=${animTransforms.size}`);
+
+        // Extra debug: Check behavior states
+        if (state.activeBehaviors.length > 0) {
+          console.log(`[Animation] Active behaviors details:`, state.activeBehaviors);
+        }
       }
 
       // Apply animation transforms to kinematic objects
       if (animTransforms.size > 0) {
+        let appliedCount = 0;
         animTransforms.forEach((transform, objectId) => {
-          physicsEngineRef.current!.updateKinematicFromAnimation(objectId, transform);
+          try {
+            physicsEngineRef.current!.updateKinematicFromAnimation(objectId, transform);
+            appliedCount++;
 
-          // Log each transform application
-          if (frameCountRef.current % 60 === 0) {
-            console.log(`[Animation] Applying transform to ${objectId}:`, transform.position);
+            // Log each transform application
+            if (frameCountRef.current % 60 === 0) {
+              console.log(`[Animation] ✅ Applied transform to "${objectId}":`, transform.position);
+            }
+          } catch (error) {
+            console.error(`[Animation] ❌ Failed to apply transform to "${objectId}":`, error);
           }
         });
+
+        if (frameCountRef.current % 60 === 0 && appliedCount > 0) {
+          console.log(`[Animation] Applied ${appliedCount}/${animTransforms.size} transforms successfully`);
+        }
       } else if (frameCountRef.current % 120 === 0) {
         // Warn if no transforms but animations are supposed to be active
         const state = animationEngineRef.current.getState();
         if (state.isPlaying && state.activeBehaviors.length > 0) {
-          console.warn(`[Animation] No transforms generated despite active behaviors:`, state.activeBehaviors);
+          console.warn(`[Animation] ⚠️ No transforms generated despite active behaviors:`, state.activeBehaviors);
+          console.warn(`[Animation] This means behaviors are playing but not generating position updates!`);
         }
       }
     }

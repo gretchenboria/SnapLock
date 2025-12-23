@@ -348,12 +348,23 @@ export function findModelForObject(objectName: string, objectDescription?: strin
       for (const keyword of model.keywords) {
         const keywordLower = keyword.toLowerCase();
 
-        // CRITICAL FIX: Use word boundary matching to prevent false positives
-        // Escape special regex characters and add word boundaries
+        // Try exact word boundary match first (preferred)
         const escapedKeyword = keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const keywordPattern = new RegExp(`\\b${escapedKeyword}\\b`);
 
+        let matched = false;
         if (keywordPattern.test(searchText)) {
+          matched = true;
+        } else {
+          // Fallback: Try partial match for single-word keywords (handles "quadcopter" matching "Quadcopter Drone")
+          const keywordWords = keywordLower.split(/\s+/);
+          if (keywordWords.length === 1 && searchText.includes(keywordLower)) {
+            matched = true;
+            console.log(`[ModelLibrary] 🔍 Partial match: "${keywordLower}" found in "${searchText}"`);
+          }
+        }
+
+        if (matched) {
           // Prefer longer, more specific keywords
           if (keywordLower.length > longestKeywordLength) {
             bestMatch = { model, keyword };

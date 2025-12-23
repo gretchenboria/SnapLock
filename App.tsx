@@ -32,21 +32,9 @@ const App: React.FC = () => {
   // State
   const [prompt, setPrompt] = useState('');
   const [params, setParams] = useState<PhysicsParams>(() => {
-    // Load surgical robot scene with clean blocks
-    try {
-      const scene = loadExampleScene('surgical');
-      const assetGroups = SceneGraph.sceneToLegacyFormat(scene);
-      const legacyParams = {
-        ...DEFAULT_PHYSICS,
-        assetGroups,
-        scene
-      };
-      console.log('[App] Loading surgical robot demo with blocks');
-      return legacyParams;
-    } catch (error) {
-      console.error('[App] Failed to load surgical scene:', error);
-      return DEFAULT_PHYSICS;
-    }
+    // Start with EMPTY scene - users create scenes via AI prompts
+    console.log('[App] Starting with empty scene - ready for prompts');
+    return DEFAULT_PHYSICS;
   });
 
   // Guided Tour State

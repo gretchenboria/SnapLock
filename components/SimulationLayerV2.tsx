@@ -38,11 +38,22 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
   const params = useMemo(() => {
     const normalized = PhysicsEngine.normalizePhysicsParams(rawParams);
 
+    // DEBUG: Log what Gemini actually generated
+    console.error(`[SimulationLayerV2] 🔍 BEFORE OVERRIDE - Asset Groups:`,
+      normalized.assetGroups.map(g => ({
+        name: g.name,
+        id: g.id,
+        shape: g.shape,
+        modelUrl: g.modelUrl,
+        count: g.count
+      }))
+    );
+
     // NUCLEAR OVERRIDE: Force any drone/quadcopter to use real model, never primitives
     normalized.assetGroups = normalized.assetGroups.map(group => {
       const lowerName = (group.name || group.id || '').toLowerCase();
       if (lowerName.includes('drone') || lowerName.includes('quadcopter') || lowerName.includes('uav')) {
-        console.error(`[SimulationLayerV2] 🚨 NUCLEAR OVERRIDE: Forcing drone model for "${group.name}"`);
+        console.error(`[SimulationLayerV2] 🚨 NUCLEAR OVERRIDE: Forcing drone model for "${group.name}" (was: ${group.shape}, ${group.modelUrl})`);
         return {
           ...group,
           shape: ShapeType.MODEL,
@@ -52,6 +63,14 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
       }
       return group;
     });
+
+    console.error(`[SimulationLayerV2] 🔍 AFTER OVERRIDE - Asset Groups:`,
+      normalized.assetGroups.map(g => ({
+        name: g.name,
+        shape: g.shape,
+        modelUrl: g.modelUrl
+      }))
+    );
 
     return normalized;
   }, [rawParams]);

@@ -166,9 +166,9 @@ async function generateFallbackScene(prompt: string): Promise<AnalysisResponse> 
     robot: { shape: ShapeType.CAPSULE, scale: 2, mass: 50, count: 1, color: '#00CED1', friction: 0.5, restitution: 0.4 },
     capsule: { shape: ShapeType.CAPSULE, scale: 1.5, mass: 10, count: 2, color: '#FF69B4', friction: 0.5, restitution: 0.5 },
     cone: { shape: ShapeType.CONE, scale: 1, mass: 3, count: 5, color: '#FF8C00', friction: 0.6, restitution: 0.4 },
-    pyramid: { shape: ShapeType.PYRAMID, scale: 1.2, mass: 6, count: 3, color: '#FFD700', friction: 0.6, restitution: 0.4 },
-    torus: { shape: ShapeType.TORUS, scale: 1, mass: 4, count: 2, color: '#9370DB', friction: 0.5, restitution: 0.6 },
-    ring: { shape: ShapeType.TORUS, scale: 0.8, mass: 3, count: 3, color: '#DA70D6', friction: 0.5, restitution: 0.6 }
+    pyramid: { shape: ShapeType.PYRAMID, scale: 1.2, mass: 6, count: 3, color: '#FFD700', friction: 0.6, restitution: 0.4 }
+    // NOTE: Removed 'torus' and 'ring' - these were generating ugly TORUS primitives
+    // Drones are handled separately below with real 3D models
   };
 
   // Check for each object type
@@ -197,6 +197,27 @@ async function generateFallbackScene(prompt: string): Promise<AnalysisResponse> 
         drag: 0.05
       });
     }
+  }
+
+  // SPECIAL HANDLING: Force real drone 3D model (NEVER primitives)
+  if (isDrone || lowerPrompt.includes('drone') || lowerPrompt.includes('quadcopter') || lowerPrompt.includes('uav')) {
+    console.error('[GeminiService/Fallback] 🚨 FORCE ADDING DRONE MODEL');
+    assetGroups.push({
+      id: 'quadcopter_drone',
+      name: 'Quadcopter Drone',
+      count: 1,
+      shape: ShapeType.MODEL,
+      modelUrl: '/models/drone_quadcopter.glb',
+      color: '#000000',
+      spawnMode: SpawnMode.FLOAT,
+      scale: 1.0,
+      rigidBodyType: RigidBodyType.KINEMATIC,
+      mass: 2.5,
+      restitution: 0.4,
+      friction: 0.3,
+      drag: 0.05,
+      spawnPosition: { x: 0, y: 3, z: 0 }
+    });
   }
 
   // Material overrides

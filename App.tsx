@@ -87,6 +87,7 @@ const App: React.FC = () => {
 
   // ML Export Modal State
   const [showMLExportModal, setShowMLExportModal] = useState(false);
+  const modalCooldownRef = useRef(false); // Prevent rapid reopen loops
 
   // Photorealistic Rendering State (DISABLED for simplicity)
   const [photorealisticImage, setPhotorealisticImage] = useState<string | null>(null);
@@ -628,12 +629,18 @@ const App: React.FC = () => {
           const files = MLExportService.exportSequenceYOLO();
           addLog(`Exporting ${files.size} YOLO files...`, 'info');
 
-          // Download each file
+          // Download each file SEQUENTIALLY with delays (prevent browser download manager overflow)
+          let delay = 0;
           files.forEach((content, filename) => {
-              MLExportService.downloadFile(filename, content, 'text/plain');
+              setTimeout(() => {
+                  MLExportService.downloadFile(filename, content, 'text/plain');
+              }, delay);
+              delay += 150; // 150ms delay between downloads
           });
 
-          addLog(`YOLO dataset exported (${files.size} files) - VALIDATED`, 'success');
+          setTimeout(() => {
+              addLog(`YOLO dataset exported (${files.size} files) - VALIDATED`, 'success');
+          }, delay);
       } catch (error) {
           addLog(`YOLO export failed: ${(error as Error).message}`, 'error');
       }
@@ -677,7 +684,21 @@ const App: React.FC = () => {
   }, [recordedVideoBlob, addLog]);
 
   const handleOpenMLExportModal = useCallback(() => {
+      // Prevent rapid reopen loops (browser download manager can trigger weird events)
+      if (modalCooldownRef.current) {
+          console.warn('[App] Modal open blocked - cooldown active');
+          return;
+      }
       setShowMLExportModal(true);
+  }, []);
+
+  const handleCloseMLExportModal = useCallback(() => {
+      setShowMLExportModal(false);
+      // Set cooldown to prevent immediate reopen (prevents download manager event loops)
+      modalCooldownRef.current = true;
+      setTimeout(() => {
+          modalCooldownRef.current = false;
+      }, 500); // 500ms cooldown
   }, []);
 
   // Cleanup recording on unmount
@@ -1047,7 +1068,7 @@ const App: React.FC = () => {
       {/* ML Export Modal - P0 FIX: Recording controls now visible */}
       <MLExportModal
         isOpen={showMLExportModal}
-        onClose={() => setShowMLExportModal(false)}
+        onClose={handleCloseMLExportModal}
         onExportCOCO={handleExportCOCO}
         onExportYOLO={handleExportYOLO}
         onExportDepth={handleExportDepth}

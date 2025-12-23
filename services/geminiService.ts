@@ -487,8 +487,18 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
            - "SCARA robot" / "Pick and place robot": modelUrl:'/models/scara_robot_assembly.glb', scale:1.0
            - "Delta robot" / "Parallel robot" / "Picker robot": modelUrl:'/models/delta_robot_picker.glb', scale:1.0
 
-           **AERIAL ROBOTS:**
-           - "Drone" / "Quadcopter" / "UAV": modelUrl:'/models/drone_quadcopter.glb', scale:1.0
+           **AERIAL ROBOTS (CRITICAL - NEVER MISINTERPRET AS "TARGET" OR "RING"):**
+           - "Drone" / "Quadcopter" / "UAV" / "Flying robot" / "Aerial vehicle": modelUrl:'/models/drone_quadcopter.glb', scale:1.0, rigidBodyType:'KINEMATIC'
+
+           CRITICAL DRONE RULES:
+           - When user says "quadcopter", "drone", or "UAV" → CREATE THE ACTUAL FLYING VEHICLE (not a target/ring/placeholder)
+           - name: "Quadcopter Drone" (NOT "Target Ring", NOT "Hovering Platform", NOT "Aerial Target")
+           - id: "quadcopter_drone" or "drone_1" (NOT "target_ring", NOT "hover_platform")
+           - shape: ShapeType.MODEL (NEVER ShapeType.TORUS or ShapeType.SPHERE)
+           - modelUrl: '/models/drone_quadcopter.glb' (MANDATORY)
+           - rigidBodyType: 'KINEMATIC' (drones follow flight paths, not physics)
+           - Initial position: y:3-5 (hovering height), not on ground
+           - MUST have hover/flight behavior generated
 
            **VEHICLES:**
            - "Buggy" / "Off-road vehicle": modelUrl:'/models/buggy.glb', scale:1.0
@@ -1027,6 +1037,114 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
         console.log('[GeminiService] Applying spatial positioning to prevent random falling...');
         const { calculateSpatialPositions } = await import('./spatialPositioning');
         aiResponse.assetGroups = calculateSpatialPositions(aiResponse.assetGroups);
+
+        // POST-PROCESSING #3.5: Fix misgenerated drone objects (P0 CRITICAL)
+        // If user prompt contains "quadcopter/drone/uav" but no object has the drone model, fix it
+        const promptLower = userPrompt.toLowerCase();
+        const isDronePrompt = promptLower.includes('quadcopter') || promptLower.includes('drone') || promptLower.includes('uav');
+
+        if (isDronePrompt) {
+          const hasDroneModel = aiResponse.assetGroups.some(g =>
+            g.modelUrl === '/models/drone_quadcopter.glb' ||
+            g.name.toLowerCase().includes('quadcopter') ||
+            g.name.toLowerCase().includes('drone')
+          );
+
+          if (!hasDroneModel) {
+            console.error('[GeminiService] 🚨 CRITICAL: User asked for drone but none generated!');
+            console.log('[GeminiService] Generated objects:', aiResponse.assetGroups.map(g => `${g.name} (${g.shape})`));
+
+            // Find and fix misnamed objects (like "Target Ring", "Hovering Platform")
+            const suspectObjects = aiResponse.assetGroups.filter(g =>
+              g.shape === ShapeType.TORUS ||
+              g.shape === ShapeType.SPHERE ||
+              g.name.toLowerCase().includes('target') ||
+              g.name.toLowerCase().includes('ring') ||
+              g.name.toLowerCase().includes('platform') ||
+              g.name.toLowerCase().includes('hover')
+            );
+
+            if (suspectObjects.length > 0) {
+              console.warn('[GeminiService] AUTO-FIX: Converting suspicious object to drone:', suspectObjects[0].name);
+              const droneObj = suspectObjects[0];
+              droneObj.name = 'Quadcopter Drone';
+              droneObj.id = 'quadcopter_drone';
+              droneObj.shape = ShapeType.MODEL;
+              droneObj.modelUrl = '/models/drone_quadcopter.glb';
+              droneObj.rigidBodyType = RigidBodyType.KINEMATIC;
+              droneObj.scale = 1.0;
+              droneObj.mass = 2.5;
+              droneObj.spawnPosition = { x: 0, y: 3, z: 0 }; // Hovering height
+            } else {
+              console.warn('[GeminiService] AUTO-FIX: Adding missing drone to scene');
+              aiResponse.assetGroups.push({
+                id: 'quadcopter_drone',
+                name: 'Quadcopter Drone',
+                count: 1,
+                shape: ShapeType.MODEL,
+                modelUrl: '/models/drone_quadcopter.glb',
+                color: '#333333',
+                spawnMode: SpawnMode.GRID,
+                scale: 1.0,
+                rigidBodyType: RigidBodyType.KINEMATIC,
+                mass: 2.5,
+                restitution: 0.3,
+                friction: 0.4,
+                drag: 0.1,
+                spatialConstraint: { type: 'none' },
+                spawnPosition: { x: 0, y: 3, z: 0 }
+              } as AssetGroup);
+            }
+
+            // Ensure drone has hover behavior
+            if (!aiResponse.behaviors) aiResponse.behaviors = [];
+
+            const droneObj = aiResponse.assetGroups.find(g =>
+              g.modelUrl === '/models/drone_quadcopter.glb' ||
+              g.id === 'quadcopter_drone'
+            );
+
+            if (droneObj && !aiResponse.behaviors.some(b => b.targetObjectId === droneObj.id)) {
+              console.log('[GeminiService] AUTO-FIX: Adding hover behavior for drone');
+              aiResponse.behaviors.push({
+                id: 'drone_hover',
+                name: 'Hover Flight Pattern',
+                description: 'Quadcopter maintains stable hover with gentle position adjustments',
+                targetObjectId: droneObj.id,
+                loop: true,
+                actions: [
+                  {
+                    type: ActionType.MOVE_TO,
+                    duration: 3.0,
+                    position: { x: 0, y: 3, z: 0 }
+                  },
+                  {
+                    type: ActionType.WAIT,
+                    duration: 1.0
+                  },
+                  {
+                    type: ActionType.MOVE_TO,
+                    duration: 3.0,
+                    position: { x: 1, y: 3.5, z: 0.5 }
+                  },
+                  {
+                    type: ActionType.WAIT,
+                    duration: 1.0
+                  },
+                  {
+                    type: ActionType.MOVE_TO,
+                    duration: 3.0,
+                    position: { x: -1, y: 3.2, z: -0.5 }
+                  },
+                  {
+                    type: ActionType.WAIT,
+                    duration: 1.0
+                  }
+                ]
+              });
+            }
+          }
+        }
 
         // POST-PROCESSING #4: Validate and auto-fix behavior targetObjectId (P0 ANIMATION FIX)
         if (aiResponse.behaviors && aiResponse.behaviors.length > 0) {

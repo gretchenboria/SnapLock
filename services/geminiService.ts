@@ -944,11 +944,12 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
 
         aiResponse.assetGroups = aiResponse.assetGroups.map((group: AssetGroup) => {
           // Try to find a 3D model for this object
+          console.log(`[GeminiService] 🔍 Attempting to find model for: name="${group.name}", id="${group.id}", shape="${group.shape}"`);
           const modelInfo = findModelForObject(group.name, group.id);
 
           if (modelInfo) {
             // Found a 3D model! Use it instead of geometric primitive
-            console.log(`[GeminiService] [OK] Using 3D model for "${group.name}": ${modelInfo.modelUrl} (scale: ${modelInfo.scale})`);
+            console.log(`[GeminiService] ✅ [OK] Using 3D model for "${group.name}": ${modelInfo.modelUrl} (scale: ${modelInfo.scale})`);
 
             // Add domain randomization to material properties (±20%)
             const materialVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2

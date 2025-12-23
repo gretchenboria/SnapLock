@@ -211,13 +211,13 @@ async function generateFallbackScene(prompt: string): Promise<AnalysisResponse> 
       modelUrl: '/models/drone_quadcopter.glb',
       color: '#FFFFFF',  // WHITE for visibility (model has its own materials)
       spawnMode: SpawnMode.FLOAT,
-      scale: 1.5,  // Larger so it's visible
+      scale: 0.2,  // Scaled for 10MB high-detail model
       rigidBodyType: RigidBodyType.KINEMATIC,
       mass: 2.5,
       restitution: 0.4,
       friction: 0.3,
       drag: 0.05,
-      spawnPosition: { x: 0, y: 2.5, z: 0 }  // Lower, more centered
+      spawnPosition: { x: 0, y: 1.5, z: 0 }  // Hovering at visible height
     });
   }
 
@@ -1111,10 +1111,10 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
               droneObj.shape = ShapeType.MODEL;
               droneObj.modelUrl = '/models/drone_quadcopter.glb';
               droneObj.rigidBodyType = RigidBodyType.KINEMATIC;
-              droneObj.scale = 1.5;  // Larger for visibility
+              droneObj.scale = 0.2;  // Scaled for 10MB high-detail model
               droneObj.color = '#FFFFFF';  // White for visibility
               droneObj.mass = 2.5;
-              droneObj.spawnPosition = { x: 0, y: 2.5, z: 0 }; // Hovering height, centered
+              droneObj.spawnPosition = { x: 0, y: 1.5, z: 0 }; // Hovering height, centered
             } else {
               console.error('[GeminiService] 🚨 AUTO-FIX: NO SUSPECT OBJECTS - Adding drone from scratch');
               aiResponse.assetGroups.push({
@@ -1125,14 +1125,14 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                 modelUrl: '/models/drone_quadcopter.glb',
                 color: '#FFFFFF',  // WHITE for visibility
                 spawnMode: SpawnMode.GRID,
-                scale: 1.5,  // Larger scale for visibility
+                scale: 0.2,  // Scaled for 10MB high-detail model
                 rigidBodyType: RigidBodyType.KINEMATIC,
                 mass: 2.5,
                 restitution: 0.3,
                 friction: 0.4,
                 drag: 0.1,
                 spatialConstraint: { type: 'none' },
-                spawnPosition: { x: 0, y: 2.5, z: 0 }  // Lower for better framing
+                spawnPosition: { x: 0, y: 1.5, z: 0 }  // Hovering at visible height
               } as AssetGroup);
             }
 
@@ -1156,7 +1156,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                   {
                     type: ActionType.MOVE_TO,
                     duration: 8.0,  // SLOW movement - 8 seconds
-                    position: { x: 0, y: 2.5, z: 0 }  // Center position
+                    position: { x: 0, y: 1.5, z: 0 }  // Center position
                   },
                   {
                     type: ActionType.WAIT,
@@ -1165,7 +1165,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                   {
                     type: ActionType.MOVE_TO,
                     duration: 8.0,
-                    position: { x: 0.3, y: 2.7, z: 0.2 }  // Small movement - stay visible
+                    position: { x: 0.3, y: 1.7, z: 0.2 }  // Small movement - stay visible
                   },
                   {
                     type: ActionType.WAIT,
@@ -1174,7 +1174,7 @@ const analyzePhysicsPromptInternal = async (userPrompt: string): Promise<Analysi
                   {
                     type: ActionType.MOVE_TO,
                     duration: 8.0,
-                    position: { x: -0.3, y: 2.6, z: -0.2 }  // Small movement
+                    position: { x: -0.3, y: 1.6, z: -0.2 }  // Small movement
                   },
                   {
                     type: ActionType.WAIT,

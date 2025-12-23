@@ -729,16 +729,28 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
     if (animationEngineRef.current && physicsEngineRef.current) {
       const animTransforms = animationEngineRef.current.update(dt);
 
+      // Debug: Log animation state every 60 frames
+      if (frameCountRef.current % 60 === 0) {
+        const state = animationEngineRef.current.getState();
+        console.log(`[Animation] Frame ${frameCountRef.current}: isPlaying=${state.isPlaying}, activeBehaviors=${state.activeBehaviors.length}, transforms=${animTransforms.size}`);
+      }
+
       // Apply animation transforms to kinematic objects
       if (animTransforms.size > 0) {
         animTransforms.forEach((transform, objectId) => {
           physicsEngineRef.current!.updateKinematicFromAnimation(objectId, transform);
 
-          // Log progress occasionally
+          // Log each transform application
           if (frameCountRef.current % 60 === 0) {
-            console.log(`[Animation] ${objectId} → physics:`, transform.position);
+            console.log(`[Animation] Applying transform to ${objectId}:`, transform.position);
           }
         });
+      } else if (frameCountRef.current % 120 === 0) {
+        // Warn if no transforms but animations are supposed to be active
+        const state = animationEngineRef.current.getState();
+        if (state.isPlaying && state.activeBehaviors.length > 0) {
+          console.warn(`[Animation] No transforms generated despite active behaviors:`, state.activeBehaviors);
+        }
       }
     }
 

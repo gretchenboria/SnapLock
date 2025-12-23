@@ -35,7 +35,26 @@ const SimulationLayerV2 = forwardRef<SimulationLayerHandle, SimulationLayerProps
 }, ref) => {
   // Normalize params to support hybrid scene architecture
   // If scene is provided, convert it to assetGroups format
-  const params = useMemo(() => PhysicsEngine.normalizePhysicsParams(rawParams), [rawParams]);
+  const params = useMemo(() => {
+    const normalized = PhysicsEngine.normalizePhysicsParams(rawParams);
+
+    // NUCLEAR OVERRIDE: Force any drone/quadcopter to use real model, never primitives
+    normalized.assetGroups = normalized.assetGroups.map(group => {
+      const lowerName = (group.name || group.id || '').toLowerCase();
+      if (lowerName.includes('drone') || lowerName.includes('quadcopter') || lowerName.includes('uav')) {
+        console.error(`[SimulationLayerV2] 🚨 NUCLEAR OVERRIDE: Forcing drone model for "${group.name}"`);
+        return {
+          ...group,
+          shape: ShapeType.MODEL,
+          modelUrl: '/models/drone_quadcopter.glb',
+          scale: group.scale || 1.0
+        };
+      }
+      return group;
+    });
+
+    return normalized;
+  }, [rawParams]);
 
   const meshRefs = useRef<(THREE.InstancedMesh | null)[]>([]);
   const { camera, gl } = useThree();

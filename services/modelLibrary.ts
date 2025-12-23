@@ -441,10 +441,14 @@ export function findModelForObject(objectName: string, objectDescription?: strin
     }
   }
 
-  // Special handling for common objects with no available models
+  // NUCLEAR OVERRIDE: Force drone model for any quadcopter/drone/uav request
   const lowerName = objectName.toLowerCase();
   if (lowerName.includes('drone') || lowerName.includes('quadcopter') || lowerName.includes('uav')) {
-    console.log(`[ModelLibrary] ⚠️ No real drone model available for "${objectName}" - using geometric primitive (sphere for rotor body)`);
+    console.error(`[ModelLibrary] 🚨 NUCLEAR OVERRIDE: Forcing drone model for "${objectName}"`);
+    return {
+      modelUrl: '/models/drone_quadcopter.glb',
+      scale: 1.0
+    };
   } else if (lowerName.includes('aircraft') || lowerName.includes('plane')) {
     console.log(`[ModelLibrary] ⚠️ No aircraft model available for "${objectName}" - using geometric primitive`);
   } else {
